@@ -1,0 +1,227 @@
+﻿
+>     <modal>
+          <div class="modal modal-js" style="display: none;">
+              <div class="modal__overlay modal-overlay-js">           
+          
+                  <div class="modal__body modal__body-js">
+  
+                      <!-- Modal Search -->
+                      <div class="grid">
+                          <div class="row">
+                              <div class="Modal-Search Modal-Search-js">
+                                  <ul class="search-list">
+                                      <li class="search-item">
+                                          <input type="text" id="search-input" class="Search-input" placeholder="Báº¡n 
+muá»‘n tÃ¬m gÃ¬?">
+                                          <label for="search-input" class="search-item-icon">
+                                              <i class="search-icon fa-solid fa-magnifying-glass"></i> 
+                                          </label>
+                                      </li>
+                                      <p class="exit-btn exit-btn-js">
+                                          <i class="exit-icon fa-solid fa-x"></i>
+                                      </p>
+                                  </ul>
+                                      
+                              </div> 
+                          </div>
+                      </div>
+  
+                      <!-- modal addCart -->
+                      <div class="grid">
+                          <div class="row">
+                              <div class="addCart addCart-js">
+                                  <ul class="addCart-list addCart-list-js">
+                                      <li class="addCart-item">
+                                          <div class="addCart-item__title">
+                                              <i class="addCart-item__title-check-icon fa-regular fa-circle-check"></i>
+                                              ThÃªm vÃ o giá» hÃ ng thÃ nh cÃ´ng
+                                          </div>
+                                          <div class="addCart-item__exit addCart-item__exit-js">
+                                              <i class="addCart-item__exit-icon fa-solid fa-xmark"></i>
+                                          </div>
+                                      </li>
+                                      <li class="addCart-item">
+                                          <div class="addCart-item__img-block">
+                                              <img id="largeImageaddCart" src="../Assets/IMG/productSale_1.webp" 
+alt="" class="addCart-item__img">
+                                          </div>
+                                          <div class="addCart-item__des-product">
+                                              <div class="addCart-item__name">BÃ¡nh Sá»«ng BÃ² Mini</div>
+                                              <div class="addCart-item__price">36.000â‚«</div>
+                                          </div>
+                                      </li>
+                                      <li class="addCart-item">
+                                          <div class="addCart-item__des addCart-item__des-js">
+                                              <a href="addCart-item__des-link">
+                                                  Giá» hÃng cá»§a báº¡n hiá»‡n cÃ³ <span class="highligh">3</span> 
+sáº£n pháº©m</div>
+                                              </a>
+                                          <div class="addCart-item__btn">
+                                              <div class="addCart-item__continueBuy">
+                                                  Tiáº¿p tá»¥c mua hÃ ng
+                                              </div>
+                                              <div class="addCart-item__payNow">
+                                                  <a href="" class="addCart-item__payNow-link">
+                                                      Thanh toÃ¡n ngay
+                                                  </a>
+                                              </div>
+                                          </div>
+                                      </li>
+                                  </ul>
+                              </div>
+                          </div>
+                      </div>
+  
+                      <!-- modal searchInfor -->
+                      <div class="grid">
+                          <div class="row">
+                              <div class="searchInfor searchInfor-js">
+                                  <ul class="searchInfor-list searchInfor-list-js">
+                                      <li class="searchInfor-item">
+                                          <div class="searchInfor-item__IMG">
+                                                  <img id="largeImage" src="../Assets/IMG/productSale_1.webp" alt="" 
+class="searchInfor-img  ">
+                                                  <ul class="searchInfor-item__IMG-option">
+                                                      <li class="searchInfor-item__IMG-option-item">
+                                                          <img src="../Assets/IMG/productSale_1.webp" alt="" 
+class="searchInfor-item__IMG-option-item-img searchInfor-item__IMG-option-item-img-js" onclick="changeImage(this.src)">
+                                                      </li>
+                                                      <li class="searchInfor-item__IMG-option-item">
+                                                          <img src="../Assets/IMG/productInfor0.webp" alt="" 
+class="searchInfor-item__IMG-option-item-img searchInfor-item__IMG-option-item-img1-js" 
+onclick="changeImage(this.src)">
+                                                      </li>
+                                                  </ul>
+                                          </div>
+                                      </li>
+                                      <li class="searchInfor-item">
+                                          <ul class="searchInfor-list__level2">
+                                              <li class="searchInfor-item__level2">
+                                                  <div class="searchInfor-item__name searchInfor-item__name-js">BÃ¡nh 
+Sá»«ng BÃ² Mini</div>
+                                              </li>
+                                              <li class="searchInfor-item__level2">
+                                                  <div class="searchInfor-item__productStatus">
+                                                      TÃ¬nh tráº¡ng: <span 
+class="searchInfor-item__productStatus-title">CÃ²n hÃng</span>
+                                                  </div>
+                                                  <div class="searchInfor-item__productCode">
+                                                      MÃ£ sáº£n pháº©m: <span 
+class="searchInfor-item__productCode-title">Äang cáºp nháºt</span>
+                                                  </div>
+                                              </li>
+                                              <li class="searchInfor-item__level2">
+                                                  <div class="searchInfor-item__priceSale 
+searchInfor-item__priceSale-js">36.000â‚«</div>
+                                                  <div class="searchInfor-item__priceOriginal 
+searchInfor-item__priceOriginal-js">40.000â‚«</div>
+                                              </li>
+                                              <li class="searchInfor-item__level2">
+                                                  <div class="searchInfor-item__productInfor">ThÃ´ng tin sáº£n pháº©m 
+Ä‘ang cáºp nháºt</div>
+                                              </li>
+                                              <li class="searchInfor-item__level2">
+                                                  <div class="searchInfor-item__productQuantity">
+                                                      <span class="searchInfor-item__productQuantity-number">Sá»‘ 
+lÆ°á»£ng:</span>
+                                                      <ul class="CustomizeQuantity">
+                                                          <li class="CustomizeQuantity-remove 
+CustomizeQuantity-remove-js">
+                                                              <i class="CustomizeQuantity-icon fa-solid fa-minus"></i>
+                                                          </li>
+                                                          <li class="CustomizeQuantity-number 
+CustomizeQuantity-number-js">1</li>
+                                                          <li class="CustomizeQuantity-add CustomizeQuantity-add-js">
+                                                              <i class="CustomizeQuantity-icon fa-solid fa-plus"></i>
+                                                          </li>
+                                                      </ul>
+                                                  </div>
+                                              </li>
+                                              <li class="searchInfor-item__level2">
+                                                  <div class="searchInfor-item__addCartBtn 
+searchInfor-item__addCartBtn-js">ThÃªm VÃo Giá» HÃng</div>
+                                              </li>
+                                              <span class="searchInfor-list__level2-exit 
+searchInfor-list__level2-exit-js">
+                                                  <i class="searchInfor-list__level2-exit-icon fa-solid fa-x"></i>
+                                              </span>
+                                          </ul>
+                                      </li>
+                                  </ul>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+  
+                      <!-- modal menu mobile -->
+                  <div class="grid">
+                      <div class="row" >
+                          <div class="Modal-MenuMobile-block Modal-MenuMobile-block-js" style="flex-direction: 
+column;">
+                                      <div class="Modal-MenuMobile-block__header">
+                                          <div>
+                                              <a href=" register.html">ÄÄƒng kÃ½</a>
+                                          </div>
+                                          <div>
+                                              <a href=" Login.html">ÄÄƒng nháº­p</a>
+                                          </div>
+                                          <div>
+                                              <a href="">Menu chÃ­nh</a>
+                                          </div>
+                                      </div>
+                                      <div class="Modal-MenuMobile-block__content" style="padding: 0 8px;">
+                                          <ul class="Modal-MenuMobile-block__content-list" style="border-bottom: 1px 
+solid var(--primary-color);">
+                                              <li class="Modal-MenuMobile-block__content-item">
+                                                  <a href=" Trang-Chu.html" 
+class="Modal-MenuMobile-block__content-item-link">Trang chá»§</a>
+                                              </li>
+                                              <li class="Modal-MenuMobile-block__content-item">
+                                                  <a href=" Gioi-thieu.html" 
+class="Modal-MenuMobile-block__content-item-link">Giá»›i thiá»‡u</a>
+                                              </li>
+                                              <li class="Modal-MenuMobile-block__content-item">
+                                                  <a href=" San-Pham.html" 
+class="Modal-MenuMobile-block__content-item-link">Sáº£n pháº©m</a>
+                                              </li>
+                                              <li class="Modal-MenuMobile-block__content-item">
+                                                  <a href=" Tin-tuc.html" 
+class="Modal-MenuMobile-block__content-item-link">Tin tá»©c</a>
+                                              </li>
+                                              <li class="Modal-MenuMobile-block__content-item">
+                                                  <a href=" Lien-he.html" 
+class="Modal-MenuMobile-block__content-item-link">LiÃªn há»‡</a>
+                                              </li>
+                                              <li class="Modal-MenuMobile-block__content-item">
+                                                  <a href="#" class="Modal-MenuMobile-block__content-item-link">Há»‡ 
+thá»‘ng cá»a hÃng</a>
+                                              </li>
+                                              <li class="Modal-MenuMobile-block__content-item">
+                                                  <a href=" Cau-hoi-thuong-gap.html" 
+class="Modal-MenuMobile-block__content-item-link">CÃ¢u há»i thÆ°á»ng gáº·p</a>
+                                              </li>
+                                          </ul>
+                                          <ul class="Modal-MenuMobile-block__content-list">
+                                              <li class="Modal-MenuMobile-block__content-item">
+                                                  <a href=" Yeu-Thich.html" 
+class="Modal-MenuMobile-block__content-item-link">Sáº£n pháº©m yÃªu thÃch</a>
+                                              </li>
+                                              <li class="Modal-MenuMobile-block__content-item">
+                                                  <a href=" Cart.html" 
+class="Modal-MenuMobile-block__content-item-link">Danh sÃ¡ch giá» hÃng</a>
+                                              </li>
+                                          </ul>
+                                      </div>
+                          </div>
+                          
+                      </div>
+                  </div>
+              </div>
+         </div>
+      </modal>
+      <script src="../Assets/JS/main.js"></script>
+      
+  </body>
+  </html>
+
+

@@ -1,0 +1,454 @@
+/* footer Start */
+.footer {
+    width: 100%;
+    overflow: hidden;
+}
+
+.footer-background {
+    width: 100%;
+    height: 380px;
+    background-color: #f3e7cd;
+    display: flex;
+    flex-direction: column;
+}
+
+.footer-content {
+    flex: 1;
+    width: 100%;
+    padding: 30px 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.footer-content-list {
+    display: flex;
+    list-style: none;
+    width: 100%;
+    height: 100%;
+}
+
+.footer-content-item {
+    height: 100%;
+    width: 100%;
+    display: flex !important;
+    flex-direction: column;
+}
+
+.footer-content-item:first-child {
+    gap: 14px;
+}
+
+.footer-content-item__img {
+    height: 100px;
+    width: 100px;
+}
+
+.logoft {
+    width: 100%;
+    height: 100%;
+}
+
+.footer-content-item_text{
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+.footer-content-item__pay {
+    text-transform: uppercase;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.footer-content-item__pay-img {
+    display: flex;
+    gap: 16px;
+}
+
+.payImg {
+    width: 50px;
+    height: 30px;
+}
+
+.footer-content-item:nth-child(2) {
+    gap: 4px;
+}
+
+.footer-content-item:nth-child(4) > h4,
+.footer-content-item:nth-child(4) > h3,
+.footer-content-item:nth-child(3) > h4,
+.footer-content-item:nth-child(3) > h3,
+.footer-content-item:nth-child(2) > h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+
+.footer-content-item:nth-child(2) > p {
+    font-size: 1.4rem;
+    height: 20px;
+    line-height: 20px;
+    margin-bottom: 4px;
+}
+
+.footer-content-item:nth-child(2) > p:hover {
+    color: var(--primary-color);
+}
+
+.footer-content-item:nth-child(3) > p {
+    font-size: 1.2rem;
+}
+
+.footer-content-item:nth-child(3) {
+    gap: 8px;
+}
+
+.footer-content-item:nth-child(4) > h4,
+.footer-content-item:nth-child(3) h4{
+    margin-top: 10px;
+}
+
+.footer-content-item:nth-child(3) span {
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: var(--primary-color);
+}
+
+.footer-content-item:nth-child(3) > p:hover {
+    color: var(--primary-color);
+}
+
+.img-pay-list {
+    list-style: none;
+    display: flex;
+    width: 100%;
+    height: 20px;
+    gap: 10px;
+}
+
+.img-pay-item {
+    height: 30px;
+    width: 30px;
+}
+
+.img-pay-item-shopee,
+.img-pay-item-lazada,
+.img-pay-item-tiki,
+.img-pay-item-sendo {
+    height: 100%;
+    width: 100%;
+}
+
+.footer-content-item:nth-child(4) > h5 {
+    margin: 6px 0;
+}
+
+
+.footer-content-item:nth-child(4) span {
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.footer-content-item:nth-child(4) p {
+    font-size: 1.15rem;
+    font-weight: 300;
+    margin-bottom: 4px;
+}
+
+.footer-content-item:nth-child(4) h5 a {
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+
+.img-socials-list {
+    list-style: none;
+    display: flex;
+    width: 100%;
+    height: 20px;
+    gap: 10px;
+}
+
+.img-socials-item {
+    height: 30px;
+    width: 30px;
+}
+
+.img-socials-item-zalo,
+.img-socials-item-facebook,
+.img-socials-item-youtube,
+.img-socials-item-google {
+    height: 100%;
+    width: 100%;
+}
+
+.footer-footer {
+    width: 100%;
+    height: 50px;
+    text-align: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--primary-color);
+}
+
+.footer-footer span  {
+    font-size: 1.4rem;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.footer-footer p {
+    margin: 0;
+    font-weight: 600;
+}
+
+.footer-footer a {
+    color: #000;
+    text-decoration: none;
+}
+
+.footer-footer a:hover {
+    color: var(--primary-color);
+}
+/* footer End */
+
+/* GioiThieu Start*/
+.header-allProduct,
+.header-TinTuc,
+.header-gioiThieu {
+    position: relative;
+    overflow: hidden;
+    height: 300px;
+}
+
+.radient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8)), url("/HTML&CSS/DuAn_WebBanBanh/assets/IMG/breadcrumb.jpg");
+    background-size: cover;
+    background-position: center;
+}
+
+.header-allProduct-img,
+.header-TinTuc-img,
+.header-gioiThieu-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;  
+}
+
+.header-TinTuc-block,
+.header-gioiThieu-block {
+    text-align: center;
+    width: 100%;
+    transform: translateY(160px);
+}
+
+.header-TinTuc-block h3,
+.header-gioiThieu-block h3 {
+    font-size: 4rem;
+    height: 60px;
+    line-height: 40px;
+    color: var(--primary-color);
+    font-family: 'Playball', cursive;
+    font-weight: 800;
+}
+
+.header-TinTuc-block ul,
+.header-gioiThieu-block ul {
+    display: flex;
+    justify-content: center;
+    list-style: none;
+    gap: 6px;
+}
+
+.header-TinTuc-block li,
+.header-gioiThieu-block li {
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    font-weight: 300;
+}
+
+.header-TinTuc-block li a,
+.header-gioiThieu-block li a {
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 300;
+    text-decoration: none;
+}
+
+.header-TinTuc-block li a:hover,
+.header-gioiThieu-block li a:hover {
+    color: var(--primary-color);
+}
+
+.header-TinTuc-block li i,
+.header-gioiThieu-block li i {
+    font-size: 1rem;
+    color: #fff;
+    
+}
+
+.content-gioiThieu {
+    width: 100%;
+    overflow: hidden;
+}
+
+.content-gioiThieu-background {
+    width: 100%;
+}
+
+.title-gioiThieu {
+    font-size: 3rem;
+    font-weight: 500;
+    height: 56px;
+    line-height: 56px;
+    margin-bottom: 8px;
+}
+
+.title-gioiThieu a {
+    color: #000;
+    text-decoration: none;
+}
+
+.title-gioiThieu a:hover {
+    color: var(--primary-color);
+}
+
+.content-gioiThieu-background p {
+    font-size: 1.4rem;
+    font-weight: 300;
+    display: block;
+    margin-bottom: 16px;
+}
+/* GioiThieu End*/
+
+/* SanPham */
+/* TinTuc */
+/* LienHe */
+/* HeThongCuaHang */
+/* CauHoiThuongGap */
+.header-question {
+    position: relative;
+    overflow: hidden;
+    height: 300px;
+}
+
+.radient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8)), url("/HTML&CSS/DuAn_WebBanBanh/assets/IMG/breadcrumb.jpg");
+    background-size: cover;
+    background-position: center;
+}
+
+.header-question-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;  
+}
+
+.header-question-block {
+    text-align: center;
+    width: 100%;
+    transform: translateY(160px);
+}
+
+.header-question-block h3 {
+    font-size: 3rem;
+    height: 60px;
+    line-height: 40px;
+    color: var(--primary-color);
+    text-transform: uppercase;
+}
+
+.header-question-block ul {
+    display: flex;
+    justify-content: center;
+    list-style: none;
+    gap: 6px;
+}
+
+.header-question-block li {
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    font-weight: 300;
+}
+
+.header-question-block li a {
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 300;
+    text-decoration: none;
+}
+
+.header-question-block li a:hover {
+    color: var(--primary-color);
+}
+
+.header-question-block li i {
+    font-size: 1rem;
+    color: #fff;
+    
+}
+
+
+.content-question {
+    width: 100%;
+    overflow: hidden;
+}
+
+.content-question-background {
+    width: 100%;
+}
+
+.title-question {
+    font-size: 3rem;
+    font-weight: 500;
+    height: 56px;
+    line-height: 56px;
+    margin-bottom: 8px;
+}
+
+.title-question a {
+    color: #000;
+    text-decoration: none;
+}
+
+.title-question a:hover {
+    color: var(--primary-color);
+}
+
+.content-question-background p {
+    font-size: 1.4rem;
+    font-weight: 300;
+    display: block;
+    margin-bottom: 16px;
+}
