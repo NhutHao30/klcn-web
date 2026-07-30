@@ -541,8 +541,22 @@ const Modal = () => {
                                                     </ul>
                                                 </div>
                                             </li>
-                                            <li className="searchInfor-item__level2">
-                                                <div className="searchInfor-item__addCartBtn searchInfor-item__addCartBtn-js">Thêm Vào Giỏ Hàng</div>
+                                            <li className="searchInfor-item__level2" style={{ display: 'flex', gap: '10px' }}>
+                                                <div className="searchInfor-item__addCartBtn searchInfor-item__addCartBtn-js" style={{ flex: 1 }}>Thêm Vào Giỏ Hàng</div>
+                                                <div 
+                                                    className="searchInfor-item__viewReviewBtn searchInfor-item__viewReviewBtn-js" 
+                                                    style={{ flex: 1, backgroundColor: '#f39c12', color: '#fff', textAlign: 'center', lineHeight: '45px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', borderRadius: '4px' }}
+                                                    onClick={() => {
+                                                        const modalSearchInfo = document.querySelector('.searchInfor-list-js');
+                                                        const masp = modalSearchInfo?.dataset?.masp;
+                                                        if (masp) {
+                                                            navigate(`/san-pham/${masp}`);
+                                                            document.querySelector('.modal-js').style.display = 'none';
+                                                        }
+                                                    }}
+                                                >
+                                                    Xem đánh giá
+                                                </div>
                                             </li>
                                             <span className="searchInfor-list__level2-exit searchInfor-list__level2-exit-js">
                                                 <i className="searchInfor-list__level2-exit-icon fa-solid fa-x"></i>

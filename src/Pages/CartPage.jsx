@@ -40,7 +40,17 @@ const CartPage = () => {
     const [addressDetail, setAddressDetail] = useState("");
     const [shippingFee, setShippingFee] = useState(0);
 
+    // Voucher States
+    const [voucherInput, setVoucherInput] = useState("");
+    const [appliedVoucherCode, setAppliedVoucherCode] = useState("");
+    const [voucherDiscount, setVoucherDiscount] = useState(0);
+    const [voucherMessage, setVoucherMessage] = useState("");
+    const [voucherError, setVoucherError] = useState("");
+    
+    const [isLoadingCart, setIsLoadingCart] = useState(true);
+
     const loadCart = async () => {
+        setIsLoadingCart(true);
         try {
             const data = await getCart();
             const items = Array.isArray(data) ? data : (data?.items || []);
@@ -55,6 +65,8 @@ const CartPage = () => {
                 console.error("Lỗi load cart:", e);
                 setCartItems([]);
             }
+        } finally {
+            setIsLoadingCart(false);
         }
     };
 
@@ -157,6 +169,30 @@ const CartPage = () => {
         }
     };
 
+    const handleApplyVoucher = async () => {
+        setVoucherMessage("");
+        setVoucherError("");
+        if (!voucherInput.trim()) return;
+
+        try {
+            const m = await import('../services/axiosClient.js');
+            const res = await m.default.post('/vouchers/apply', {
+                voucher_code: voucherInput.toUpperCase(),
+                subtotal: total
+            });
+            
+            if (res.data) {
+                setVoucherMessage(res.data.message || `Đã áp dụng: ${res.data.voucher_name}`);
+                setAppliedVoucherCode(res.data.voucher_code);
+                setVoucherDiscount(res.data.discount_amount);
+            }
+        } catch (e) {
+            setVoucherError(e.response?.data?.error || "Lỗi áp dụng voucher");
+            setAppliedVoucherCode("");
+            setVoucherDiscount(0);
+        }
+    };
+
     const handleCheckout = async () => {
         if (cartItems.length === 0) {
             alert("Giỏ hàng của bạn đang trống!");
@@ -181,13 +217,14 @@ const CartPage = () => {
                 }
 
                 await checkout({ 
-                    note: "Khách tự đặt Online. ", 
+                    mahd: mahd,
                     paymentMethod: paymentMethod,
                     address: fullAddress,
+                    note: "Khách tự đặt Online. ",
+                    shippingFee: shippingFee,
                     to_ward_code: selectedWard,
                     to_district_id: selectedDistrict,
-                    shippingFee: shippingFee,
-                    mahd: mahd
+                    voucher_code: appliedVoucherCode
                 });
                 
                 if (paymentMethod === 'COD') {
@@ -297,12 +334,17 @@ const CartPage = () => {
                                         );
                                     })}
 
-                                    {cartItems.length === 0 && (
+                                    {isLoadingCart ? (
+                                        <div style={{ textAlign: "center", padding: "50px", fontSize: "16px", color: "#888" }}>
+                                            <i className="fa fa-spinner fa-spin" style={{ fontSize: "40px", color: "var(--primary-color)", marginBottom: "15px", display: "block" }}></i>
+                                            Đang tải dữ liệu...
+                                        </div>
+                                    ) : cartItems.length === 0 ? (
                                         <div style={{ textAlign: "center", padding: "50px", fontSize: "16px", color: "#888" }}>
                                             <i className="fa-solid fa-cart-shopping" style={{ fontSize: "48px", marginBottom: "15px", display: "block", color: "#ccc" }}></i>
                                             Chưa có sản phẩm nào trong giỏ hàng.
                                         </div>
-                                    )}
+                                    ) : null}
                                 </div>
 
                                 {/* Tổng tiền + thanh toán */}
@@ -328,16 +370,45 @@ const CartPage = () => {
                                         </div>
 
                                         <div style={{ borderTop: "2px dashed #ccc", marginTop: "20px", paddingTop: "20px", textAlign: "right" }}>
+                                            {/* Voucher Input */}
+                                            <div className="voucher-section mb-3" style={{ textAlign: "left", marginBottom: "15px" }}>
+                                                <label style={{fontWeight: 'bold', marginBottom: '5px', display: 'block'}}>Mã giảm giá</label>
+                                                <div style={{display: 'flex', gap: '10px'}}>
+                                                    <input 
+                                                        type="text" 
+                                                        className="form-control" 
+                                                        placeholder="Nhập mã voucher..." 
+                                                        value={voucherInput}
+                                                        onChange={(e) => setVoucherInput(e.target.value)}
+                                                        style={{textTransform: 'uppercase', padding: "10px", borderRadius: "5px", border: "1px solid #ccc", flex: 1}}
+                                                    />
+                                                    <button 
+                                                        className="btn" 
+                                                        style={{backgroundColor: '#17a2b8', color: '#fff', padding: "10px 20px", border: "none", borderRadius: "5px", cursor: "pointer"}}
+                                                        onClick={handleApplyVoucher}
+                                                    >
+                                                        Áp dụng
+                                                    </button>
+                                                </div>
+                                                {voucherMessage && <div style={{color: 'green', fontSize: '14px', marginTop: '5px'}}><i className="fa-solid fa-circle-check"></i> {voucherMessage}</div>}
+                                                {voucherError && <div style={{color: 'red', fontSize: '14px', marginTop: '5px'}}><i className="fa-solid fa-circle-exclamation"></i> {voucherError}</div>}
+                                            </div>
+
                                             <p style={{ fontSize: "16px", marginBottom: "5px", marginRight: "10px", color: "#666" }}>
                                                 Tạm tính: {total.toLocaleString('vi-VN')}₫
                                             </p>
                                             <p style={{ fontSize: "16px", marginBottom: "15px", marginRight: "10px", color: "#666" }}>
                                                 Phí vận chuyển: {shippingFee > 0 ? shippingFee.toLocaleString('vi-VN') + "₫" : "Đang tính..."}
                                             </p>
+                                            {appliedVoucherCode && (
+                                                <p style={{ fontSize: "16px", marginBottom: "15px", marginRight: "10px", color: '#e74c3c', fontWeight: 'bold' }}>
+                                                    Voucher giảm giá: - {voucherDiscount.toLocaleString('vi-VN')}₫
+                                                </p>
+                                            )}
                                             <p style={{ fontSize: "18px", marginBottom: "15px", marginRight: "10px", }}>
                                                 <b>Tổng thanh toán:</b>
                                                 <span style={{ marginLeft: "12px", color: "var(--primary-color)", fontSize: "24px", fontWeight: "bold" }}>
-                                                    {(total + shippingFee).toLocaleString('vi-VN')}₫
+                                                    {((total + shippingFee) - voucherDiscount).toLocaleString('vi-VN')}₫
                                                 </span>
                                             </p>
 

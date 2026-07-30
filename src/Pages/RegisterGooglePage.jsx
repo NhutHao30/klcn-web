@@ -13,7 +13,15 @@ const RegisterGooglePage = () => {
     useEffect(() => {
         const checkStatus = async () => {
             try {
-                const res = await getGoogleStatus();
+                const params = new URLSearchParams(window.location.search);
+                const googleId = params.get("google_id");
+                
+                if (!googleId) {
+                    navigate("/dang-nhap");
+                    return;
+                }
+
+                const res = await getGoogleStatus(googleId);
                 // Nếu status là success tức là tài khoản đã có, tự động chuyển về trang chủ hoặc báo lỗi
                 if (res.status === "success") {
                     navigate("/?google=true");
@@ -39,7 +47,13 @@ const RegisterGooglePage = () => {
         }
 
         try {
-            const res = await googleRegister(sdt, gioiTinh);
+            const params = new URLSearchParams(window.location.search);
+            const googleId = params.get("google_id");
+            
+            const res = await googleRegister(sdt, gioiTinh, googleId);
+            if (res.access_token) {
+                localStorage.setItem("access_token", res.access_token);
+            }
             alert(res.message || "Đăng ký thành công!");
             window.location.href = "/?google=true";
         } catch (e) {

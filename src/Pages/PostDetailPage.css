@@ -1,0 +1,104 @@
+/* Post Detail Specific Styles */
+.post-detail-container {
+    background: #fff;
+    padding: 20px 0;
+}
+.post-detail-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+.post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    color: #666;
+    font-size: 14px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+.post-meta span i {
+    color: #f7a840;
+    margin-right: 5px;
+}
+.post-content {
+    font-size: 16px;
+    line-height: 1.8;
+    color: #444;
+}
+.post-content p {
+    margin-bottom: 15px;
+}
+.post-paragraph img {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Comments Section */
+.comments-section {
+    border-top: 2px solid #eee;
+    padding-top: 40px;
+}
+.comments-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+.comment-form .form-control {
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    padding: 10px 15px;
+}
+.comment-form .form-control:focus {
+    border-color: #f7a840;
+    box-shadow: 0 0 0 0.2rem rgba(247, 168, 64, 0.25);
+}
+.comment-form .btn-primary {
+    background-color: #f7a840;
+    border-color: #f7a840;
+    font-weight: 600;
+    padding: 10px 25px;
+    border-radius: 4px;
+}
+.comment-form .btn-primary:hover {
+    background-color: #e6952d;
+    border-color: #e6952d;
+}
+
+.comments-list h4 {
+    font-size: 18px;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+.comment-item {
+    border-color: #eee !important;
+}
+.comment-avatar img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+}
+.comment-body h6 {
+    color: #333;
+}
+.comment-body p {
+    color: #555;
+    font-size: 15px;
+}
+.reply-btn {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f7a840 !important;
+    transition: color 0.2s ease;
+}
+.reply-btn:hover {
+    color: #d88924 !important;
+    text-decoration: underline !important;
+}
+.reply-form textarea:focus {
+    border-color: #f7a840;
+    box-shadow: 0 0 0 0.2rem rgba(247, 168, 64, 0.25);
+}

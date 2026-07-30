@@ -57,12 +57,24 @@ function ProductPage() {
           const price = p.giaban || p.GIABAN || 0;
           const image = p.hinhanh || p.HINHANH || "../../assets/IMG/productnew2.webp";
           const category = p.loaisp || p.LOAISP || "";
+          const isNew = p.is_new || p.IS_NEW || false;
+          const discountPercent = parseInt(p.phan_tram_giam || p.PHAN_TRAM_GIAM || 0);
+
+          let finalPrice = price;
+          let originalPriceStr = "";
+          
+          if (discountPercent > 0) {
+            finalPrice = price - (price * discountPercent / 100);
+            originalPriceStr = price.toLocaleString('vi-VN') + "₫";
+          }
 
           return {
             maSP: maSP,
             Name: name,
-            priceOriginal: "",
-            priceSale: price.toLocaleString('vi-VN') + "₫",
+            priceOriginal: originalPriceStr,
+            priceSale: finalPrice.toLocaleString('vi-VN') + "₫",
+            isNew: isNew,
+            discountPercent: discountPercent,
             Image: image.startsWith("http")
               ? image
               : `../../assets/IMG/${image.split('/').pop()}`,
@@ -424,10 +436,17 @@ function ProductPage() {
                           <div className="product-sale-item__img product-sale-item__img-js" style={{ width: "100%" }}>
                             <img src={product.Image} alt="" className=" product-sale_img product-sale_img-js" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
                             <ul className="product-bestSale-tag-list">
-                              <li className="product-bestSale-tag-item">
-                                -20%
-                              </li>
-                              <li className="product-bestSale-tag-item product-bestSale__tag-icon--noLike-js">
+                              {product.discountPercent > 0 && (
+                                <li className="product-bestSale-tag-item" style={{backgroundColor: '#e74c3c', padding: '4px 8px', borderRadius: '4px', marginBottom: '5px', width: 'max-content'}}>
+                                  - {product.discountPercent}%
+                                </li>
+                              )}
+                              {product.isNew && (
+                                <li className="product-bestSale-tag-item" style={{backgroundColor: '#f39c12', padding: '4px 8px', borderRadius: '4px', clear: 'both'}}>
+                                  New
+                                </li>
+                              )}
+                              <li className="product-bestSale-tag-item product-bestSale__tag-icon--noLike-js" style={{marginTop: '5px', clear: 'both', backgroundColor: 'transparent'}}>
                                 <i className="product-bestSale__tag-icon--noLike fa-regular fa-heart"></i>
                               </li>
                               <li className="product-bestSale-tag-item product-bestSale__tag-icon--Like-js">
@@ -448,8 +467,10 @@ function ProductPage() {
                               {product.Name}
                             </div>
                             <ul className="product-sale__price">
-                              <li className="product-sale__price-sale product-sale__price-sale-js">{product.priceSale}</li>
-                              <li className="product-sale__price-original product-sale__price-original-js">{product.priceOriginal}</li>
+                              <li className="product-sale__price-sale product-sale__price-sale-js" style={{color: '#d35400', fontWeight: 'bold'}}>{product.priceSale}</li>
+                              {product.priceOriginal && (
+                                <li className="product-sale__price-original product-sale__price-original-js" style={{textDecoration: 'line-through', color: '#7f8c8d', fontSize: '0.9em', marginLeft: '10px'}}>{product.priceOriginal}</li>
+                              )}
                             </ul>
                           </div>
                         </li>

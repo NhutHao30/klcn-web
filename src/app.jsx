@@ -9,6 +9,7 @@ import { getCurrentUser } from "./services/authService";
 const HomePage = lazy(() => import("./Pages/HomePage"));
 const AboutPage = lazy(() => import("./Pages/AboutPage"));
 const ProductPage = lazy(() => import("./Pages/Productpage"));
+const ProductDetailPage = lazy(() => import("./Pages/ProductDetailPage"));
 const PostPage = lazy(() => import("./Pages/PostPage"));
 const ContactPage = lazy(() => import("./Pages/ContactPage"));
 const FAQPage = lazy(() => import("./Pages/FAQPage"));
@@ -19,6 +20,8 @@ const LoginPage = lazy(() => import("./Pages/LoginPage"));
 const RegisterPage = lazy(() => import("./Pages/RegisterPage"));
 const RegisterGooglePage = lazy(() => import("./Pages/RegisterGooglePage"));
 const MyOrdersPage = lazy(() => import("./Pages/MyOrdersPage"));
+const ProfilePage = lazy(() => import("./Pages/ProfilePage"));
+const PostDetailPage = lazy(() => import("./Pages/PostDetailPage"));
 
 // Lazy load Admin Pages
 const AdminProductPage = lazy(() => import("./Pages/Admin/AdminProductPage"));
@@ -30,9 +33,11 @@ const AdminPOSPage = lazy(() => import("./Pages/Admin/AdminPOSPage"));
 const AdminReportPage = lazy(() => import("./Pages/Admin/AdminReportPage"));
 const AdminChatPage = lazy(() => import("./Pages/Admin/AdminChatPage"));
 const AdminInternalChatPage = lazy(() => import("./Pages/Admin/AdminInternalChatPage"));
-
 const AdminStorePage = lazy(() => import("./Pages/Admin/AdminStorePage"));
 const AdminNhatKyPage = lazy(() => import("./Pages/Admin/AdminNhatKyPage"));
+const AdminProfilePage = lazy(() => import("./Pages/Admin/AdminProfilePage"));
+const AdminVoucherPage = lazy(() => import("./Pages/Admin/AdminVoucherPage"));
+const AdminNewsPage = lazy(() => import("./Pages/Admin/AdminNewsPage"));
 
 // Tạo hiệu ứng Loading nhẹ khi đang tải file JS
 const LoadingFallback = () => (
@@ -64,7 +69,20 @@ function App() {
   const [currentUser, setCurrentUser] = React.useState(null);
 
   React.useEffect(() => {
-    getCurrentUser().then(user => setCurrentUser(user));
+    // Kiem tra URL xem co tra ve token tu Google khong
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+        localStorage.setItem("access_token", token);
+        // Xoa token khoi URL cho dep
+        window.history.replaceState({}, document.title, window.location.pathname + "?google=true");
+    }
+
+    getCurrentUser().then(user => setCurrentUser(user)).catch(() => setCurrentUser(null));
+    
+    if (params.get("google") === "true") {
+        setTimeout(() => alert("Đăng nhập bằng Google thành công!"), 500);
+    }
   }, []);
 
   return (
@@ -76,7 +94,9 @@ function App() {
         <Route path="/trang-chu" element={<HomePage />} />
         <Route path="/gioi-thieu" element={<AboutPage />} />
         <Route path="/san-pham" element={<ProductPage />} />
+        <Route path="/san-pham/:id" element={<ProductDetailPage />} />
         <Route path="/tin-tuc" element={<PostPage />} />
+        <Route path="/tin-tuc/:id" element={<PostDetailPage />} />
         <Route path="/lien-he" element={<ContactPage />} />
         <Route path="/Cau-hoi-thuong-gap" element={<FAQPage />} />
         <Route path="/he-thong-cua-hang" element={<StorePage />} />
@@ -86,6 +106,7 @@ function App() {
         <Route path="/dang-ky" element={<RegisterPage />} />
         <Route path="/dang-ky-google" element={<RegisterGooglePage />} />
         <Route path="/my-orders" element={<MyOrdersPage />} />
+        <Route path="/thong-tin-ca-nhan" element={<ProfilePage />} />
         
         <Route path="/admin" element={<DashboardRouter />} />
         <Route path="/admin/san-pham" element={<AdminProductPage />} />
@@ -99,6 +120,9 @@ function App() {
         <Route path="/admin/nhat-ky-he-thong" element={<AdminNhatKyPage />} />
         <Route path="/admin/chat" element={<AdminChatPage />} />
         <Route path="/admin/chat-noi-bo" element={<AdminInternalChatPage />} />
+        <Route path="/admin/thong-tin-ca-nhan" element={<AdminProfilePage />} />
+        <Route path="/admin/khuyen-mai" element={<AdminVoucherPage />} />
+        <Route path="/admin/tin-tuc" element={<AdminNewsPage />} />
       </Routes>
       </Suspense>
       <Modal />

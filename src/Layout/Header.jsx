@@ -59,9 +59,10 @@ const Header = () => {
         const fetchUser = async () => {
             try {
                 const res = await getCurrentUser();
+                console.log(res);
                 setUser(res);
                 loadCart(); // Load cart if user is logged in
-            } catch(e) {
+            } catch (e) {
                 setUser(null);
             }
         };
@@ -74,10 +75,11 @@ const Header = () => {
 
     const handleLogout = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         try {
             await logout();
             window.location.href = "/dang-nhap";
-        } catch(e) {
+        } catch (e) {
             console.error(e);
         }
     };
@@ -104,7 +106,7 @@ const Header = () => {
                                         </span>
                                     </li>
                                     <li className="nav-item col-lg-2 col-md-2">
-                                        
+
                                         <navLink className="nav-item__link-img">
                                             <img src="../../assets/IMG/logo_header.webp" className="header-logo" />
                                         </navLink>
@@ -117,22 +119,43 @@ const Header = () => {
                                             <div className="nav-item__link-icon search-btn-js">
                                                 <i className="nav-icon fa-solid fa-magnifying-glass"></i>
                                             </div>
-                                            <a href="#" className="nav-item__link-icon hide-on-mobile">
-                                                <i className="nav-icon fa-regular fa-user"></i>
+                                            <Link to={user ? "/thong-tin-ca-nhan" : "/dang-nhap"} className="nav-item__link-icon hide-on-mobile" >
+                                                {user?.AVATAR ? (
+                                                    <img src={user.AVATAR.startsWith('http') ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px', }} />
+                                                ) : (
+                                                    <i className="nav-icon fa-regular fa-user"></i>
+                                                )}
                                                 <ul className="nav-icon__user">
                                                     {user ? (
                                                         <>
-                                                            <li className="nav-icon__user-item" style={{cursor: "default"}}>{user.fullName || user.username}</li>
-                                                            <li className="nav-icon__user-item" onClick={handleLogout} style={{cursor: "pointer"}}>Đăng Xuất</li>
+                                                            <li className="nav-icon__user-item">
+                                                                <span style={{ padding: '10px  0px 10px 10px', display: 'block', fontWeight: 'bold', color: 'var(--primary-color)', borderBottom: '1px solid #eee' }}>
+                                                                    Xin chào,
+                                                                    {
+                                                                        user?.khachhang?.HOTEN ||
+                                                                        user?.nhanvien?.HOTEN ||
+                                                                        user?.username
+                                                                    }
+                                                                </span>
+                                                            </li>
+                                                            <li className="nav-icon__user-item">
+                                                                <Link to="/thong-tin-ca-nhan" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Thông tin cá nhân</Link>
+                                                            </li>
+                                                            <li className="nav-icon__user-item">
+                                                                <Link to="/my-orders" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Lịch sử đơn hàng</Link>
+                                                            </li>
+                                                            <li className="nav-icon__user-item">
+                                                                <a href="#" onClick={handleLogout} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng xuất</a>
+                                                            </li>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <li className="nav-icon__user-item"><Link to="/dang-ky" style={{color: "inherit", textDecoration: "none", display: "block"}}>Đăng Ký</Link></li>
-                                                            <li className="nav-icon__user-item"><Link to="/dang-nhap" style={{color: "inherit", textDecoration: "none", display: "block"}}>Đăng Nhập</Link></li>
+                                                            <li className="nav-icon__user-item"><Link to="/dang-ky" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Ký</Link></li>
+                                                            <li className="nav-icon__user-item"><Link to="/dang-nhap" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Nhập</Link></li>
                                                         </>
                                                     )}
                                                 </ul>
-                                            </a>
+                                            </Link>
                                             <Link to="/yeu-thich" className="nav-item__link-icon ">
                                                 <i className="nav-icon fa-regular fa-heart"></i>
                                                 <div className="nav-icon__number" id="wishlist-count">0</div>
@@ -154,29 +177,29 @@ const Header = () => {
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <h4 style={{textAlign: 'left', padding: '10px 15px', margin: 0, borderBottom: '1px solid #eee', color: '#999', fontSize: '14px', fontWeight: 'normal'}}>Sản phẩm mới thêm</h4>
+                                                            <h4 style={{ textAlign: 'left', padding: '10px 15px', margin: 0, borderBottom: '1px solid #eee', color: '#999', fontSize: '14px', fontWeight: 'normal' }}>Sản phẩm mới thêm</h4>
                                                             {cartItems.map((item, idx) => (
-                                                                <li key={idx} className="cart-item" style={{display: 'flex', padding: '10px 15px', alignItems: 'center', borderBottom: '1px solid #eee', gap: '10px'}}>
-                                                                    <img src={getImageSrc(item.image)} style={{width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px'}} />
-                                                                    <div style={{flex: 1, textAlign: 'left', overflow: 'hidden'}}>
-                                                                        <div style={{fontSize: '14px', fontWeight: '600', color: '#333', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>
+                                                                <li key={idx} className="cart-item" style={{ display: 'flex', padding: '10px 15px', alignItems: 'center', borderBottom: '1px solid #eee', gap: '10px' }}>
+                                                                    <img src={getImageSrc(item.image)} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }} />
+                                                                    <div style={{ flex: 1, textAlign: 'left', overflow: 'hidden' }}>
+                                                                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#333', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                                                                             {item.name || "Sản phẩm"}
                                                                         </div>
-                                                                        <div style={{fontSize: '13px', color: 'var(--primary-color)', fontWeight: 'bold', marginTop: '2px'}}>
-                                                                            {(item.price || 0).toLocaleString('vi-VN')}₫ <span style={{color: '#999', fontSize: '12px', fontWeight: 'normal'}}>x{item.quantity || 1}</span>
+                                                                        <div style={{ fontSize: '13px', color: 'var(--primary-color)', fontWeight: 'bold', marginTop: '2px' }}>
+                                                                            {(item.price || 0).toLocaleString('vi-VN')}₫ <span style={{ color: '#999', fontSize: '12px', fontWeight: 'normal' }}>x{item.quantity || 1}</span>
                                                                         </div>
                                                                     </div>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={(e) => handleRemoveItem(e, item.id)}
-                                                                        style={{background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '14px', padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                                                        style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '14px', padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                                         title="Xóa sản phẩm khỏi giỏ"
                                                                     >
                                                                         <i className="fa-solid fa-trash-can"></i>
                                                                     </button>
                                                                 </li>
                                                             ))}
-                                                            <div style={{padding: '10px', textAlign: 'center'}}>
-                                                                <Link to="/gio-hang" style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--primary-color)', color: 'white', padding: '10px 60px', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', height: '40px', width: '100%'}}>
+                                                            <div style={{ padding: '10px', textAlign: 'center' }}>
+                                                                <Link to="/gio-hang" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--primary-color)', color: 'white', padding: '10px 60px', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', height: '40px', width: '100%' }}>
                                                                     Xem giỏ hàng
                                                                 </Link>
                                                             </div>
@@ -222,31 +245,43 @@ const Header = () => {
                                                     <div className="nav-item__link-icon search-btn-js">
                                                         <i className="nav-icon fa-solid fa-magnifying-glass"></i>
                                                     </div>
-                                                    <a href="#" className="nav-item__link-icon hide-on-mobile">
-                                                        <i className="nav-icon fa-regular fa-user"></i>
+                                                    <Link to={user ? "/thong-tin-ca-nhan" : "/dang-nhap"} className="nav-item__link-icon hide-on-mobile">
+                                                        {user?.AVATAR ? (
+                                                            <img src={user.AVATAR.startsWith('http') ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px'}} />
+                                                        ) : (
+                                                            <i className="nav-icon fa-regular fa-user"></i>
+                                                        )}
                                                         <ul className="nav-icon__user">
                                                             {user ? (
                                                                 <>
                                                                     <li className="nav-icon__user-item">
-                                                                        <span style={{padding: '10px 20px', display: 'block', fontWeight: 'bold', color: 'var(--primary-color)', borderBottom: '1px solid #eee'}}>
-                                                                            Xin chào, {user.username}
+                                                                        <span style={{ padding: '10px  0px 10px 10px', display: 'block', fontWeight: 'bold', color: 'var(--primary-color)', borderBottom: '1px solid #eee' }}>
+                                                                            Xin chào,
+                                                                            {
+                                                                                user?.khachhang?.HOTEN ||
+                                                                                user?.nhanvien?.HOTEN ||
+                                                                                user?.username
+                                                                            }
                                                                         </span>
                                                                     </li>
                                                                     <li className="nav-icon__user-item">
-                                                                        <Link to="/my-orders" style={{color: "inherit", textDecoration: "none", display: "block"}}>Lịch sử đơn hàng</Link>
+                                                                        <Link to="/thong-tin-ca-nhan" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Thông tin cá nhân</Link>
                                                                     </li>
                                                                     <li className="nav-icon__user-item">
-                                                                        <a href="#" onClick={handleLogout} style={{color: "inherit", textDecoration: "none", display: "block"}}>Đăng xuất</a>
+                                                                        <Link to="/my-orders" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Lịch sử đơn hàng</Link>
+                                                                    </li>
+                                                                    <li className="nav-icon__user-item">
+                                                                        <a href="#" onClick={handleLogout} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng xuất</a>
                                                                     </li>
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <li className="nav-icon__user-item"><Link to="/dang-ky" style={{color: "inherit", textDecoration: "none", display: "block"}}>Đăng Ký</Link></li>
-                                                                    <li className="nav-icon__user-item"><Link to="/dang-nhap" style={{color: "inherit", textDecoration: "none", display: "block"}}>Đăng Nhập</Link></li>
+                                                                    <li className="nav-icon__user-item"><Link to="/dang-ky" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Ký</Link></li>
+                                                                    <li className="nav-icon__user-item"><Link to="/dang-nhap" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Nhập</Link></li>
                                                                 </>
                                                             )}
                                                         </ul>
-                                                    </a>
+                                                    </Link>
                                                     <Link to="/yeu-thich" className="nav-item__link-icon ">
                                                         <i className="nav-icon fa-regular fa-heart"></i>
                                                         <div className="nav-icon__number" id="wishlist-count">0</div>
@@ -268,29 +303,29 @@ const Header = () => {
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <h4 style={{textAlign: 'left', padding: '10px 15px', margin: 0, borderBottom: '1px solid #eee', color: 'var(--primary-color)', fontSize: '16px', fontWeight: '500'}}>Sản phẩm mới thêm</h4>
+                                                                    <h4 style={{ textAlign: 'left', padding: '10px 15px', margin: 0, borderBottom: '1px solid #eee', color: 'var(--primary-color)', fontSize: '16px', fontWeight: '500' }}>Sản phẩm mới thêm</h4>
                                                                     {cartItems.map((item, idx) => (
-                                                                        <li key={idx} className="cart-item" style={{display: 'flex', padding: '10px 15px', alignItems: 'center', borderBottom: '1px solid #eee', gap: '10px'}}>
-                                                                            <img src={getImageSrc(item.image)} style={{width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px'}} />
-                                                                            <div style={{flex: 1, textAlign: 'left', overflow: 'hidden'}}>
-                                                                                <div style={{fontSize: '14px', lineHeight: '1.4', fontWeight: '600', color: '#333', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>
+                                                                        <li key={idx} className="cart-item" style={{ display: 'flex', padding: '10px 15px', alignItems: 'center', borderBottom: '1px solid #eee', gap: '10px' }}>
+                                                                            <img src={getImageSrc(item.image)} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }} />
+                                                                            <div style={{ flex: 1, textAlign: 'left', overflow: 'hidden' }}>
+                                                                                <div style={{ fontSize: '14px', lineHeight: '1.4', fontWeight: '600', color: '#333', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                                                                                     {item.name || "Sản phẩm"}
                                                                                 </div>
-                                                                                <div style={{fontSize: '13px', lineHeight: '1.4', color: 'var(--primary-color)', fontWeight: 'bold', marginTop: '2px'}}>
-                                                                                    {(item.price || 0).toLocaleString('vi-VN')}₫ <span style={{color: '#999', fontSize: '12px', fontWeight: 'normal'}}>x{item.quantity || 1}</span>
+                                                                                <div style={{ fontSize: '13px', lineHeight: '1.4', color: 'var(--primary-color)', fontWeight: 'bold', marginTop: '2px' }}>
+                                                                                    {(item.price || 0).toLocaleString('vi-VN')}₫ <span style={{ color: '#999', fontSize: '12px', fontWeight: 'normal' }}>x{item.quantity || 1}</span>
                                                                                 </div>
                                                                             </div>
-                                                                            <button 
+                                                                            <button
                                                                                 onClick={(e) => handleRemoveItem(e, item.id)}
-                                                                                style={{background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '14px', padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                                                                style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '14px', padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                                                 title="Xóa sản phẩm khỏi giỏ"
                                                                             >
                                                                                 <i className="fa-solid fa-trash-can"></i>
                                                                             </button>
                                                                         </li>
                                                                     ))}
-                                                                    <div style={{ textAlign: 'center'}}>
-                                                                        <Link to="/gio-hang" style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--primary-color)', color: 'white', padding: '10px 30px', lineHeight: '1.4', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', height: '40px', width: '80%'}}>
+                                                                    <div style={{ textAlign: 'center' }}>
+                                                                        <Link to="/gio-hang" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--primary-color)', color: 'white', padding: '10px 30px', lineHeight: '1.4', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', height: '40px', width: '80%' }}>
                                                                             Xem giỏ hàng
                                                                         </Link>
                                                                     </div>
@@ -305,7 +340,7 @@ const Header = () => {
                                     </div>
                                 </div>
                             </div>
-                            <Breadcrumb/>
+                            <Breadcrumb />
                         </div>
                     </div>
                 </>

@@ -1,0 +1,224 @@
+/* Banner Section */
+.news-banner {
+    background-image: url('https://picsum.photos/1920/300'); /* Replace with actual background image if available */
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.news-banner::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+}
+.news-banner-content {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+}
+.news-banner-content h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.news-banner-content p, .news-banner-content a {
+    color: #f1f1f1;
+    text-decoration: none;
+    font-size: 16px;
+}
+.news-banner-content span {
+    color: #f7a840; /* Yellow highlight */
+}
+
+/* News Cards */
+.news-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    background: #fff;
+    height: 100%;
+}
+.news-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.news-img-wrapper {
+    position: relative;
+    overflow: hidden;
+    height: 200px;
+}
+.news-img-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+.news-card:hover .news-img-wrapper img {
+    transform: scale(1.05);
+}
+.news-date-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: #f7a840;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 2;
+}
+.news-card-body {
+    padding: 20px;
+}
+.news-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+.news-title a {
+    color: #333;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+.news-title a:hover {
+    color: #f7a840;
+}
+.news-excerpt {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.news-sidebar {
+    padding-left: 20px;
+}
+@media (max-width: 991px) {
+    .news-sidebar {
+        padding-left: 0;
+        margin-top: 30px;
+    }
+}
+.sidebar-widget {
+    margin-bottom: 30px;
+}
+.widget-title {
+    font-size: 18px;
+    font-weight: 700;
+    padding: 12px 20px;
+    background: #f7a840;
+    color: #fff;
+    margin: 0;
+    border-radius: 4px 4px 0 0;
+    text-transform: uppercase;
+}
+.widget-category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #eee;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+}
+.widget-category-list li {
+    border-bottom: 1px solid #eee;
+}
+.widget-category-list li:last-child {
+    border-bottom: none;
+}
+.widget-category-list li a {
+    display: block;
+    padding: 12px 20px;
+    color: #333;
+    text-decoration: none;
+    transition: background 0.3s, color 0.3s;
+    font-weight: 500;
+}
+.widget-category-list li a:hover,
+.widget-category-list li a.active {
+    background: #f9f9f9;
+    color: #f7a840;
+}
+.widget-category-list li a span.float-end {
+    float: right;
+    font-size: 18px;
+    line-height: 1;
+}
+
+/* Featured News */
+.widget-featured-list {
+    border: 1px solid #eee;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 15px;
+}
+.featured-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed #eee;
+}
+.featured-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+.featured-img {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.featured-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.featured-index {
+    position: absolute;
+    top: 0; left: 0;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+.featured-info {
+    padding-left: 15px;
+}
+.featured-info h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 5px 0;
+    line-height: 1.4;
+}
+.featured-info h4 a {
+    color: #333;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+.featured-info h4 a:hover {
+    color: #f7a840;
+}
+.featured-date {
+    font-size: 12px;
+    color: #999;
+}

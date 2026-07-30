@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
-import { getProducts, createProduct, updateProduct, deleteProduct } from '../../services/productService';
+import { getProducts, createProduct, updateProduct, deleteProduct, restoreProduct } from '../../services/productService';
 import axiosClient from '../../services/axiosClient';
 
 const AdminProductPage = () => {
@@ -32,7 +32,9 @@ const AdminProductPage = () => {
     LOAISP: '',
     SOLUONG: '0',
     DVT: 'Cái',
-    GHICHU: ''
+    GHICHU: '',
+    IS_NEW: false,
+    PHAN_TRAM_GIAM: 0
   });
 
   const fetchCategories = async () => {
@@ -103,7 +105,9 @@ const AdminProductPage = () => {
       LOAISP: categories.length > 0 ? categories[0].MALOAI : '', 
       SOLUONG: '0',
       DVT: 'Cái', 
-      GHICHU: '' 
+      GHICHU: '',
+      IS_NEW: false,
+      PHAN_TRAM_GIAM: 0
     });
     setIsModalOpen(true);
   };
@@ -118,7 +122,9 @@ const AdminProductPage = () => {
       LOAISP: product.loaisp || product.LOAISP || product.MALOAI || '',
       SOLUONG: product.soluong || product.SOLUONG || '0',
       DVT: product.dvt || product.DVT || 'Cái',
-      GHICHU: product.ghichu || product.GHICHU || ''
+      GHICHU: product.ghichu || product.GHICHU || '',
+      IS_NEW: product.is_new || product.IS_NEW || false,
+      PHAN_TRAM_GIAM: product.phan_tram_giam || product.PHAN_TRAM_GIAM || 0
     });
     setIsModalOpen(true);
   };
@@ -182,6 +188,8 @@ const AdminProductPage = () => {
       payload.append('DVT', formData.DVT);
       payload.append('SOLUONG', formData.SOLUONG || 0);
       payload.append('GHICHU', formData.GHICHU || '');
+      payload.append('IS_NEW', formData.IS_NEW ? 1 : 0);
+      payload.append('PHAN_TRAM_GIAM', formData.PHAN_TRAM_GIAM || 0);
       
       if (selectedFile) {
         payload.append('HINHANH', selectedFile);
@@ -208,14 +216,27 @@ const AdminProductPage = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+    if (window.confirm("Bạn có chắc chắn muốn vô hiệu hóa sản phẩm này? Sản phẩm sẽ bị ngừng bán.")) {
       try {
         await deleteProduct(id);
-        alert('Xóa thành công!');
+        alert('Vô hiệu hóa thành công!');
         fetchProducts();
       } catch (error) {
         console.error("Error deleting product:", error);
-        alert('Có lỗi xảy ra khi xóa! ' + (error.response?.data?.message || ''));
+        alert('Có lỗi xảy ra khi vô hiệu hóa! ' + (error.response?.data?.message || ''));
+      }
+    }
+  };
+
+  const handleRestore = async (id) => {
+    if (window.confirm("Bạn muốn kích hoạt lại sản phẩm này để tiếp tục bán?")) {
+      try {
+        await restoreProduct(id);
+        alert('Kích hoạt lại thành công!');
+        fetchProducts();
+      } catch (error) {
+        console.error("Error restoring product:", error);
+        alert('Có lỗi xảy ra khi kích hoạt lại! ' + (error.response?.data?.message || ''));
       }
     }
   };
@@ -295,6 +316,7 @@ const AdminProductPage = () => {
                 <th>Danh mục</th>
                 <th>Giá bán</th>
                 <th>Tồn kho</th>
+                <th>Tags</th>
                 <th>Trạng thái</th>
                 <th>Thao tác</th>
               </tr>
@@ -310,14 +332,15 @@ const AdminProductPage = () => {
                 const category = product.loaisanpham ? product.loaisanpham.TENLOAI : (product.loaisp || product.LOAISP || product.MALOAI);
                 const price = product.giaban || product.GIABAN;
                 const stock = product.TONKHO_THUCTE !== undefined ? product.TONKHO_THUCTE : (product.soluong || product.SOLUONG || 0);
-                const status = stock > 0 ? 'In Stock' : 'Out of Stock';
+                const isDeactivated = !!product.deleted_at;
+                const status = isDeactivated ? 'Ngừng bán' : (stock > 0 ? 'Còn hàng' : 'Hết hàng');
                 const image = product.hinhanh || product.HINHANH;
                 const filename = image ? image.split('/').pop() : 'productnew2.webp';
                 // Nếu ảnh từ MinIO thì nó sẽ bắt đầu bằng http, nếu không thì lấy từ thư mục public/assets/IMG của Frontend
                 const imageUrl = image ? (image.startsWith('http') ? image : `/assets/IMG/${filename}`) : `/assets/IMG/productnew2.webp`;
                 
                 return (
-                  <tr key={id}>
+                  <tr key={id} style={{ opacity: isDeactivated ? 0.6 : 1 }}>
                     <td><strong>{id}</strong></td>
                     <td>
                       <a href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${id}`} target="_blank" rel="noreferrer" title="Click để xem và tải ảnh QR lớn">
@@ -331,22 +354,34 @@ const AdminProductPage = () => {
                     <td>
                       {image && <img src={imageUrl} alt={name} style={{width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px'}} />}
                     </td>
-                    <td style={{ fontWeight: 600 }}>{name}</td>
+                    <td style={{ fontWeight: 600 }}>{name} {isDeactivated && <span style={{color:'red', fontSize:'12px'}}>(Đã vô hiệu hóa)</span>}</td>
                     <td>{category}</td>
                     <td>{Number(price).toLocaleString('vi-VN')}₫</td>
                     <td>{stock}</td>
                     <td>
-                      <span className={`admin-badge ${status === 'In Stock' ? 'admin-badge-success' : 'admin-badge-warning'}`}>
-                        {status === 'In Stock' ? 'Còn hàng' : 'Hết hàng'}
+                      <div className="admin-flex-gap" style={{ flexWrap: 'wrap' }}>
+                        {product.IS_NEW ? <span className="admin-badge" style={{backgroundColor: '#fd7e14', color: '#fff'}}>New</span> : null}
+                        {product.PHAN_TRAM_GIAM > 0 ? <span className="admin-badge" style={{backgroundColor: '#28a745', color: '#fff'}}>-{product.PHAN_TRAM_GIAM}%</span> : null}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`admin-badge ${status === 'Còn hàng' ? 'admin-badge-success' : (status === 'Ngừng bán' ? 'admin-badge-danger' : 'admin-badge-warning')}`} style={status === 'Ngừng bán' ? {backgroundColor: '#dc3545', color: '#fff'} : {}}>
+                        {status}
                       </span>
                     </td>
                     <td>
                       <div className="admin-flex-gap" style={{ flexWrap: 'wrap' }}>
-                        <button className="admin-btn admin-btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => openEditModal(product)}>Sửa</button>
-                        <button className="admin-btn admin-btn-danger" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleDelete(id)}>Xóa</button>
-                        <button className="admin-btn" style={{ padding: '0.25rem 0.75rem', fontSize: '12px', backgroundColor: '#ffc107', color: '#000' }} onClick={() => openRestockModal(product)}>
-                          <i className="fa-solid fa-truck-fast"></i> Nhập thêm
-                        </button>
+                        {isDeactivated ? (
+                          <button className="admin-btn admin-btn-success" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleRestore(id)}>Kích hoạt lại</button>
+                        ) : (
+                          <>
+                            <button className="admin-btn admin-btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => openEditModal(product)}>Sửa</button>
+                            <button className="admin-btn admin-btn-danger" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleDelete(id)}>Vô hiệu hóa</button>
+                            <button className="admin-btn" style={{ padding: '0.25rem 0.75rem', fontSize: '12px', backgroundColor: '#ffc107', color: '#000' }} onClick={() => openRestockModal(product)}>
+                              <i className="fa-solid fa-truck-fast"></i> Nhập thêm
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -419,6 +454,26 @@ const AdminProductPage = () => {
                     <option key={cat.MALOAI} value={cat.MALOAI}>{cat.TENLOAI}</option>
                   ))}
                 </select>
+              </div>
+
+              <div style={{display: 'flex', gap: '15px'}}>
+                <div className="admin-form-group" style={{flex: 1}}>
+                  <label>Sản phẩm mới (Tag New)</label>
+                  <div style={{marginTop: '10px'}}>
+                    <input 
+                      type="checkbox" 
+                      name="IS_NEW" 
+                      checked={formData.IS_NEW} 
+                      onChange={(e) => setFormData({...formData, IS_NEW: e.target.checked})} 
+                      style={{marginRight: '8px', transform: 'scale(1.2)'}}
+                    />
+                    <span>Bật tag "New"</span>
+                  </div>
+                </div>
+                <div className="admin-form-group" style={{flex: 1}}>
+                  <label>% Giảm giá</label>
+                  <input type="number" name="PHAN_TRAM_GIAM" min="0" max="100" value={formData.PHAN_TRAM_GIAM} onChange={handleInputChange} className="admin-input" placeholder="0 - 100" />
+                </div>
               </div>
               
               <div className="admin-form-group">

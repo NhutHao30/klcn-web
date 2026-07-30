@@ -26,3 +26,8 @@ export const deleteCustomer = async (id) => {
     const response = await axiosClient.delete(`${API_URL}/${id}`);
     return response.data;
 };
+
+export const restoreCustomer = async (id) => {
+    const response = await axiosClient.put(`${API_URL}/${id}/restore`);
+    return response.data;
+};

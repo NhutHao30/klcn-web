@@ -123,12 +123,20 @@ const AdminLayout = ({ children }) => {
               <span style={{ backgroundColor: '#17a2b8', color: 'white', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 'bold' }}>Nhóm</span>
             </Link>
           )}
+          {(userRole === 0) && (
+            <Link 
+              to="/admin/khuyen-mai" 
+              className={`nav-link ${location.pathname === '/admin/khuyen-mai' ? 'active' : ''}`}
+            >
+              Quản lý khuyến mãi
+            </Link>
+          )}
           {(userRole === 0 || userRole === 1 || userRole === 2) && (
             <Link 
               to="/admin/pos" 
               className={`nav-link ${location.pathname === '/admin/pos' ? 'active' : ''}`}
             >
-              Tạo hóa đơn (POS)
+              Bán hàng tại quầy (POS)
             </Link>
           )}
           {userRole === 0 && (
@@ -137,6 +145,14 @@ const AdminLayout = ({ children }) => {
               className={`nav-link ${location.pathname === '/admin/cua-hang' ? 'active' : ''}`}
             >
               Quản lý chuỗi chi nhánh
+            </Link>
+          )}
+          {(userRole === 0 || userRole === 1) && (
+            <Link 
+              to="/admin/tin-tuc" 
+              className={`nav-link ${location.pathname === '/admin/tin-tuc' ? 'active' : ''}`}
+            >
+              Quản lý tin tức
             </Link>
           )}
           {userRole === 0 && (
@@ -169,6 +185,27 @@ const AdminLayout = ({ children }) => {
           )}
         </nav>
         <div style={{ padding: '20px', marginTop: 'auto' }}>
+          <Link 
+            to="/admin/thong-tin-ca-nhan" 
+            style={{ 
+              width: '100%', 
+              padding: '10px', 
+              backgroundColor: '#007bff', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '5px', 
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              marginBottom: '10px',
+              textDecoration: 'none'
+            }}
+          >
+            <i className="fa-solid fa-user"></i> Thông tin cá nhân
+          </Link>
           <button 
             onClick={handleLogout}
             style={{ 

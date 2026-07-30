@@ -13,24 +13,33 @@ const RegisterPage = () => {
         SDT: "",
         EMAIL: ""
     });
-    const [error, setError] = useState("");
+    const [toastError, setToastError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showRepassword, setShowRepassword] = useState(false);
     const navigate = useNavigate();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const showError = (msg) => {
+        setToastError(msg);
+        setTimeout(() => {
+            setToastError("");
+        }, 5000);
+    };
+
     const handleRegister = async (e) => {
         if (e) e.preventDefault();
-        setError("");
+        setToastError("");
         
         if (!formData.username || !formData.password || !formData.repassword || !formData.HOTEN || !formData.SDT || !formData.EMAIL) {
-            setError("Vui lòng nhập đầy đủ thông tin!");
+            showError("Vui lòng nhập đầy đủ thông tin!");
             return;
         }
 
         if (formData.password !== formData.repassword) {
-            setError("Mật khẩu nhập lại không khớp!");
+            showError("Mật khẩu nhập lại không khớp!");
             return;
         }
 
@@ -40,12 +49,46 @@ const RegisterPage = () => {
             navigate("/dang-nhap");
         } catch (e) {
             const errorMsg = e.response?.data?.message || e.response?.data?.error || "Đã xảy ra lỗi khi đăng ký!";
-            setError(errorMsg);
+            showError(errorMsg);
         }
     };
 
     return (
         <>
+            {toastError && (
+                <div style={{
+                    position: "fixed",
+                    top: "20px",
+                    right: "20px",
+                    backgroundColor: "#e74c3c",
+                    color: "white",
+                    padding: "15px 20px",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    zIndex: 9999,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    transition: "opacity 0.3s ease"
+                }}>
+                    <i className="fa-solid fa-circle-exclamation"></i>
+                    <span style={{ fontSize: "14px", fontWeight: "500" }}>{toastError}</span>
+                    <button 
+                        onClick={() => setToastError("")}
+                        style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "white",
+                            cursor: "pointer",
+                            marginLeft: "15px",
+                            fontSize: "20px",
+                            lineHeight: "1"
+                        }}
+                    >
+                        &times;
+                    </button>
+                </div>
+            )}
             <main>
                 <div className="container">
                     <div className="Register-list">
@@ -57,12 +100,24 @@ const RegisterPage = () => {
                         <div className="Register__body">
                             <div className="Register-titleRegister">Đăng Ký</div>
                             
-                            {error && <div style={{ color: "red", marginBottom: "15px", textAlign: "center" }}>{error}</div>}
-
                             <form onSubmit={handleRegister}>
                                 <input type="text" name="username" className="Register-input" placeholder="Tên đăng nhập *" value={formData.username} onChange={handleChange} />
-                                <input type="password" name="password" className="Register-input" placeholder="Mật khẩu *" value={formData.password} onChange={handleChange} />
-                                <input type="password" name="repassword" className="Register-input" placeholder="Nhập lại Mật khẩu *" value={formData.repassword} onChange={handleChange} />
+                                
+                                <div style={{ position: "relative", marginBottom: "15px" }}>
+                                    <input type={showPassword ? "text" : "password"} name="password" className="Register-input" style={{ marginBottom: 0 }} placeholder="Mật khẩu *" value={formData.password} onChange={handleChange} />
+                                    <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} 
+                                        style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#666" }}
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    ></i>
+                                </div>
+
+                                <div style={{ position: "relative", marginBottom: "15px" }}>
+                                    <input type={showRepassword ? "text" : "password"} name="repassword" className="Register-input" style={{ marginBottom: 0 }} placeholder="Nhập lại Mật khẩu *" value={formData.repassword} onChange={handleChange} />
+                                    <i className={`fa-solid ${showRepassword ? 'fa-eye-slash' : 'fa-eye'}`} 
+                                        style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#666" }}
+                                        onClick={() => setShowRepassword(!showRepassword)}
+                                    ></i>
+                                </div>
                                 <input type="text" name="HOTEN" className="Register-input" placeholder="Họ và tên *" value={formData.HOTEN} onChange={handleChange} />
                                 <input type="email" name="EMAIL" className="Register-input" placeholder="Email *" value={formData.EMAIL} onChange={handleChange} />
                                 <input type="text" name="SDT" className="Register-input" placeholder="Số điện thoại *" value={formData.SDT} onChange={handleChange} />
@@ -85,7 +140,7 @@ const RegisterPage = () => {
                                     </div>
                                     <div className="Register__Social-text">Facebook</div>
                                 </a>
-                                <a href="http://localhost:8080/oauth2/authorization/google" className="Register__Social-link gooleBG">
+                                <a href="http://localhost:8000/api/auth/google" className="Register__Social-link gooleBG">
                                     <div className="Register__Social-icon">
                                         <i className="Social-icon__google fa-brands fa-google-plus-g"></i>
                                     </div>

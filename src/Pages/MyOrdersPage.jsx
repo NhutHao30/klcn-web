@@ -12,6 +12,12 @@ const MyOrdersPage = () => {
   const [orderDetails, setOrderDetails] = useState([]);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
 
+  const [reviewingProduct, setReviewingProduct] = useState(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewImage, setReviewImage] = useState(null);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -49,6 +55,71 @@ const MyOrdersPage = () => {
     setIsDetailModalOpen(false);
     setViewingOrder(null);
     setOrderDetails([]);
+    setReviewingProduct(null);
+  };
+
+  const openReviewModal = (product) => {
+    setReviewingProduct(product);
+    setReviewRating(5);
+    setReviewComment("");
+    setReviewImage(null);
+  };
+
+  const closeReviewModal = () => {
+    setReviewingProduct(null);
+  };
+
+  const submitReview = async () => {
+    if (!reviewRating) {
+      alert("Vui lòng chọn số sao đánh giá!");
+      return;
+    }
+    setIsSubmittingReview(true);
+    try {
+      const formData = new FormData();
+      formData.append('MASP', reviewingProduct.maSP);
+      formData.append('MAHD', viewingOrder.maHD);
+      formData.append('SO_SAO', reviewRating);
+      formData.append('NOI_DUNG', reviewComment);
+      if (reviewImage) {
+        formData.append('image', reviewImage);
+      }
+
+      const m = await import('../services/axiosClient.js');
+      const res = await m.default.post('/reviews', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      alert(res.data.message || "Đánh giá thành công!");
+      closeReviewModal();
+      
+      // Update order details to show it's reviewed (optional, or just re-fetch)
+      // For simplicity, we just refetch details
+      const details = await getMyOrderDetails(viewingOrder.maHD);
+      setOrderDetails(details);
+    } catch (e) {
+      alert(e.response?.data?.error || "Có lỗi xảy ra khi đánh giá");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const handleCancelOrder = async (mahd) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn hủy đơn hàng #${mahd} không?`)) {
+      return;
+    }
+    try {
+      const m = await import('../services/axiosClient.js');
+      const res = await m.default.post(`/my-orders/${mahd}/cancel`);
+      alert(res.data.message || "Hủy đơn hàng thành công!");
+      
+      // Update UI
+      setOrders(orders.map(o => o.maHD === mahd ? { ...o, trangThai: 'Đã hủy' } : o));
+      if (viewingOrder && viewingOrder.maHD === mahd) {
+        setViewingOrder({ ...viewingOrder, trangThai: 'Đã hủy' });
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || "Có lỗi xảy ra khi hủy đơn hàng.");
+    }
   };
 
   const getStatusBadgeStyle = (status) => {
@@ -207,6 +278,9 @@ const MyOrdersPage = () => {
                       <th style={{ padding: '10px', textAlign: 'center' }}>SL</th>
                       <th style={{ padding: '10px', textAlign: 'right' }}>Đơn giá</th>
                       <th style={{ padding: '10px', textAlign: 'right' }}>Thành tiền</th>
+                      {viewingOrder.trangThai === 'Đã hoàn thành' && (
+                        <th style={{ padding: '10px', textAlign: 'center' }}>Đánh giá</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -219,6 +293,16 @@ const MyOrdersPage = () => {
                         <td style={{ padding: '12px 10px', textAlign: 'center' }}>{item.soLuong}</td>
                         <td style={{ padding: '12px 10px', textAlign: 'right' }}>{Number(item.donGia).toLocaleString('vi-VN')} ₫</td>
                         <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold' }}>{Number(item.thanhTien).toLocaleString('vi-VN')} ₫</td>
+                        {viewingOrder.trangThai === 'Đã hoàn thành' && (
+                          <td style={{ padding: '12px 10px', textAlign: 'center' }}>
+                            <button 
+                              onClick={() => openReviewModal(item)}
+                              style={{ padding: '4px 8px', fontSize: '12px', backgroundColor: '#f39c12', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                              Viết đánh giá
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -226,13 +310,85 @@ const MyOrdersPage = () => {
               </div>
             )}
             
-            <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '2px solid #eee', textAlign: 'right' }}>
+            <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '2px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                {(viewingOrder.trangThai === 'Chờ xử lý' || viewingOrder.trangThai === 'Đang xử lý (Chờ xác nhận CK)') && (
+                  <button 
+                    onClick={() => { handleCancelOrder(viewingOrder.maHD); closeModal(); }}
+                    style={{ padding: '8px 16px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Hủy đơn hàng
+                  </button>
+                )}
+              </div>
               <p style={{ fontSize: '16px', margin: 0 }}>
                 Tổng thanh toán: 
                 <span style={{ color: 'var(--primary-color)', fontSize: '24px', fontWeight: 'bold', marginLeft: '15px' }}>
                   {Number(viewingOrder.tongTien).toLocaleString('vi-VN')} ₫
                 </span>
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Đánh giá sản phẩm */}
+      {reviewingProduct && (
+        <div style={{...modalOverlayStyle, zIndex: 1100}}>
+          <div style={{...modalStyle, maxWidth: '500px'}}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#333' }}>Đánh giá sản phẩm</h3>
+              <button onClick={closeReviewModal} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#888' }}>&times;</button>
+            </div>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <p style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>{reviewingProduct.tenSP}</p>
+              <p style={{ margin: 0, color: '#888', fontSize: '13px' }}>Mã SP: {reviewingProduct.maSP}</p>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Chất lượng sản phẩm</label>
+              <div style={{ display: 'flex', gap: '5px', fontSize: '24px', cursor: 'pointer' }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <i 
+                    key={star} 
+                    className={star <= reviewRating ? "fa-solid fa-star" : "fa-regular fa-star"} 
+                    style={{ color: '#f39c12' }}
+                    onClick={() => setReviewRating(star)}
+                  ></i>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Nhận xét</label>
+              <textarea 
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '80px' }}
+                placeholder="Hãy chia sẻ nhận xét của bạn về sản phẩm này nhé..."
+              ></textarea>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Thêm hình ảnh</label>
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={(e) => setReviewImage(e.target.files[0])}
+                style={{ width: '100%', padding: '5px' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={closeReviewModal} style={{ padding: '8px 16px', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}>Hủy</button>
+              <button 
+                onClick={submitReview} 
+                disabled={isSubmittingReview}
+                style={{ padding: '8px 16px', background: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', opacity: isSubmittingReview ? 0.7 : 1 }}
+              >
+                {isSubmittingReview ? 'Đang gửi...' : 'Hoàn thành'}
+              </button>
             </div>
           </div>
         </div>

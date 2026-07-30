@@ -1,0 +1,118 @@
+/* Store Banner */
+.store-banner {
+    background-image: url('https://picsum.photos/1920/300'); /* Replace with actual background image if available */
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.store-banner::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+}
+.store-banner-content {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+}
+.store-banner-content h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.store-banner-content p, .store-banner-content a {
+    color: #f1f1f1;
+    text-decoration: none;
+    font-size: 16px;
+}
+.store-banner-content span {
+    color: #f7a840;
+}
+
+/* Store Stats */
+.store-stats {
+    background: #fff;
+    padding: 30px 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+.store-stats h3 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #f7a840;
+    margin-bottom: 5px;
+}
+.store-stats p {
+    font-size: 16px;
+    color: #666;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Store Sidebar */
+.store-sidebar {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+.store-sidebar-title {
+    background: #f7a840;
+    color: #fff;
+    padding: 15px 20px;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+.store-filters {
+    padding: 15px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #eee;
+}
+.store-filters select {
+    border-color: #ddd;
+}
+.store-list-container {
+    max-height: 500px;
+    overflow-y: auto;
+}
+.store-card {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+.store-card:last-child {
+    border-bottom: none;
+}
+.store-card:hover {
+    background: #fdfaf3;
+}
+.store-card.active {
+    background: #fff5e6;
+    border-left: 4px solid #f7a840;
+}
+.store-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+.store-address, .store-phone {
+    font-size: 14px;
+    color: #666;
+}
+
+/* Map Container */
+.map-container {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    overflow: hidden;
+}

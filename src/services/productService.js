@@ -15,6 +15,18 @@ export const getProductById = async (id) => {
   return response.data;
 };
 
+// Lấy Top 8 sản phẩm bán chạy nhất (Homepage)
+export const getBestSellers = async () => {
+  const response = await axiosClient.get(`${API_PUBLIC}/best-sellers`);
+  return response.data;
+};
+
+// Lấy sản phẩm theo nhóm cho trang chủ (giảm giá, mới nhất, giá cao nhất)
+export const getHomepageProducts = async () => {
+  const response = await axiosClient.get(`${API_PUBLIC}/homepage`);
+  return response.data;
+};
+
 // ---------------- ADMIN ONLY ----------------
 
 export const createProduct = async (productData) => {
@@ -40,5 +52,10 @@ export const updateProduct = async (id, productData) => {
 
 export const deleteProduct = async (id) => {
   const response = await axiosClient.delete(`${API_ADMIN}/${id}`);
+  return response.data;
+};
+
+export const restoreProduct = async (id) => {
+  const response = await axiosClient.put(`${API_ADMIN}/${id}/restore`);
   return response.data;
 };

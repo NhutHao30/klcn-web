@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
-import { getCustomers, createCustomer, updateCustomer, deleteCustomer } from '../../services/customerService';
+import { getCustomers, createCustomer, updateCustomer, deleteCustomer, restoreCustomer } from '../../services/customerService';
 import { getInvoices } from '../../services/invoiceService';
 import { getStores } from '../../services/storeService';
 
@@ -158,14 +158,27 @@ const AdminCustomerPage = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa khách hàng này?")) {
+    if (window.confirm("Bạn có chắc chắn muốn vô hiệu hóa tài khoản khách hàng này? Khách hàng sẽ không thể đăng nhập.")) {
       try {
         await deleteCustomer(id);
-        alert('Xóa thành công!');
+        alert('Vô hiệu hóa thành công!');
         fetchCustomers();
       } catch (error) {
         console.error("Error deleting customer:", error);
-        alert('Có lỗi xảy ra khi xóa!');
+        alert('Có lỗi xảy ra khi vô hiệu hóa!');
+      }
+    }
+  };
+
+  const handleRestore = async (id) => {
+    if (window.confirm("Bạn muốn kích hoạt lại tài khoản khách hàng này?")) {
+      try {
+        await restoreCustomer(id);
+        alert('Kích hoạt lại thành công!');
+        fetchCustomers();
+      } catch (error) {
+        console.error("Error restoring customer:", error);
+        alert('Có lỗi xảy ra khi kích hoạt lại!');
       }
     }
   };
@@ -235,10 +248,12 @@ const AdminCustomerPage = () => {
                 <tr><td colSpan="7" style={{textAlign: 'center', padding: '20px'}}>Đang tải...</td></tr>
               ) : filteredCustomers.length === 0 ? (
                 <tr><td colSpan="7" style={{textAlign: 'center', padding: '20px'}}>Không tìm thấy khách hàng</td></tr>
-              ) : filteredCustomers.map(customer => (
-                <tr key={customer.maKH}>
+              ) : filteredCustomers.map(customer => {
+                const isDeactivated = !!customer.deleted_at;
+                return (
+                <tr key={customer.maKH} style={{ opacity: isDeactivated ? 0.6 : 1 }}>
                   <td><strong>{customer.maKH}</strong></td>
-                  <td style={{ fontWeight: 600 }}>{customer.hoTen}</td>
+                  <td style={{ fontWeight: 600 }}>{customer.hoTen} {isDeactivated && <span style={{color:'red', fontSize:'12px'}}>(Vô hiệu hóa)</span>}</td>
                   <td>{customer.sdt || '-'}</td>
                   <td>{customer.email || '-'}</td>
                   <td>{customer.totalOrders}</td>
@@ -250,12 +265,19 @@ const AdminCustomerPage = () => {
                   <td>
                     <div className="admin-flex-gap">
                       <button className="admin-btn admin-btn-info" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => openDetailModal(customer)}>Chi tiết</button>
-                      <button className="admin-btn admin-btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => openEditModal(customer)}>Sửa</button>
-                      <button className="admin-btn admin-btn-danger" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleDelete(customer.maKH)}>Xóa</button>
+                      
+                      {isDeactivated ? (
+                        <button className="admin-btn admin-btn-success" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleRestore(customer.maKH)}>Kích hoạt lại</button>
+                      ) : (
+                        <>
+                          <button className="admin-btn admin-btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => openEditModal(customer)}>Sửa</button>
+                          <button className="admin-btn admin-btn-danger" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleDelete(customer.maKH)}>Vô hiệu hóa</button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

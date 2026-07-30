@@ -33,6 +33,13 @@ export const getCurrentUser = async () => {
   return data;
 };
 
+export const updateProfile = async (formData) => {
+  const response = await axiosClient.post(`${API_URL}/profile/update`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data;
+};
+
 export const logout = async () => {
   localStorage.setItem('is_logging_out', 'true');
   try {
@@ -43,22 +50,22 @@ export const logout = async () => {
   }
 };
 
-export const getGoogleStatus = async () => {
-  const response = await axiosClient.get(`${API_URL}/google-status`);
+export const getGoogleStatus = async (googleId) => {
+  const response = await axiosClient.get(`${API_URL}/google-status?google_id=${googleId}`);
   return response.data;
 };
 
-export const googleRegister = async (sdt, gioiTinh) => {
-  const response = await axiosClient.post(`${API_URL}/google-register`, { sdt, gioiTinh });
+export const googleRegister = async (sdt, gioiTinh, googleId) => {
+  const response = await axiosClient.post(`${API_URL}/google-register`, { sdt, gioiTinh, google_id: googleId });
   return response.data;
 };
 
 export const forgotPassword = async (email) => {
-  const response = await axiosClient.post(`${API_URL}/forgot-password`, { email });
+  const response = await axiosClient.post(`${API_URL}/forgot-password`, { EMAIL: email });
   return response.data;
 };
 
 export const resetPassword = async (email, otp, newPassword) => {
-  const response = await axiosClient.post(`${API_URL}/reset-password`, { email, otp, newPassword });
+  const response = await axiosClient.post(`${API_URL}/reset-password`, { EMAIL: email, OTP_CODE: otp, NEW_PASSWORD: newPassword });
   return response.data;
 };

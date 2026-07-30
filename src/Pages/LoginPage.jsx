@@ -16,6 +16,12 @@ const LoginPage = () => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmNewPassword, setConfirmNewPassword] = useState("");
     const [isResetting, setIsResetting] = useState(false);
+    
+    // Toggle password visibility states
+    const [showPassword, setShowPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+    
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -23,12 +29,6 @@ const LoginPage = () => {
             try {
                 const res = await getCurrentUser();
                 setUser(res);
-
-                // Nếu URL có query google=true, hiển thị thông báo
-                const params = new URLSearchParams(window.location.search);
-                if (params.get("google") === "true") {
-                    alert("Đăng nhập bằng Google thành công!");
-                }
             } catch (e) {
                 // Not logged in
                 setUser(null);
@@ -154,7 +154,7 @@ const LoginPage = () => {
 
                                     {error && <div style={{ color: "red", marginBottom: "15px", textAlign: "center" }}>{error}</div>}
 
-                                    <form onSubmit={handleLogin}>
+                                    <form onSubmit={handleLogin} style={{width: "100%",}}>
                                         <input
                                             type="text"
                                             className="Register-input"
@@ -162,14 +162,21 @@ const LoginPage = () => {
                                             value={username}
                                             onChange={(e) => setUsername(e.target.value)}
                                         />
-                                        <input
-                                            type="password"
-                                            className="Register-input"
-                                            placeholder="Mật Khẩu"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                        />
-                                        <button type="submit" className="Register-RegisterBtn" style={{ border: "none", width: "100%", cursor: "pointer", display: "block", textAlign: "center" }}>Đăng Nhập</button>
+                                        <div style={{ position: "relative", marginBottom: "15px" }}>
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                className="Register-input"
+                                                style={{ marginBottom: 0 }}
+                                                placeholder="Mật Khẩu"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                            />
+                                            <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} 
+                                                style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#666" }}
+                                                onClick={() => setShowPassword(!showPassword)}
+                                            ></i>
+                                        </div>
+                                        <button type="submit" className="Register-RegisterBtn" style={{ border: "none", width: "100%", cursor: "pointer", display: "block", textAlign: "center", marginTop: "20px" }}>Đăng Nhập</button>
                                     </form>
                                 </div>
 
@@ -205,22 +212,34 @@ const LoginPage = () => {
                                                     onChange={(e) => setOtp(e.target.value)}
                                                     style={{ marginTop: '10px' }}
                                                 />
-                                                <input 
-                                                    type="password" 
-                                                    className="Register-input" 
-                                                    placeholder="Mật khẩu mới" 
-                                                    value={newPassword}
-                                                    onChange={(e) => setNewPassword(e.target.value)}
-                                                    style={{ marginTop: '10px' }}
-                                                />
-                                                <input 
-                                                    type="password" 
-                                                    className="Register-input" 
-                                                    placeholder="Xác nhận mật khẩu mới" 
-                                                    value={confirmNewPassword}
-                                                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                                                    style={{ marginTop: '10px' }}
-                                                />
+                                                <div style={{ position: "relative", marginTop: '10px' }}>
+                                                    <input 
+                                                        type={showNewPassword ? "text" : "password"} 
+                                                        className="Register-input" 
+                                                        placeholder="Mật khẩu mới" 
+                                                        value={newPassword}
+                                                        onChange={(e) => setNewPassword(e.target.value)}
+                                                        style={{ marginTop: 0, marginBottom: 0 }}
+                                                    />
+                                                    <i className={`fa-solid ${showNewPassword ? 'fa-eye-slash' : 'fa-eye'}`} 
+                                                        style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#666" }}
+                                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                                    ></i>
+                                                </div>
+                                                <div style={{ position: "relative", marginTop: '10px' }}>
+                                                    <input 
+                                                        type={showConfirmNewPassword ? "text" : "password"} 
+                                                        className="Register-input" 
+                                                        placeholder="Xác nhận mật khẩu mới" 
+                                                        value={confirmNewPassword}
+                                                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                                        style={{ marginTop: 0, marginBottom: 0 }}
+                                                    />
+                                                    <i className={`fa-solid ${showConfirmNewPassword ? 'fa-eye-slash' : 'fa-eye'}`} 
+                                                        style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#666" }}
+                                                        onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                                                    ></i>
+                                                </div>
                                                 <span 
                                                     className="forgetPassBtn" 
                                                     onClick={handleResetPassword}
@@ -248,7 +267,7 @@ const LoginPage = () => {
                                                 Facebook
                                             </div>
                                         </a>
-                                        <a href="http://localhost:8080/oauth2/authorization/google" className="Register__Social-link gooleBG">
+                                        <a href="http://localhost:8000/api/auth/google" className="Register__Social-link gooleBG">
                                             <div className="Register__Social-icon">
                                                 <i className="Social-icon__google fa-brands fa-google-plus-g"></i>
                                             </div>

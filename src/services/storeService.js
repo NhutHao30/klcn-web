@@ -1,5 +1,10 @@
 import axiosClient from './axiosClient';
 
+export const getPublicStores = async () => {
+    const response = await axiosClient.get('/stores');
+    return response.data;
+};
+
 export const getStores = async () => {
     const response = await axiosClient.get('/admin/stores');
     return response.data;
