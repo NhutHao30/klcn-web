@@ -4,7 +4,8 @@ const axiosClient = axios.create({
     baseURL: 'https://f2ea-42-116-205-118.ngrok-free.app/api',
     headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
     },
 });
 
