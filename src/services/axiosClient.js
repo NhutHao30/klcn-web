@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Dùng relative URL - Vite proxy sẽ tự forward /api/* tới backend
+export const BASE_URL = '';
+
 const axiosClient = axios.create({
-    baseURL: 'https://f2ea-42-116-205-118.ngrok-free.app/api',
+    baseURL: '/api',
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -16,6 +19,28 @@ axiosClient.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Tự động tạo Request ID cho mọi request
+        const generateUUID = () => {
+            if (self.crypto && self.crypto.randomUUID) {
+                return self.crypto.randomUUID();
+            }
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        };
+
+        const uuid = generateUUID();
+        config.headers['X-Request-ID'] = uuid;
+
+        // Tự động gắn Idempotency-Key cho các request nhạy cảm (checkout)
+        if (config.method !== 'get' && (config.url.includes('/checkout') || config.url.includes('/pos/checkout'))) {
+            if (!config.headers['Idempotency-Key']) {
+                 config.headers['Idempotency-Key'] = uuid;
+            }
+        }
+
         return config;
     },
     (error) => {

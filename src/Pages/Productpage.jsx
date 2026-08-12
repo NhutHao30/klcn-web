@@ -75,7 +75,7 @@ function ProductPage() {
             priceSale: finalPrice.toLocaleString('vi-VN') + "₫",
             isNew: isNew,
             discountPercent: discountPercent,
-            Image: image.startsWith("http")
+            Image: (image.startsWith("http") || image.startsWith("/api/"))
               ? image
               : `../../assets/IMG/${image.split('/').pop()}`,
             Category: category,

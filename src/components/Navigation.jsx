@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, NavLink } from "react-router-dom";
 import HomePage from "../Pages/HomePage";
-import AboutPage from "../pages/AboutPage";
+import AboutPage from "../Pages/AboutPage";
 import ProductPage from "../Pages/Productpage";
 
 const Navigation = () => {

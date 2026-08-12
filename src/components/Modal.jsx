@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useToast } from './Toast/Toast';
 
 const Modal = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const navigate = useNavigate();
+    const toast = useToast();
 
     const handleSearchSubmit = () => {
         if (searchQuery.trim()) {
@@ -114,11 +116,11 @@ const Modal = () => {
                     if(addCart) addCart.style.display = 'flex';
                 } catch(error) {
                     if (error.response?.status === 401) {
-                        alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
+                        toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
                         window.location.href = "/dang-nhap";
                     } else {
                         const errorMsg = error.response?.data?.error || "Không thể thêm vào giỏ hàng";
-                        alert("Lỗi: " + errorMsg);
+                        toast.error("Lỗi: " + errorMsg);
                     }
                 }
             }
@@ -300,7 +302,7 @@ const Modal = () => {
                         if (currentQty < maxStock) {
                             quantityEl.textContent = currentQty + 1;
                         } else {
-                            alert(`Chỉ còn lại ${maxStock} sản phẩm trong kho!`);
+                            toast.warning(`Chỉ còn lại ${maxStock} sản phẩm trong kho!`);
                         }
                     } else if (e.target.closest('.CustomizeQuantity-remove-js')) {
                         if (currentQty > 1) {
@@ -339,11 +341,11 @@ const Modal = () => {
                 const boxProduct = e.target.closest('.product-sale-item-level2');
                 if (boxProduct && liNoLike) {
                     const masp = boxProduct.dataset.masp;
-                    if (!masp) { alert('Không tìm thấy mã sản phẩm!'); return; }
+                    if (!masp) { toast.error('Không tìm thấy mã sản phẩm!'); return; }
                     try {
                         const { addToWishlist, getWishlist } = await import('../services/wishlistService.js');
                         await addToWishlist(masp);
-                        alert("Đã thêm vào danh sách yêu thích!");
+                        toast.success("Đã thêm vào danh sách yêu thích!");
                         const wl = await getWishlist();
                         document.querySelectorAll('#wishlist-count').forEach(el => el.textContent = wl.length);
                         document.dispatchEvent(new Event('wishlistUpdated'));
@@ -353,7 +355,7 @@ const Modal = () => {
                         if (liLike) liLike.style.display = 'inline-flex';
                     } catch(err) {
                         console.error(err);
-                        alert("Sản phẩm đã có trong danh sách yêu thích.");
+                        toast.info("Sản phẩm đã có trong danh sách yêu thích.");
                     }
                 }
             }
@@ -475,9 +477,9 @@ const Modal = () => {
                                                 Tiếp tục mua hàng
                                             </div>
                                             <div className="addCart-item__payNow">
-                                                <a href="/gio-hang" className="addCart-item__payNow-link">
+                                                <Link to="/gio-hang" className="addCart-item__payNow-link" onClick={() => document.querySelector('.Modal-addCart-js').style.display = 'none'}>
                                                     Xem giỏ hàng
-                                                </a>
+                                                </Link>
                                             </div>
                                         </div>
                                     </li>
@@ -575,45 +577,45 @@ const Modal = () => {
                         <div className="Modal-MenuMobile-block Modal-MenuMobile-block-js" style={{ flexDirection: "column" }}>
                                     <div className="Modal-MenuMobile-block__header">
                                         <div>
-                                            <a href=" register.html">Đăng ký</a>
+                                            <Link to="/dang-ky" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Đăng ký</Link>
                                         </div>
                                         <div>
-                                            <a href=" Login.html">Đăng nhập</a>
+                                            <Link to="/dang-nhap" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Đăng nhập</Link>
                                         </div>
                                         <div>
-                                            <a href="">Menu chính</a>
+                                            <Link to="/" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Menu chính</Link>
                                         </div>
                                     </div>
                                     <div className="Modal-MenuMobile-block__content" style={{ padding: "0 8px" }}>
                                         <ul className="Modal-MenuMobile-block__content-list" style={{ borderBottom: "1px solid var(--primary-color)" }}>
                                             <li className="Modal-MenuMobile-block__content-item">
-                                                <a href=" Trang-Chu.html" className="Modal-MenuMobile-block__content-item-link">Trang chủ</a>
+                                                <Link to="/" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Trang chủ</Link>
                                             </li>
                                             <li className="Modal-MenuMobile-block__content-item">
-                                                <a href=" Gioi-thieu.html" className="Modal-MenuMobile-block__content-item-link">Giới thiệu</a>
+                                                <Link to="/gioi-thieu" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Giới thiệu</Link>
                                             </li>
                                             <li className="Modal-MenuMobile-block__content-item">
-                                                <a href=" San-Pham.html" className="Modal-MenuMobile-block__content-item-link">Sản phẩm</a>
+                                                <Link to="/san-pham" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Sản phẩm</Link>
                                             </li>
                                             <li className="Modal-MenuMobile-block__content-item">
-                                                <a href=" Tin-tuc.html" className="Modal-MenuMobile-block__content-item-link">Tin tức</a>
+                                                <Link to="/tin-tuc" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Tin tức</Link>
                                             </li>
                                             <li className="Modal-MenuMobile-block__content-item">
-                                                <a href=" Lien-he.html" className="Modal-MenuMobile-block__content-item-link">Liên hệ</a>
+                                                <Link to="/lien-he" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Liên hệ</Link>
                                             </li>
                                             <li className="Modal-MenuMobile-block__content-item">
-                                                <a href="#" className="Modal-MenuMobile-block__content-item-link">Hệ thống cửa hàng</a>
+                                                <Link to="/he-thong-cua-hang" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Hệ thống cửa hàng</Link>
                                             </li>
                                             <li className="Modal-MenuMobile-block__content-item">
-                                                <a href=" Cau-hoi-thuong-gap.html" className="Modal-MenuMobile-block__content-item-link">Câu hỏi thường gặp</a>
+                                                <Link to="/Cau-hoi-thuong-gap" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Câu hỏi thường gặp</Link>
                                             </li>
                                         </ul>
                                         <ul className="Modal-MenuMobile-block__content-list">
                                             <li className="Modal-MenuMobile-block__content-item">
-                                                <a href=" Yeu-Thich.html" className="Modal-MenuMobile-block__content-item-link">Sản phẩm yêu thích</a>
+                                                <Link to="/yeu-thich" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Sản phẩm yêu thích</Link>
                                             </li>
                                             <li className="Modal-MenuMobile-block__content-item">
-                                                <a href=" Cart.html" className="Modal-MenuMobile-block__content-item-link">Danh sách giỏ hàng</a>
+                                                <Link to="/gio-hang" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Danh sách giỏ hàng</Link>
                                             </li>
                                         </ul>
                                     </div>

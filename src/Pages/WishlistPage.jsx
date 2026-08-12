@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import Footer from "../Layout/Footer";
 import { getWishlist, removeFromWishlist } from "../services/wishlistService";
 import { addToCart } from "../services/cartService";
+import { useToast } from '../components/Toast/Toast';
 
 // Hàm xử lý đường dẫn ảnh giống Productpage
 const getImageSrc = (imageUrl) => {
-    if (!imageUrl) return "../../assets/IMG/productnew2.webp";
-    if (imageUrl.startsWith("http")) return imageUrl;
+      const toast = useToast();
+if (!imageUrl) return "../../assets/IMG/productnew2.webp";
+    if (imageUrl.startsWith("http") || imageUrl.startsWith("/api/")) return imageUrl;
     return `../../assets/IMG/${imageUrl.split('/').pop()}`;
 };
 
@@ -32,7 +34,7 @@ const WishlistPage = () => {
             setWishlistItems(Array.isArray(items) ? items : [items]);
         } catch (e) {
             if (e.response?.status === 401) {
-                alert("Vui lòng đăng nhập để xem danh sách yêu thích");
+                toast.warning("Vui lòng đăng nhập để xem danh sách yêu thích");
                 window.location.href = "/dang-nhap";
             } else {
                 console.error(e);
@@ -60,11 +62,11 @@ const WishlistPage = () => {
     const handleAddToCart = async (masp) => {
         try {
             await addToCart(masp, 1);
-            alert("Đã thêm vào giỏ hàng!");
+            toast.success("Đã thêm vào giỏ hàng!");
             document.dispatchEvent(new Event('cartUpdated'));
         } catch (e) {
             if (e.response?.status === 401) {
-                alert("Vui lòng đăng nhập để thêm vào giỏ hàng");
+                toast.warning("Vui lòng đăng nhập để thêm vào giỏ hàng");
                 window.location.href = "/dang-nhap";
             } else {
                 console.error(e);

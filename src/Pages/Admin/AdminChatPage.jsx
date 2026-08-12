@@ -4,11 +4,13 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import axiosClient from '../../services/axiosClient';
 import '../../css/admin.css';
+import { useToast } from '../../components/Toast/Toast';
 
 window.Pusher = Pusher;
 
 const AdminChatPage = () => {
-  const [conversations, setConversations] = useState([]);
+    const toast = useToast();
+const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -129,7 +131,7 @@ const AdminChatPage = () => {
       const res = await axiosClient.delete(`/chat/conversations/${activeConversation.MACUOCTROCHUYEN}/messages/${msgId}`);
       setMessages(prev => prev.map(m => m.MATINNHAN === msgId ? res.data : m));
     } catch (error) {
-      alert("Không thể thu hồi tin nhắn này.");
+      toast.error("Không thể thu hồi tin nhắn này.");
     }
   };
 
@@ -426,7 +428,7 @@ const CskhPanel = ({ makh, conversationId }) => {
 
   const handleAddItem = () => {
     if (!orderProduct || orderQuantity < 1) {
-      alert("Vui lòng chọn sản phẩm và số lượng hợp lệ!");
+      toast.warning("Vui lòng chọn sản phẩm và số lượng hợp lệ!");
       return;
     }
     const productDetail = products.find(p => p.MASP === parseInt(orderProduct) || p.MASP === orderProduct);
@@ -453,11 +455,11 @@ const CskhPanel = ({ makh, conversationId }) => {
 
   const handlePlaceOrder = async () => {
     if (orderItems.length === 0) {
-      alert("Vui lòng thêm ít nhất một sản phẩm vào đơn hàng!");
+      toast.warning("Vui lòng thêm ít nhất một sản phẩm vào đơn hàng!");
       return;
     }
     if (!orderStore) {
-      alert("Vui lòng chọn chi nhánh xuất hàng!");
+      toast.warning("Vui lòng chọn chi nhánh xuất hàng!");
       return;
     }
     
@@ -470,7 +472,7 @@ const CskhPanel = ({ makh, conversationId }) => {
     }
 
     if (!fullAddress) {
-      alert("Vui lòng nhập địa chỉ giao hàng!");
+      toast.warning("Vui lòng nhập địa chỉ giao hàng!");
       return;
     }
 
@@ -481,7 +483,7 @@ const CskhPanel = ({ makh, conversationId }) => {
         shippingFee: parseInt(shippingFee) || 0,
         items: orderItems.map(i => ({ MASP: i.MASP, SOLUONG: i.SOLUONG }))
       });
-      alert(`Đặt hàng thành công! Mã hóa đơn: ${res.data.mahd}`);
+      toast.success(`Đặt hàng thành công! Mã hóa đơn: ${res.data.mahd}`);
       
       // Reset
       setOrderItems([]);
@@ -492,7 +494,7 @@ const CskhPanel = ({ makh, conversationId }) => {
         NOIDUNG: `CSKH đã đặt giúp bạn 1 đơn hàng (Mã: ${res.data.mahd}). Phương thức thanh toán: COD. Xin cảm ơn quý khách!`
       });
     } catch (error) {
-      alert(error.response?.data?.error || "Lỗi khi đặt hàng giùm khách.");
+      toast.error(error.response?.data?.error || "Lỗi khi đặt hàng giùm khách.");
     }
   };
 

@@ -82,6 +82,16 @@
     margin-bottom: 15px;
     line-height: 1.4;
 }
+
+.truncate-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* Thay số 3 bằng số dòng bạn muốn giới hạn */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word; /* Giúp ngắt từ hợp lý, tránh lỗi tràn thẻ */
+}
+
+
 .news-title a {
     color: #333;
     text-decoration: none;

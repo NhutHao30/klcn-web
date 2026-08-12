@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import Footer from "../Layout/Footer";
 import axiosClient from "../services/axiosClient";
+import { useToast } from '../components/Toast/Toast';
 
 const ContactPage = () => {
-    const [formData, setFormData] = useState({
+      const toast = useToast();
+const [formData, setFormData] = useState({
         name: "",
         email: "",
         phone: "",
@@ -21,12 +23,12 @@ const ContactPage = () => {
         try {
             const response = await axiosClient.post('/contact', formData);
             if (response.data.success) {
-                alert("Gửi thành công: " + response.data.message);
+                toast.success("Gửi thành công: " + response.data.message);
                 setFormData({ name: "", email: "", phone: "", message: "" });
             }
         } catch (error) {
             console.error("Lỗi gửi liên hệ:", error);
-            alert("Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại sau.");
+            toast.error("Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại sau.");
         }
         setLoading(false);
     };

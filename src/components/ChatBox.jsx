@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import axiosClient from '../services/axiosClient';
+import { useToast } from './Toast/Toast';
 import '../css/chat.css';
 
 // Để có thể truy cập Pusher toàn cục
@@ -13,6 +14,7 @@ const ChatBox = ({ currentUser }) => {
   const [newMessage, setNewMessage] = useState('');
   const [conversationId, setConversationId] = useState(null);
   const messagesEndRef = useRef(null);
+  const toast = useToast();
 
   const [isStaffTyping, setIsStaffTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
@@ -113,7 +115,7 @@ const ChatBox = ({ currentUser }) => {
       setMessages(prev => [...prev, res.data]);
     } catch (error) {
       console.error("Lỗi gửi tin nhắn:", error);
-      alert('Không thể gửi tin nhắn.');
+      toast.error('Không thể gửi tin nhắn.');
     }
   };
 
@@ -122,7 +124,7 @@ const ChatBox = ({ currentUser }) => {
       const res = await axiosClient.delete(`/chat/conversations/${conversationId}/messages/${msgId}`);
       setMessages(prev => prev.map(m => m.MATINNHAN === msgId ? res.data : m));
     } catch (error) {
-      alert("Không thể thu hồi tin nhắn này.");
+      toast.error("Không thể thu hồi tin nhắn này.");
     }
   };
 

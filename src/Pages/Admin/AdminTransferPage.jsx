@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
 import axiosClient from '../../services/axiosClient';
 import '../../css/admin.css';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminTransferPage = () => {
-  const [activeTab, setActiveTab] = useState('requests'); // requests | transfers
+    const toast = useToast();
+const [activeTab, setActiveTab] = useState('requests'); // requests | transfers
   const [requests, setRequests] = useState([]);
   const [transfers, setTransfers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -65,12 +67,12 @@ const AdminTransferPage = () => {
     e.preventDefault();
     try {
       await axiosClient.post('/admin/transfers/requests', newRequest);
-      alert('Tạo yêu cầu thành công!');
+      toast.success('Tạo yêu cầu thành công!');
       setShowCreateModal(false);
       setNewRequest({ GHICHU: '', details: [{ MASP: '', SOLUONG: 1 }] });
       fetchData();
     } catch (error) {
-      alert('Lỗi: ' + (error.response?.data?.error || error.message));
+      toast.error('Lỗi: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -78,11 +80,11 @@ const AdminTransferPage = () => {
     e.preventDefault();
     try {
       await axiosClient.post(`/admin/transfers/requests/${acceptData.reqId}/accept`, acceptData);
-      alert('Tiếp nhận thành công!');
+      toast.success('Tiếp nhận thành công!');
       setShowAcceptModal(false);
       fetchData();
     } catch (error) {
-      alert('Lỗi: ' + (error.response?.data?.error || error.message));
+      toast.error('Lỗi: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -90,11 +92,11 @@ const AdminTransferPage = () => {
     e.preventDefault();
     try {
       await axiosClient.post(`/admin/transfers/requests/${coordData.reqId}/coordinate`, coordData);
-      alert('Điều phối thành công!');
+      toast.success('Điều phối thành công!');
       setShowCoordModal(false);
       fetchData();
     } catch (error) {
-      alert('Lỗi: ' + (error.response?.data?.error || error.message));
+      toast.error('Lỗi: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -104,10 +106,10 @@ const AdminTransferPage = () => {
       let payload = { TRANGTHAI: status };
       if (extra) payload = { ...payload, ...extra };
       await axiosClient.put(`/admin/transfers/${id}/status`, payload);
-      alert('Cập nhật thành công!');
+      toast.success('Cập nhật thành công!');
       fetchData();
     } catch (error) {
-      alert('Lỗi: ' + (error.response?.data?.error || error.message));
+      toast.error('Lỗi: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -127,7 +129,7 @@ const AdminTransferPage = () => {
     try {
       const invalid = receiveData.details.some(d => parseInt(d.SOLUONG_NHAN) < parseInt(d.SOLUONG_XUAT) && !d.LYDO_HAOHUT.trim());
       if (invalid) {
-        alert('Vui lòng nhập "Lý do hao hụt" cho những sản phẩm nhận thiếu!');
+        toast.warning('Vui lòng nhập "Lý do hao hụt" cho những sản phẩm nhận thiếu!');
         return;
       }
       await axiosClient.put(`/admin/transfers/${receiveData.transferId}/status`, {
@@ -136,11 +138,11 @@ const AdminTransferPage = () => {
           ID_CHITIET: d.ID_CHITIET, MASP: d.MASP, SOLUONG_NHAN: d.SOLUONG_NHAN, LYDO_HAOHUT: d.LYDO_HAOHUT
         }))
       });
-      alert('Xác nhận nhận hàng thành công!');
+      toast.success('Xác nhận nhận hàng thành công!');
       setShowReceiveModal(false);
       fetchData();
     } catch (error) {
-      alert('Lỗi: ' + (error.response?.data?.error || error.message));
+      toast.error('Lỗi: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -213,6 +215,11 @@ const AdminTransferPage = () => {
                               )
                             )}
                           </>
+                        )}
+                        {req.TRANGTHAI === 'Đã được tiếp nhận' && (
+                          <button className="btn btn-outline-primary btn-sm fw-bold" onClick={() => setActiveTab('transfers')}>
+                            Chuyển sang xử lý Phiếu ➔
+                          </button>
                         )}
                       </td>
                     </tr>

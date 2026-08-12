@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Footer from "../Layout/Footer";
 import { getGoogleStatus, googleRegister } from "../services/authService";
+import { useToast } from '../components/Toast/Toast';
 
 const RegisterGooglePage = () => {
-    const [sdt, setSdt] = useState("");
+      const toast = useToast();
+const [sdt, setSdt] = useState("");
     const [gioiTinh, setGioiTinh] = useState("Nam");
     const [error, setError] = useState("");
     const [googleInfo, setGoogleInfo] = useState(null);
@@ -30,7 +32,7 @@ const RegisterGooglePage = () => {
                 }
             } catch (e) {
                 // Lỗi hoặc không có session Google
-                alert("Phiên đăng nhập Google không hợp lệ hoặc đã hết hạn.");
+                toast.warning("Phiên đăng nhập Google không hợp lệ hoặc đã hết hạn.");
                 navigate("/dang-nhap");
             }
         };
@@ -54,7 +56,7 @@ const RegisterGooglePage = () => {
             if (res.access_token) {
                 localStorage.setItem("access_token", res.access_token);
             }
-            alert(res.message || "Đăng ký thành công!");
+            toast.success(res.message || "Đăng ký thành công!");
             window.location.href = "/?google=true";
         } catch (e) {
             setError(e.response?.data?.error || "Đã xảy ra lỗi khi đăng ký bằng Google!");

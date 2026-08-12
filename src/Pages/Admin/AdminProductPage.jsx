@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
 import { getProducts, createProduct, updateProduct, deleteProduct, restoreProduct } from '../../services/productService';
 import axiosClient from '../../services/axiosClient';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminProductPage = () => {
-  const [products, setProducts] = useState([]);
+    const toast = useToast();
+const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
@@ -155,11 +157,11 @@ const AdminProductPage = () => {
         ]
       };
       await axiosClient.post('/admin/transfers/requests', payload);
-      alert('Tạo yêu cầu nhập hàng thành công!');
+      toast.success('Tạo yêu cầu nhập hàng thành công!');
       setShowRestockModal(false);
     } catch (error) {
       console.error(error);
-      alert('Lỗi: ' + (error.response?.data?.error || 'Có lỗi xảy ra khi tạo yêu cầu.'));
+      toast.error('Lỗi: ' + (error.response?.data?.error || 'Có lỗi xảy ra khi tạo yêu cầu.'));
     }
   };
 
@@ -167,7 +169,7 @@ const AdminProductPage = () => {
     e.preventDefault();
     
     if (Number(formData.GIABAN) < 0) {
-      alert("Giá bán không được phép âm!");
+      toast.info("Giá bán không được phép âm!");
       return;
     }
 
@@ -198,20 +200,20 @@ const AdminProductPage = () => {
       if (editingProduct) {
         const id = editingProduct.maSP || editingProduct.MaSP || editingProduct.MASP;
         await updateProduct(id, payload);
-        alert('Cập nhật thành công!');
+        toast.success('Cập nhật thành công!');
       } else {
         if (!selectedFile) {
-          alert('Vui lòng chọn hình ảnh cho sản phẩm!');
+          toast.warning('Vui lòng chọn hình ảnh cho sản phẩm!');
           return;
         }
         await createProduct(payload);
-        alert('Thêm sản phẩm thành công!');
+        toast.success('Thêm sản phẩm thành công!');
       }
       closeModal();
       fetchProducts();
     } catch (error) {
       console.error("Error saving product:", error);
-      alert('Có lỗi xảy ra! ' + (error.response?.data?.message || ''));
+      toast.error('Có lỗi xảy ra! ' + (error.response?.data?.message || ''));
     }
   };
 
@@ -219,11 +221,11 @@ const AdminProductPage = () => {
     if (window.confirm("Bạn có chắc chắn muốn vô hiệu hóa sản phẩm này? Sản phẩm sẽ bị ngừng bán.")) {
       try {
         await deleteProduct(id);
-        alert('Vô hiệu hóa thành công!');
+        toast.success('Vô hiệu hóa thành công!');
         fetchProducts();
       } catch (error) {
         console.error("Error deleting product:", error);
-        alert('Có lỗi xảy ra khi vô hiệu hóa! ' + (error.response?.data?.message || ''));
+        toast.error('Có lỗi xảy ra khi vô hiệu hóa! ' + (error.response?.data?.message || ''));
       }
     }
   };
@@ -232,11 +234,11 @@ const AdminProductPage = () => {
     if (window.confirm("Bạn muốn kích hoạt lại sản phẩm này để tiếp tục bán?")) {
       try {
         await restoreProduct(id);
-        alert('Kích hoạt lại thành công!');
+        toast.success('Kích hoạt lại thành công!');
         fetchProducts();
       } catch (error) {
         console.error("Error restoring product:", error);
-        alert('Có lỗi xảy ra khi kích hoạt lại! ' + (error.response?.data?.message || ''));
+        toast.error('Có lỗi xảy ra khi kích hoạt lại! ' + (error.response?.data?.message || ''));
       }
     }
   };
@@ -336,8 +338,8 @@ const AdminProductPage = () => {
                 const status = isDeactivated ? 'Ngừng bán' : (stock > 0 ? 'Còn hàng' : 'Hết hàng');
                 const image = product.hinhanh || product.HINHANH;
                 const filename = image ? image.split('/').pop() : 'productnew2.webp';
-                // Nếu ảnh từ MinIO thì nó sẽ bắt đầu bằng http, nếu không thì lấy từ thư mục public/assets/IMG của Frontend
-                const imageUrl = image ? (image.startsWith('http') ? image : `/assets/IMG/${filename}`) : `/assets/IMG/productnew2.webp`;
+                // Nếu ảnh từ MinIO thì nó sẽ bắt đầu bằng http hoặc /api/proxy-image, nếu không thì lấy từ thư mục public/assets/IMG của Frontend
+                const imageUrl = image ? ((image.startsWith('http') || image.startsWith('/api/')) ? image : `/assets/IMG/${filename}`) : `/assets/IMG/productnew2.webp`;
                 
                 return (
                   <tr key={id} style={{ opacity: isDeactivated ? 0.6 : 1 }}>

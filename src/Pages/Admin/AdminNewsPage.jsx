@@ -1,9 +1,12 @@
+import { BASE_URL } from '../../services/axiosClient';
 import React, { useState, useEffect } from "react";
 import { getAdminNews, createNews, updateNews, deleteNews, getNewsDetail, getNewsComments, postNewsComment, deleteNewsComment } from "../../services/newsService";
 import AdminLayout from '../../Layout/AdminLayout';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminNewsPage = () => {
-    const [news, setNews] = useState([]);
+      const toast = useToast();
+const [news, setNews] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -102,10 +105,10 @@ const AdminNewsPage = () => {
 
             if (editingNews) {
                 await updateNews(editingNews.MATINTUC, payload);
-                alert("Cập nhật tin tức thành công!");
+                toast.success("Cập nhật tin tức thành công!");
             } else {
                 await createNews(payload);
-                alert("Thêm tin tức thành công!");
+                toast.success("Thêm tin tức thành công!");
             }
             setIsModalOpen(false);
             setSelectedFile(null);
@@ -113,7 +116,7 @@ const AdminNewsPage = () => {
             fetchNews();
         } catch (error) {
             console.error("Submit error:", error);
-            alert("Lỗi khi lưu tin tức: " + (error.response?.data?.error || error.message));
+            toast.error("Lỗi khi lưu tin tức: " + (error.response?.data?.error || error.message));
         }
     };
 
@@ -121,12 +124,12 @@ const AdminNewsPage = () => {
         if (!window.confirm("Bạn có chắc chắn muốn xóa tin tức này?")) return;
         try {
             await deleteNews(id);
-            alert("Xóa thành công!");
+            toast.success("Xóa thành công!");
             fetchNews();
             if (selectedNews?.MATINTUC === id) setSelectedNews(null);
         } catch (error) {
             console.error("Delete error:", error);
-            alert("Lỗi khi xóa: " + (error.response?.data?.error || error.message));
+            toast.error("Lỗi khi xóa: " + (error.response?.data?.error || error.message));
         }
     };
 
@@ -155,8 +158,8 @@ const AdminNewsPage = () => {
     const getAvatarUrl = (cmt) => {
         const avatar = cmt.khachhang?.taikhoan?.AVATAR || cmt.khachhang?.AVATAR || cmt.AVATAR;
         if (!avatar) return null;
-        if (avatar.startsWith('http')) return avatar;
-        return `http://127.0.0.1:8000/storage/${avatar}`;
+        if (avatar.startsWith('http') || avatar.startsWith('/api/')) return avatar;
+        return `${BASE_URL}/storage/${avatar}`;
     };
 
     const handleImageError = (e) => {
@@ -174,32 +177,32 @@ const AdminNewsPage = () => {
         if (!window.confirm("Bạn có chắc chắn muốn xóa bình luận này?")) return;
         try {
             await deleteNewsComment(cmtId);
-            alert("Đã xóa bình luận!");
+            toast.info("Đã xóa bình luận!");
             const updatedComments = await getNewsComments(selectedNews.MATINTUC);
             setNewsComments(updatedComments || []);
         } catch (error) {
             console.error("Lỗi khi xóa bình luận:", error);
-            alert("Lỗi: " + (error.response?.data?.error || error.message));
+            toast.error("Lỗi: " + (error.response?.data?.error || error.message));
         }
     };
 
     const handleAdminReply = async (e, parentId) => {
         e.preventDefault();
         if (!adminReplyContent.trim()) {
-            alert("Vui lòng nhập nội dung trả lời.");
+            toast.warning("Vui lòng nhập nội dung trả lời.");
             return;
         }
         setIsSubmittingReply(true);
         try {
             await postNewsComment(selectedNews.MATINTUC, adminReplyContent, parentId);
-            alert("Đã gửi câu trả lời!");
+            toast.success("Đã gửi câu trả lời!");
             setAdminReplyContent("");
             setReplyingCmtId(null);
             const updatedComments = await getNewsComments(selectedNews.MATINTUC);
             setNewsComments(updatedComments || []);
         } catch (error) {
             console.error("Lỗi khi trả lời bình luận:", error);
-            alert("Lỗi: " + (error.response?.data?.error || error.message));
+            toast.error("Lỗi: " + (error.response?.data?.error || error.message));
         }
         setIsSubmittingReply(false);
     };
@@ -385,7 +388,7 @@ const AdminNewsPage = () => {
                                     <td><strong>{item.MATINTUC}</strong></td>
                                     <td>
                                         <img
-                                            src={item.HINHANH?.startsWith('http') ? item.HINHANH : `http://127.0.0.1:8000/images/news/${item.HINHANH}`}
+                                            src={(item.HINHANH?.startsWith('http') || item.HINHANH?.startsWith('/api/')) ? item.HINHANH : `${BASE_URL}/images/news/${item.HINHANH}`}
                                             alt={item.TIEUDE}
                                             style={{ width: '80px', height: '55px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #eee' }}
                                             onError={handleImageError}
@@ -439,7 +442,7 @@ const AdminNewsPage = () => {
 
                                     {selectedNews.HINHANH && (
                                         <img
-                                            src={selectedNews.HINHANH?.startsWith('http') ? selectedNews.HINHANH : `http://127.0.0.1:8000/images/news/${selectedNews.HINHANH}`}
+                                            src={(selectedNews.HINHANH?.startsWith('http') || selectedNews.HINHANH?.startsWith('/api/')) ? selectedNews.HINHANH : `${BASE_URL}/images/news/${selectedNews.HINHANH}`}
                                             alt={selectedNews.TIEUDE}
                                             style={{ width: '100%', maxHeight: '300px', objectFit: 'cover', borderRadius: '8px', marginBottom: '1rem' }}
                                             onError={handleImageError}

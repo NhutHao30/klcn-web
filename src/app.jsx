@@ -2,8 +2,9 @@ import React, { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./Layout/Header";
 import Modal from "./components/Modal";
-import ChatBox from "./Components/ChatBox";
+import ChatBox from "./components/ChatBox";
 import { getCurrentUser } from "./services/authService";
+import { ToastProvider } from "./components/Toast/Toast";
 
 // Lazy load các trang (Chỉ tải code khi người dùng thực sự vào trang đó)
 const HomePage = lazy(() => import("./Pages/HomePage"));
@@ -34,10 +35,11 @@ const AdminReportPage = lazy(() => import("./Pages/Admin/AdminReportPage"));
 const AdminChatPage = lazy(() => import("./Pages/Admin/AdminChatPage"));
 const AdminInternalChatPage = lazy(() => import("./Pages/Admin/AdminInternalChatPage"));
 const AdminStorePage = lazy(() => import("./Pages/Admin/AdminStorePage"));
-const AdminNhatKyPage = lazy(() => import("./Pages/Admin/AdminNhatKyPage"));
 const AdminProfilePage = lazy(() => import("./Pages/Admin/AdminProfilePage"));
 const AdminVoucherPage = lazy(() => import("./Pages/Admin/AdminVoucherPage"));
 const AdminNewsPage = lazy(() => import("./Pages/Admin/AdminNewsPage"));
+const AdminInventoryLedgerPage = lazy(() => import("./Pages/Admin/AdminInventoryLedgerPage"));
+const AdminAdvancedAuditPage = lazy(() => import("./Pages/Admin/AdminAdvancedAuditPage"));
 
 // Tạo hiệu ứng Loading nhẹ khi đang tải file JS
 const LoadingFallback = () => (
@@ -81,11 +83,12 @@ function App() {
     getCurrentUser().then(user => setCurrentUser(user)).catch(() => setCurrentUser(null));
     
     if (params.get("google") === "true") {
-        setTimeout(() => alert("Đăng nhập bằng Google thành công!"), 500);
+        // Toast sẽ hiển thị ở trang đích;
     }
   }, []);
 
   return (
+    <ToastProvider>
     <Router>
       <Header />
       <Suspense fallback={<LoadingFallback />}>
@@ -117,17 +120,19 @@ function App() {
         <Route path="/admin/pos" element={<AdminPOSPage />} />
         <Route path="/admin/bao-cao" element={<AdminReportPage />} />
         <Route path="/admin/cua-hang" element={<AdminStorePage />} />
-        <Route path="/admin/nhat-ky-he-thong" element={<AdminNhatKyPage />} />
         <Route path="/admin/chat" element={<AdminChatPage />} />
         <Route path="/admin/chat-noi-bo" element={<AdminInternalChatPage />} />
         <Route path="/admin/thong-tin-ca-nhan" element={<AdminProfilePage />} />
         <Route path="/admin/khuyen-mai" element={<AdminVoucherPage />} />
         <Route path="/admin/tin-tuc" element={<AdminNewsPage />} />
+        <Route path="/admin/so-cai-ton-kho" element={<AdminInventoryLedgerPage />} />
+        <Route path="/admin/nhat-ky-nang-cao" element={<AdminAdvancedAuditPage />} />
       </Routes>
       </Suspense>
       <Modal />
       <ChatBox currentUser={currentUser} />
     </Router>
+    </ToastProvider>
   );
 }
 

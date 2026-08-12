@@ -1,3 +1,4 @@
+import { BASE_URL } from '../services/axiosClient';
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getNewsDetail, getNewsComments, postNewsComment, getNews } from "../services/newsService";
@@ -5,6 +6,7 @@ import { getCurrentUser } from "../services/authService";
 import Footer from "../Layout/Footer";
 import "./PostPage.css"; 
 import "./PostDetailPage.css"; 
+import { useToast } from '../components/Toast/Toast';
 
 function PostDetailPage() {
     const { id } = useParams();
@@ -60,25 +62,25 @@ function PostDetailPage() {
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
         if (!isAuthenticated) {
-            alert("Bạn cần đăng nhập để bình luận!");
+            toast.warning("Bạn cần đăng nhập để bình luận!");
             return;
         }
         if (!commentContent.trim()) {
-            alert("Vui lòng nhập nội dung bình luận.");
+            toast.warning("Vui lòng nhập nội dung bình luận.");
             return;
         }
 
         setIsSubmitting(true);
         try {
             await postNewsComment(id, commentContent);
-            alert("Đã gửi bình luận!");
+            toast.success("Đã gửi bình luận!");
             setCommentContent("");
             // Refresh comments
             const cmtData = await getNewsComments(id);
             setComments(cmtData);
         } catch (error) {
             console.error("Lỗi khi bình luận:", error);
-            alert("Lỗi: " + (error.response?.data?.error || error.message));
+            toast.error("Lỗi: " + (error.response?.data?.error || error.message));
         }
         setIsSubmitting(false);
     };
@@ -86,18 +88,18 @@ function PostDetailPage() {
     const handleReplySubmit = async (e, parentId) => {
         e.preventDefault();
         if (!isAuthenticated) {
-            alert("Bạn cần đăng nhập để trả lời bình luận!");
+            toast.warning("Bạn cần đăng nhập để trả lời bình luận!");
             return;
         }
         if (!replyContent.trim()) {
-            alert("Vui lòng nhập nội dung trả lời.");
+            toast.warning("Vui lòng nhập nội dung trả lời.");
             return;
         }
 
         setIsSubmittingReply(true);
         try {
             await postNewsComment(id, replyContent, parentId);
-            alert("Đã gửi câu trả lời!");
+            toast.success("Đã gửi câu trả lời!");
             setReplyContent("");
             setReplyingToId(null);
             // Refresh comments
@@ -105,13 +107,14 @@ function PostDetailPage() {
             setComments(cmtData);
         } catch (error) {
             console.error("Lỗi khi trả lời bình luận:", error);
-            alert("Lỗi: " + (error.response?.data?.error || error.message));
+            toast.error("Lỗi: " + (error.response?.data?.error || error.message));
         }
         setIsSubmittingReply(false);
     };
 
     const countTotalComments = (list) => {
-        if (!list || !Array.isArray(list)) return 0;
+          const toast = useToast();
+if (!list || !Array.isArray(list)) return 0;
         let count = 0;
         for (const item of list) {
             count += 1;
@@ -135,8 +138,8 @@ function PostDetailPage() {
     const getAvatarUrl = (cmt) => {
         const avatar = cmt.khachhang?.taikhoan?.AVATAR || cmt.khachhang?.AVATAR || cmt.AVATAR;
         if (!avatar) return null;
-        if (avatar.startsWith('http')) return avatar;
-        return `http://127.0.0.1:8000/storage/${avatar}`;
+        if (avatar.startsWith('http') || avatar.startsWith('/api/')) return avatar;
+        return `${BASE_URL}/storage/${avatar}`;
     };
 
     const renderCommentItem = (cmt, isReply = false) => {
@@ -285,7 +288,7 @@ function PostDetailPage() {
                                     
                                     <div className="post-featured-image my-4">
                                         <img 
-                                            src={post.HINHANH?.startsWith('http') ? post.HINHANH : `http://127.0.0.1:8000/images/news/${post.HINHANH}`} 
+                                            src={(post.HINHANH?.startsWith('http') || post.HINHANH?.startsWith('/api/')) ? post.HINHANH : `${BASE_URL}/images/news/${post.HINHANH}`} 
                                             alt={post.TIEUDE} 
                                             style={{ width: '100%', borderRadius: '8px' }}
                                         />
@@ -298,7 +301,7 @@ function PostDetailPage() {
                                                     <p>{ct.ARTICLE}</p>
                                                     {ct.HINHANH && (
                                                         <img 
-                                                            src={ct.HINHANH?.startsWith('http') ? ct.HINHANH : `http://127.0.0.1:8000/images/news/${ct.HINHANH}`} 
+                                                            src={(ct.HINHANH?.startsWith('http') || ct.HINHANH?.startsWith('/api/')) ? ct.HINHANH : `${BASE_URL}/images/news/${ct.HINHANH}`} 
                                                             alt="Paragraph Image" 
                                                             style={{ width: '100%', marginTop: '10px', borderRadius: '4px' }}
                                                         />
@@ -397,7 +400,7 @@ function PostDetailPage() {
                                                     <span className="featured-index">{index + 1}</span>
                                                     <Link to={`/tin-tuc/${rPost.MATINTUC}`}>
                                                         <img 
-                                                            src={rPost.HINHANH?.startsWith('http') ? rPost.HINHANH : `http://127.0.0.1:8000/images/news/${rPost.HINHANH}`} 
+                                                            src={(rPost.HINHANH?.startsWith('http') || rPost.HINHANH?.startsWith('/api/')) ? rPost.HINHANH : `${BASE_URL}/images/news/${rPost.HINHANH}`} 
                                                             alt={rPost.TIEUDE}
                                                             onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
                                                         />

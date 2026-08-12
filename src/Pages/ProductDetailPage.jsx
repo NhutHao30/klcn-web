@@ -48,8 +48,8 @@ const ProductDetailPage = () => {
   // Helper to format image URL
   const formatImageUrl = (url) => {
     if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `http://127.0.0.1:8000/storage/${url}`;
+    if (url.startsWith('http') || url.startsWith('/api/')) return url;
+    return `/storage/${url}`;
   };
 
   const renderStars = (rating) => {

@@ -4,10 +4,12 @@ import axiosClient from '../../services/axiosClient';
 import { getCurrentUser } from '../../services/authService';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { useToast } from '../../components/Toast/Toast';
 window.Pusher = Pusher;
 
 const AdminInternalChatPage = () => {
-  const [currentUser, setCurrentUser] = useState(null);
+    const toast = useToast();
+const [currentUser, setCurrentUser] = useState(null);
   const [channels, setChannels] = useState([]);
   const [activeChannel, setActiveChannel] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -157,7 +159,7 @@ const AdminInternalChatPage = () => {
     } catch (error) {
       console.error("Lỗi gửi tin nhắn:", error);
       const errorMsg = error.response?.data?.error || error.message || "Lỗi không xác định";
-      alert("Không thể gửi tin nhắn! Lỗi: " + errorMsg);
+      toast.error("Không thể gửi tin nhắn! Lỗi: " + errorMsg);
       // Xóa tin nhắn tạm nếu gửi thất bại
       setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
     }

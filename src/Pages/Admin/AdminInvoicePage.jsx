@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
 import { getInvoices, getInvoiceDetails, updateInvoiceStatus } from '../../services/invoiceService';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminInvoicePage = () => {
-  const [invoices, setInvoices] = useState([]);
+    const toast = useToast();
+const [invoices, setInvoices] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchStatus, setSearchStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -64,12 +66,12 @@ const AdminInvoicePage = () => {
         ...viewingInvoice,
         trangThai: editingStatus
       });
-      alert('Cập nhật trạng thái thành công!');
+      toast.success('Cập nhật trạng thái thành công!');
       fetchInvoices();
       closeModal();
     } catch (error) {
       console.error("Error updating status:", error);
-      alert('Có lỗi xảy ra khi cập nhật!');
+      toast.error('Có lỗi xảy ra khi cập nhật!');
     }
   };
 

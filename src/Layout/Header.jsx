@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
-import HeaderSlideShow from "../components/headerSlideShow";
+import HeaderSlideShow from "../components/HeaderSlideShow";
 import Navigation from "../components/Navigation";
 import Breadcrumb from "../components/Breadcrumb";
 import { getCurrentUser, logout } from "../services/authService";
 import { getCart, removeFromCart } from "../services/cartService";
+import { useToast } from "../components/Toast/Toast";
 
 const getMasp = (item) => {
     return item.masp || item.MASP || item.MaSP || item.product?.masp || item.product?.MASP || "";
@@ -12,7 +13,7 @@ const getMasp = (item) => {
 
 const getImageSrc = (imageUrl) => {
     if (!imageUrl) return "../../assets/IMG/productnew2.webp";
-    if (imageUrl.startsWith("http")) return imageUrl;
+    if (imageUrl.startsWith("http") || imageUrl.startsWith("/api/")) return imageUrl;
     return `../../assets/IMG/${imageUrl.split('/').pop()}`;
 };
 
@@ -30,6 +31,7 @@ const Header = () => {
     const location = useLocation();
     const [user, setUser] = useState(null);
     const [cartItems, setCartItems] = useState([]);
+    const toast = useToast();
 
     const loadCart = async () => {
         try {
@@ -51,7 +53,7 @@ const Header = () => {
             document.dispatchEvent(new Event('cartUpdated'));
         } catch (error) {
             console.error("Lỗi xóa sản phẩm khỏi giỏ:", error);
-            alert("Không thể xóa sản phẩm lúc này!");
+            toast.error("Không thể xóa sản phẩm lúc này!");
         }
     };
 
@@ -121,7 +123,7 @@ const Header = () => {
                                             </div>
                                             <Link to={user ? "/thong-tin-ca-nhan" : "/dang-nhap"} className="nav-item__link-icon hide-on-mobile" >
                                                 {user?.AVATAR ? (
-                                                    <img src={user.AVATAR.startsWith('http') ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px', }} />
+                                                    <img src={(user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px', }} />
                                                 ) : (
                                                     <i className="nav-icon fa-regular fa-user"></i>
                                                 )}
@@ -233,9 +235,9 @@ const Header = () => {
                                                 </span>
                                             </li>
                                             <li className="nav-item col-lg-2 col-md-2">
-                                                <a href="Trang-Chu.html" className="nav-item__link-img">
+                                                <Link to="/" className="nav-item__link-img">
                                                     <img src="../../assets/IMG/logo_header.webp" className="header-logo" />
-                                                </a>
+                                                </Link>
                                             </li>
                                             <li className="nav-item col-lg-8 col-md-8 hide-on-mobile">
                                                 <Navigation />
@@ -247,7 +249,7 @@ const Header = () => {
                                                     </div>
                                                     <Link to={user ? "/thong-tin-ca-nhan" : "/dang-nhap"} className="nav-item__link-icon hide-on-mobile">
                                                         {user?.AVATAR ? (
-                                                            <img src={user.AVATAR.startsWith('http') ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px'}} />
+                                                            <img src={(user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px'}} />
                                                         ) : (
                                                             <i className="nav-icon fa-regular fa-user"></i>
                                                         )}

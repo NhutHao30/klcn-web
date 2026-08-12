@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Header from '../Layout/Header';
 import Footer from '../Layout/Footer';
 import { getMyOrders, getMyOrderDetails } from '../services/invoiceService';
+import { useToast } from '../components/Toast/Toast';
 
 const MyOrdersPage = () => {
-  const [orders, setOrders] = useState([]);
+    const toast = useToast();
+const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -25,7 +27,7 @@ const MyOrdersPage = () => {
         setOrders(data);
       } catch (error) {
         if (error.response?.status === 401) {
-          alert('Vui lòng đăng nhập để xem đơn hàng của bạn!');
+          toast.warning('Vui lòng đăng nhập để xem đơn hàng của bạn!');
           window.location.href = '/dang-nhap';
         } else {
           console.error("Error fetching orders:", error);
@@ -71,7 +73,7 @@ const MyOrdersPage = () => {
 
   const submitReview = async () => {
     if (!reviewRating) {
-      alert("Vui lòng chọn số sao đánh giá!");
+      toast.warning("Vui lòng chọn số sao đánh giá!");
       return;
     }
     setIsSubmittingReview(true);
@@ -89,7 +91,7 @@ const MyOrdersPage = () => {
       const res = await m.default.post('/reviews', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      alert(res.data.message || "Đánh giá thành công!");
+      toast.success(res.data.message || "Đánh giá thành công!");
       closeReviewModal();
       
       // Update order details to show it's reviewed (optional, or just re-fetch)
@@ -97,7 +99,7 @@ const MyOrdersPage = () => {
       const details = await getMyOrderDetails(viewingOrder.maHD);
       setOrderDetails(details);
     } catch (e) {
-      alert(e.response?.data?.error || "Có lỗi xảy ra khi đánh giá");
+      toast.error(e.response?.data?.error || "Có lỗi xảy ra khi đánh giá");
     } finally {
       setIsSubmittingReview(false);
     }
@@ -110,7 +112,7 @@ const MyOrdersPage = () => {
     try {
       const m = await import('../services/axiosClient.js');
       const res = await m.default.post(`/my-orders/${mahd}/cancel`);
-      alert(res.data.message || "Hủy đơn hàng thành công!");
+      toast.success(res.data.message || "Hủy đơn hàng thành công!");
       
       // Update UI
       setOrders(orders.map(o => o.maHD === mahd ? { ...o, trangThai: 'Đã hủy' } : o));
@@ -118,7 +120,7 @@ const MyOrdersPage = () => {
         setViewingOrder({ ...viewingOrder, trangThai: 'Đã hủy' });
       }
     } catch (error) {
-      alert(error.response?.data?.error || "Có lỗi xảy ra khi hủy đơn hàng.");
+      toast.error(error.response?.data?.error || "Có lỗi xảy ra khi hủy đơn hàng.");
     }
   };
 

@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import Footer from "../Layout/Footer";
 import { sendContactEmail } from "../services/contactService";
+import { useToast } from '../components/Toast/Toast';
 
 const FaqItem = ({ question, children }) => {
-    const [isActive, setIsActive] = useState(false);
+      const toast = useToast();
+const [isActive, setIsActive] = useState(false);
 
     return (
         <div className={`faq-item ${isActive ? 'active' : ''}`}>
@@ -37,10 +39,10 @@ const FAQPage = () => {
         setIsSubmitting(true);
         try {
             await sendContactEmail(formData);
-            alert("Gửi yêu cầu giải đáp thắc mắc thành công! Chúng tôi sẽ phản hồi qua email của bạn.");
+            toast.success("Gửi yêu cầu thành công! Chúng tôi sẽ phản hồi qua email của bạn.");
             setFormData({ hoTen: "", email: "", dienThoai: "", noiDung: "" }); // reset form
         } catch (error) {
-            alert(error.message || "Không thể gửi yêu cầu lúc này. Vui lòng thử lại sau.");
+            toast.error(error.message || "Không thể gửi yêu cầu lúc này. Vui lòng thử lại sau.");
         } finally {
             setIsSubmitting(false);
         }

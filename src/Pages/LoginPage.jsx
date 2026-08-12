@@ -1,10 +1,13 @@
+import { BASE_URL } from '../services/axiosClient';
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Footer from "../Layout/Footer";
 import { login, getCurrentUser, logout, forgotPassword, resetPassword } from "../services/authService";
+import { useToast } from '../components/Toast/Toast';
 
 const LoginPage = () => {
-    const [username, setUsername] = useState("");
+      const toast = useToast();
+const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [user, setUser] = useState(null);
@@ -52,7 +55,7 @@ const LoginPage = () => {
                 localStorage.setItem('access_token', res.access_token);
             }
 
-            alert("Đăng nhập thành công!");
+            toast.success("Đăng nhập thành công!");
             
             // Lấy quyền từ res.user.MAROLE của Laravel
             const role = res.user ? Number(res.user.MAROLE) : 2;
@@ -71,7 +74,7 @@ const LoginPage = () => {
         try {
             await logout();
             setUser(null);
-            alert("Đăng xuất thành công!");
+            toast.success("Đăng xuất thành công!");
             window.location.href = "/dang-nhap";
         } catch (e) {
             console.error(e);
@@ -80,16 +83,16 @@ const LoginPage = () => {
 
     const handleForgotPassword = async () => {
         if (!forgotEmail) {
-            alert("Vui lòng nhập email khôi phục!");
+            toast.warning("Vui lòng nhập email khôi phục!");
             return;
         }
         setIsSendingForgot(true);
         try {
             const res = await forgotPassword(forgotEmail);
-            alert(res.message || "Đã gửi mã OTP đến email của bạn.");
+            toast.success(res.message || "Đã gửi mã OTP đến email của bạn.");
             setOtpSent(true);
         } catch (e) {
-            alert(e.response?.data?.error || "Đã xảy ra lỗi, vui lòng thử lại.");
+            toast.error(e.response?.data?.error || "Đã xảy ra lỗi, vui lòng thử lại.");
         } finally {
             setIsSendingForgot(false);
         }
@@ -97,17 +100,17 @@ const LoginPage = () => {
 
     const handleResetPassword = async () => {
         if (!otp || !newPassword || !confirmNewPassword) {
-            alert("Vui lòng nhập đầy đủ thông tin!");
+            toast.warning("Vui lòng nhập đầy đủ thông tin!");
             return;
         }
         if (newPassword !== confirmNewPassword) {
-            alert("Mật khẩu nhập lại không khớp!");
+            toast.warning("Mật khẩu nhập lại không khớp!");
             return;
         }
         setIsResetting(true);
         try {
             const res = await resetPassword(forgotEmail, otp, newPassword);
-            alert(res.message || "Đổi mật khẩu thành công!");
+            toast.success(res.message || "Đổi mật khẩu thành công!");
             
             // Đóng form, làm sạch dữ liệu
             setForgotEmail("");
@@ -117,7 +120,7 @@ const LoginPage = () => {
             setOtpSent(false);
             setShowForgotForm(false);
         } catch (e) {
-            alert(e.response?.data?.error || "Mã OTP không chính xác hoặc lỗi hệ thống!");
+            toast.error(e.response?.data?.error || "Mã OTP không chính xác hoặc lỗi hệ thống!");
         } finally {
             setIsResetting(false);
         }
@@ -267,7 +270,7 @@ const LoginPage = () => {
                                                 Facebook
                                             </div>
                                         </a>
-                                        <a href="http://localhost:8000/api/auth/google" className="Register__Social-link gooleBG">
+                                        <a href={`${BASE_URL}/api/auth/google`} className="Register__Social-link gooleBG">
                                             <div className="Register__Social-icon">
                                                 <i className="Social-icon__google fa-brands fa-google-plus-g"></i>
                                             </div>

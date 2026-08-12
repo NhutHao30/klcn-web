@@ -1,3 +1,4 @@
+import { BASE_URL } from '../services/axiosClient';
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getNews } from "../services/newsService";
@@ -58,14 +59,14 @@ function PostPage() {
                                                     <span className="news-date-badge">{formatDate(post.NGAYDANG)}</span>
                                                     <Link to={`/tin-tuc/${post.MATINTUC}`}>
                                                         <img 
-                                                            src={post.HINHANH?.startsWith('http') ? post.HINHANH : `http://127.0.0.1:8000/images/news/${post.HINHANH}`} 
+                                                            src={(post.HINHANH?.startsWith('http') || post.HINHANH?.startsWith('/api/')) ? post.HINHANH : `${BASE_URL}/images/news/${post.HINHANH}`} 
                                                             alt={post.TIEUDE} 
                                                             onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
                                                         />
                                                     </Link>
                                                 </div>
                                                 <div className="news-card-body">
-                                                    <h3 className="news-title">
+                                                    <h3 className="news-title truncate-text">
                                                         <Link to={`/tin-tuc/${post.MATINTUC}`}>{post.TIEUDE}</Link>
                                                     </h3>
                                                     <p className="news-excerpt">{post.MOTA}</p>
@@ -102,7 +103,7 @@ function PostPage() {
                                                     <span className="featured-index">{index + 1}</span>
                                                     <Link to={`/tin-tuc/${post.MATINTUC}`}>
                                                         <img 
-                                                            src={post.HINHANH?.startsWith('http') ? post.HINHANH : `http://127.0.0.1:8000/images/news/${post.HINHANH}`} 
+                                                            src={(post.HINHANH?.startsWith('http') || post.HINHANH?.startsWith('/api/')) ? post.HINHANH : `${BASE_URL}/images/news/${post.HINHANH}`} 
                                                             alt={post.TIEUDE}
                                                             onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
                                                         />

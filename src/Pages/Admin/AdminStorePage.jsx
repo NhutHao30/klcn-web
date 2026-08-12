@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
 import { getStores, updateStoreStatus, createStore, updateStore } from '../../services/storeService';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminStorePage = () => {
-  const [stores, setStores] = useState([]);
+    const toast = useToast();
+const [stores, setStores] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStore, setSelectedStore] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,14 +47,14 @@ const AdminStorePage = () => {
     if (window.confirm(`Bạn có chắc muốn đổi trạng thái thành "${newStatus}"?`)) {
       try {
         await updateStoreStatus(storeId, newStatus);
-        alert('Cập nhật trạng thái thành công');
+        toast.success('Cập nhật trạng thái thành công');
         fetchStores();
         if (selectedStore && selectedStore.id === storeId) {
           setSelectedStore({ ...selectedStore, status: newStatus });
         }
       } catch (error) {
         console.error('Error updating status:', error);
-        alert('Lỗi cập nhật trạng thái');
+        toast.error('Lỗi cập nhật trạng thái');
       }
     }
   };
@@ -66,14 +68,14 @@ const AdminStorePage = () => {
         SDT: newStore.phone,
         GHN_SHOP_ID: newStore.ghnShopId
       });
-      alert('Tạo chi nhánh mới thành công!');
+      toast.success('Tạo chi nhánh mới thành công!');
       setIsAddStoreModalOpen(false);
       setNewStore({ name: '', address: '', phone: '', ghnShopId: '' });
       fetchStores();
     } catch (error) {
       console.error('Error creating store', error);
       const errorMsg = error.response?.data?.errors?.GHN_SHOP_ID?.[0] || 'Lỗi tạo chi nhánh mới, vui lòng thử lại';
-      alert(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -81,13 +83,13 @@ const AdminStorePage = () => {
     e.preventDefault();
     try {
       await updateStore(editingStore.id, { GHN_SHOP_ID: ghnShopId });
-      alert('Cập nhật mã GHN Shop ID thành công!');
+      toast.success('Cập nhật mã GHN Shop ID thành công!');
       setIsEditGhnModalOpen(false);
       fetchStores();
     } catch (error) {
       console.error('Error updating store', error);
       const errorMsg = error.response?.data?.errors?.GHN_SHOP_ID?.[0] || 'Lỗi cập nhật mã GHN';
-      alert(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -103,47 +105,47 @@ const AdminStorePage = () => {
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>Đang tải dữ liệu...</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.5rem' }}>
           {stores.map(store => (
-            <div key={store.id} className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div key={store.id} className="admin-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <h3 style={{ margin: 0, color: 'var(--admin-text)', fontSize: '1.1rem' }}>{store.name}</h3>
+                <h3 style={{ margin: 0, color: 'var(--admin-text)', fontSize: '1.6rem' }}>{store.name}</h3>
                 <span className={`admin-badge ${store.status === 'Đang hoạt động' ? 'admin-badge-success' : 'admin-badge-danger'}`}>
                   {store.status}
                 </span>
               </div>
-              <p style={{ margin: 0, color: 'var(--admin-text-muted)', fontSize: '0.9rem' }}>📍 {store.address}</p>
-              <p style={{ margin: 0, color: 'var(--admin-text-muted)', fontSize: '0.9rem' }}>📞 {store.phone}</p>
+              <p style={{ margin: 0, color: 'var(--admin-text-muted)', fontSize: '1.2rem' }}>📍 {store.address}</p>
+              <p style={{ margin: 0, color: 'var(--admin-text-muted)', fontSize: '1.2rem' }}>📞 {store.phone}</p>
               {store.GHN_SHOP_ID ? (
-                <p style={{ margin: 0, color: 'var(--admin-info)', fontSize: '0.9rem', cursor: 'pointer' }} onClick={() => {
+                <p style={{ margin: 0, color: 'var(--admin-info)', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => {
                   setEditingStore(store); setGhnShopId(store.GHN_SHOP_ID); setIsEditGhnModalOpen(true);
                 }}>
                   <i className="fa-solid fa-truck-fast"></i> GHN Shop ID: {store.GHN_SHOP_ID} <i className="fa-solid fa-pen ms-2"></i>
                 </p>
               ) : (
-                <p style={{ margin: 0, color: 'var(--admin-warning)', fontSize: '0.9rem', cursor: 'pointer' }} onClick={() => {
+                <p style={{ margin: 0, color: 'var(--admin-warning)', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => {
                   setEditingStore(store); setGhnShopId(''); setIsEditGhnModalOpen(true);
                 }}>
                   <i className="fa-solid fa-triangle-exclamation"></i> Bấm để cấu hình GHN Shop ID <i className="fa-solid fa-pen ms-2"></i>
                 </p>
               )}
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem', backgroundColor: 'var(--admin-tertiary)', padding: '1rem', borderRadius: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem', backgroundColor: 'var(--admin-tertiary)', padding: '1.2rem', borderRadius: '8px' }}>
                 <div>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>Doanh thu</p>
+                  <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Doanh thu</p>
                   <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--admin-primary)' }}>{Number(store.revenue || 0).toLocaleString('vi-VN')} đ</p>
                 </div>
                 <div>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>Khách hàng</p>
+                  <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Khách hàng</p>
                   <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--admin-text)' }}>{store.customerCount} người</p>
                 </div>
                 <div>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>Nhân viên</p>
+                  <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Nhân viên</p>
                   <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--admin-text)' }}>{store.employees.length} NV</p>
                 </div>
               </div>
 
-              <div style={{ marginTop: 'auto', display: 'flex', gap: '0.5rem', paddingTop: '1rem' }}>
+              <div style={{ marginTop: 'auto', display: 'flex', gap: '0.5rem', paddingTop: '1.2rem' }}>
                 <button className="admin-btn admin-btn-info" style={{ flex: 1 }} onClick={() => openModal(store)}>
                   Xem chi tiết
                 </button>
@@ -164,37 +166,37 @@ const AdminStorePage = () => {
       {isModalOpen && selectedStore && (
         <div className="admin-modal-overlay" style={modalOverlayStyle}>
           <div className="admin-modal" style={{ ...modalStyle, maxWidth: '900px' }}>
-            <div className="admin-flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--admin-outline)', paddingBottom: '1rem' }}>
+            <div className="admin-flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--admin-outline)', paddingBottom: '1.2rem' }}>
               <h2 className="admin-card-title" style={{ marginBottom: 0 }}>Chi tiết Cửa hàng: {selectedStore.name}</h2>
               <button type="button" onClick={closeModal} style={closeBtnStyle}>&times;</button>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--admin-text-muted)' }}>Doanh thu chi nhánh</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1.2rem', marginBottom: '2rem' }}>
+              <div style={{ padding: '1.2rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Doanh thu chi nhánh</p>
                 <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-primary)' }}>{Number(selectedStore.revenue || 0).toLocaleString('vi-VN')} đ</p>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--admin-text-muted)' }}>Tổng lương nhân viên</p>
+              <div style={{ padding: '1.2rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Tổng lương nhân viên</p>
                 <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-danger)' }}>{Number(selectedStore.totalSalary || 0).toLocaleString('vi-VN')} đ</p>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--admin-text-muted)' }}>Khách hàng mới <span className="admin-badge admin-badge-success" style={{ fontSize: '0.6rem' }}>NEW</span></p>
+              <div style={{ padding: '1.2rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Khách hàng mới <span className="admin-badge admin-badge-success" style={{ fontSize: '0.6rem' }}>NEW</span></p>
                 <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-text)' }}>{selectedStore.newCustomers || 0}</p>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--admin-text-muted)' }}>Số ngày công (Tháng này)</p>
+              <div style={{ padding: '1.2rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Số ngày công (Tháng này)</p>
                 <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-success)' }}>{selectedStore.totalDaysWorked || 0} ngày</p>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--admin-text-muted)' }}>Số ngày nghỉ (Tháng này)</p>
+              <div style={{ padding: '1.2rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Số ngày nghỉ (Tháng này)</p>
                 <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-warning)' }}>{selectedStore.totalDaysOff || 0} ngày</p>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--admin-text)' }}>📈 Biểu đồ Doanh thu (30 Ngày qua)</h3>
+                <h3 style={{ fontSize: '1.1.2rem', marginBottom: '1.2rem', color: 'var(--admin-text)' }}>📈 Biểu đồ Doanh thu (30 Ngày qua)</h3>
                 <div style={{ display: 'flex', alignItems: 'flex-end', height: '120px', gap: '3px', paddingBottom: '10px', borderBottom: '1px solid var(--admin-outline)' }}>
                   {selectedStore.revenueChart && selectedStore.revenueChart.map((item, index) => {
                     const maxRev = Math.max(...selectedStore.revenueChart.map(d => Number(d.total) || 1));
@@ -212,7 +214,7 @@ const AdminStorePage = () => {
               </div>
 
               <div>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--admin-text)' }}>🧾 Số lượng Hóa đơn (30 Ngày qua)</h3>
+                <h3 style={{ fontSize: '1.1.2rem', marginBottom: '1.2rem', color: 'var(--admin-text)' }}>🧾 Số lượng Hóa đơn (30 Ngày qua)</h3>
                 <div style={{ display: 'flex', alignItems: 'flex-end', height: '120px', gap: '3px', paddingBottom: '10px', borderBottom: '1px solid var(--admin-outline)' }}>
                   {selectedStore.invoiceChart && selectedStore.invoiceChart.map((item, index) => {
                     const maxInv = Math.max(...selectedStore.invoiceChart.map(d => Number(d.count) || 1));
@@ -234,7 +236,7 @@ const AdminStorePage = () => {
               
               {/* Cột trái: Nhân viên */}
               <div>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--admin-text)' }}>👥 Danh sách Nhân viên ({selectedStore.employees.length})</h3>
+                <h3 style={{ fontSize: '1.1.2rem', marginBottom: '1.2rem', color: 'var(--admin-text)' }}>👥 Danh sách Nhân viên ({selectedStore.employees.length})</h3>
                 <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   <table className="admin-table" style={{ fontSize: '0.9rem' }}>
                     <thead>
@@ -265,7 +267,7 @@ const AdminStorePage = () => {
 
               {/* Cột phải: Tồn kho */}
               <div>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--admin-text)' }}>📦 Tồn kho Sản phẩm</h3>
+                <h3 style={{ fontSize: '1.1.2rem', marginBottom: '1.2rem', color: 'var(--admin-text)' }}>📦 Tồn kho Sản phẩm</h3>
                 <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   <table className="admin-table" style={{ fontSize: '0.9rem' }}>
                     <thead>
@@ -296,7 +298,7 @@ const AdminStorePage = () => {
 
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--admin-outline)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.2rem', borderTop: '1px solid var(--admin-outline)' }}>
               <button type="button" className="admin-btn admin-btn-primary" onClick={closeModal}>Đóng</button>
             </div>
           </div>
@@ -353,7 +355,7 @@ const AdminStorePage = () => {
                 />
               </div>
               
-              <div className="admin-flex-between" style={{ justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' }}>
+              <div className="admin-flex-between" style={{ justifyContent: 'flex-end', gap: '1.2rem', marginTop: '1.5rem' }}>
                 <button type="button" className="admin-btn admin-btn-secondary" onClick={() => setIsAddStoreModalOpen(false)}>Hủy</button>
                 <button type="submit" className="admin-btn admin-btn-primary">Lưu chi nhánh</button>
               </div>
@@ -386,7 +388,7 @@ const AdminStorePage = () => {
                 />
               </div>
               
-              <div className="admin-flex-between" style={{ justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' }}>
+              <div className="admin-flex-between" style={{ justifyContent: 'flex-end', gap: '1.2rem', marginTop: '1.5rem' }}>
                 <button type="button" className="admin-btn admin-btn-secondary" onClick={() => setIsEditGhnModalOpen(false)}>Hủy</button>
                 <button type="submit" className="admin-btn admin-btn-primary">Lưu cấu hình</button>
               </div>
@@ -422,7 +424,7 @@ const modalStyle = {
 const closeBtnStyle = {
   background: 'none',
   border: 'none',
-  fontSize: '1.5rem',
+  fontSize: '2.5rem',
   cursor: 'pointer',
   color: 'var(--admin-text)'
 };

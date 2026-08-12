@@ -5,9 +5,11 @@ import { getProducts } from '../../services/productService';
 import { createPOSInvoice } from '../../services/productService';
 import { getCustomers, createCustomer } from '../../services/customerService';
 import axiosClient from '../../services/axiosClient';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminPOSPage = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [cart, setCart] = useState([]);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [products, setProducts] = useState([]);
@@ -21,7 +23,63 @@ const AdminPOSPage = () => {
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ HoTen: '', Sdt: '' });
 
+  // POS Shift states
+  const [activeShift, setActiveShift] = useState(null);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [openingCash, setOpeningCash] = useState('');
+  const [closingCash, setClosingCash] = useState('');
+
   const inputRef = useRef(null);
+
+  const fetchActiveShift = async () => {
+    try {
+      const res = await axiosClient.get('/admin/pos/shifts/active');
+      setActiveShift(res.data);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        setShowOpenShiftModal(true);
+      } else {
+        console.error("Lỗi kiểm tra ca:", error);
+      }
+    }
+  };
+
+  const handleOpenShift = async () => {
+    if (!openingCash || isNaN(openingCash) || Number(openingCash) < 0) {
+      toast.warning("Vui lòng nhập số tiền hợp lệ!");
+      return;
+    }
+    try {
+      await axiosClient.post('/admin/pos/shifts/open', { opening_cash: Number(openingCash) });
+      toast.success("Mở ca thành công!");
+      setShowOpenShiftModal(false);
+      fetchActiveShift();
+    } catch (e) {
+      toast.error("Lỗi mở ca: " + (e.response?.data?.error || e.message));
+    }
+  };
+
+  const handleCloseShift = async () => {
+    if (!closingCash || isNaN(closingCash) || Number(closingCash) < 0) {
+      toast.warning("Số tiền đóng ca không hợp lệ! Không được nhập số âm.");
+      return;
+    }
+    try {
+      const res = await axiosClient.post('/admin/pos/shifts/close', { 
+        shift_id: activeShift.id, 
+        actual_cash: Number(closingCash) 
+      });
+      const data = res.data;
+      toast.success(`✅ Đóng ca thành công! Két tiền cân bằng ở mức ${Number(data.actual_cash).toLocaleString('vi-VN')} ₫`, 6000);
+      setShowCloseShiftModal(false);
+      setActiveShift(null);
+      setClosingCash('');
+      setShowOpenShiftModal(true); // Yêu cầu mở ca mới
+    } catch (e) {
+      toast.error("Lỗi đóng ca: " + (e.response?.data?.error || e.message));
+    }
+  };
 
   const fetchAllProducts = async () => {
     setIsLoading(true);
@@ -49,6 +107,7 @@ const AdminPOSPage = () => {
   const scannerRef = useRef(null);
 
   useEffect(() => {
+    fetchActiveShift();
     fetchAllProducts();
     fetchAllCustomers();
     if (inputRef.current) {
@@ -104,7 +163,7 @@ const AdminPOSPage = () => {
       addToCart(product);
       setBarcodeInput('');
     } else {
-      alert(`Không tìm thấy sản phẩm với mã: ${code}`);
+      toast.warning(`Không tìm thấy sản phẩm với mã: ${code}`);
       setBarcodeInput('');
     }
     
@@ -123,7 +182,7 @@ const AdminPOSPage = () => {
     const stock = product.TONKHO_THUCTE !== undefined ? product.TONKHO_THUCTE : (product.soluong || product.SOLUONG || 0);
     
     if (stock <= 0) {
-        alert("Sản phẩm này đã hết hàng trong kho!");
+        toast.warning("Sản phẩm này đã hết hàng trong kho!");
         return;
     }
 
@@ -161,7 +220,7 @@ const AdminPOSPage = () => {
 
   const handleCheckout = async () => {
     if (cart.length === 0) {
-      alert("Giỏ hàng đang trống!");
+      toast.warning("Giỏ hàng đang trống!");
       return;
     }
     
@@ -171,7 +230,7 @@ const AdminPOSPage = () => {
       
       // Gọi service kèm theo thông tin phương thức thanh toán
       await createPOSInvoice(cart, paymentMethod, customerId);
-      alert(`Thanh toán thành công hóa đơn trị giá ${getTotal().toLocaleString('vi-VN')}₫!`);
+      toast.success(`Thanh toán thành công hóa đơn trị giá ${getTotal().toLocaleString('vi-VN')}₫!`);
       setCart([]); // Reset giỏ hàng
       setPaymentMethod('COD'); // Reset phương thức
       setSelectedCustomer(null); // Reset khách hàng
@@ -180,7 +239,7 @@ const AdminPOSPage = () => {
       navigate('/admin/hoa-don'); // Chuyển sang trang Quản lý hóa đơn
     } catch (error) {
       console.error("Lỗi khi thanh toán:", error);
-      alert("Có lỗi xảy ra khi tạo hóa đơn: " + (error.response?.data?.message || error.message));
+      toast.error("Có lỗi xảy ra khi tạo hóa đơn: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -188,7 +247,69 @@ const AdminPOSPage = () => {
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <h1 className="admin-title" style={{ marginBottom: 0 }}>Máy tính tiền (POS)</h1>
+        {activeShift && (
+          <button className="admin-btn admin-btn-danger" onClick={() => setShowCloseShiftModal(true)}>
+            <i className="fa-solid fa-lock" style={{ marginRight: '8px' }}></i>
+            Đóng Ca (Đang mở)
+          </button>
+        )}
       </div>
+
+      {/* MODAL MỞ CA */}
+      {showOpenShiftModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', width: '400px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <h2 style={{ marginBottom: '20px', color: 'var(--primary-color)' }}><i className="fa-solid fa-cash-register"></i> Bắt Đầu Ca Làm Việc</h2>
+            <p style={{ marginBottom: '15px', color: '#555' }}>Vui lòng kiểm đếm và nhập số tiền mặt có trong két hiện tại để mở ca.</p>
+            <input 
+              type="number" 
+              className="admin-input" 
+              placeholder="Nhập số tiền mặt đầu ca (VNĐ)" 
+              value={openingCash}
+              onChange={(e) => setOpeningCash(e.target.value)}
+              style={{ fontSize: '18px', textAlign: 'center', fontWeight: 'bold' }}
+            />
+            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+              <button className="admin-btn admin-btn-primary" style={{ flex: 1, padding: '12px' }} onClick={handleOpenShift}>
+                Xác Nhận Mở Ca
+              </button>
+              <button className="admin-btn admin-btn-secondary" style={{ flex: 1, padding: '12px' }} onClick={() => setShowOpenShiftModal(false)}>
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ĐÓNG CA */}
+      {showCloseShiftModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', width: '400px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <h2 style={{ marginBottom: '20px', color: '#dc3545' }}><i className="fa-solid fa-lock"></i> Kết Thúc Ca Làm Việc</h2>
+            <p style={{ marginBottom: '15px', color: '#555' }}>Vui lòng kiểm đếm két và nhập số tiền mặt thực tế hiện có để chốt sổ.</p>
+            <div style={{ marginBottom: '15px', padding: '10px', background: '#f8f9fa', borderRadius: '5px', textAlign: 'left' }}>
+              <div><strong>Thời gian mở ca:</strong> {new Date(activeShift.opened_at).toLocaleString('vi-VN')}</div>
+              <div><strong>Tiền đầu ca:</strong> {Number(activeShift.opening_cash).toLocaleString('vi-VN')} ₫</div>
+            </div>
+            <input 
+              type="number" 
+              className="admin-input" 
+              placeholder="Nhập số tiền mặt thực tế (VNĐ)" 
+              value={closingCash}
+              onChange={(e) => setClosingCash(e.target.value)}
+              style={{ fontSize: '18px', textAlign: 'center', fontWeight: 'bold' }}
+            />
+            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+              <button className="admin-btn admin-btn-danger" style={{ flex: 1, padding: '12px' }} onClick={handleCloseShift}>
+                Chốt Sổ Đóng Ca
+              </button>
+              <button className="admin-btn admin-btn-secondary" style={{ flex: 1, padding: '12px' }} onClick={() => setShowCloseShiftModal(false)}>
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
         {/* Left Side: Scanner & Products */}
@@ -241,7 +362,7 @@ const AdminPOSPage = () => {
                 const price = product.giaban || product.GIABAN;
                 const image = product.hinhanh || product.HINHANH;
                 const filename = image ? image.split('/').pop() : 'productnew2.webp';
-                const imageUrl = image ? (image.startsWith('http') ? image : `/assets/IMG/${filename}`) : `/assets/IMG/productnew2.webp`;
+                const imageUrl = image ? ((image.startsWith('http') || image.startsWith('/api/')) ? image : `/assets/IMG/${filename}`) : `/assets/IMG/productnew2.webp`;
                 
                 return (
                     <div 
@@ -280,16 +401,16 @@ const AdminPOSPage = () => {
                 <input type="text" placeholder="Số điện thoại..." className="admin-input" style={{ marginBottom: '10px' }} value={newCustomer.Sdt} onChange={e => setNewCustomer({...newCustomer, Sdt: e.target.value})} />
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button className="admin-btn admin-btn-primary" style={{ flex: 1 }} onClick={async () => {
-                    if(!newCustomer.HoTen || !newCustomer.Sdt) return alert("Vui lòng nhập Tên và SĐT");
+                    if(!newCustomer.HoTen || !newCustomer.Sdt) return toast.warning("Vui lòng nhập Tên và SĐT");
                     try {
                       // Tạo mã KH random hoặc để backend tự gen
                       const maKH = 'KH' + Math.floor(Math.random() * 1000000);
                       const res = await createCustomer({...newCustomer, maKH});
-                      alert("Tạo KH thành công!");
+                      toast.success("Tạo KH thành công!");
                       setIsCreatingCustomer(false);
                       fetchAllCustomers();
                       setSelectedCustomer({ maKH, hoTen: newCustomer.HoTen, sdt: newCustomer.Sdt });
-                    } catch(e) { alert("Lỗi khi tạo KH"); }
+                    } catch(e) { toast.error("Lỗi khi tạo KH"); }
                   }}>Tạo Mới</button>
                   <button className="admin-btn admin-btn-secondary" style={{ flex: 1 }} onClick={() => setIsCreatingCustomer(false)}>Hủy</button>
                 </div>

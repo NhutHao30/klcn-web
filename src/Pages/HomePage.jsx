@@ -34,7 +34,7 @@ const HomePage = () => {
     // Helper: format image URL
     const formatImageUrl = (url) => {
         if (!url) return "../../assets/IMG/productSale_5.webp";
-        if (url.startsWith("http")) return url;
+        if (url.startsWith("http") || url.startsWith("/api/")) return url;
         return `../../assets/IMG/${url.split('/').pop()}`;
     };
 
@@ -119,7 +119,7 @@ const HomePage = () => {
         const name = product.TENSP;
         const price = Number(product.GIABAN);
         const discount = parseInt(product.PHAN_TRAM_GIAM || 0);
-        const isNew = product.IS_NEW;
+        const isNew = product.IS_NEW == 1;
         const salePrice = getSalePrice(price, discount);
         const img = formatImageUrl(product.HINHANH);
         const soluong = product.TONKHO_THUCTE !== undefined ? product.TONKHO_THUCTE : (product.SOLUONG || 0);
@@ -135,12 +135,12 @@ const HomePage = () => {
                                 -{discount}%
                             </li>
                         )}
-                        {isNew && !discount && (
+                        {isNew && discount <= 0 && (
                             <li className="product-sale-tag-new" style={{ position: "relative"}}>
                                 new
                             </li>
                         )}
-                        {!discount && !isNew && (
+                        {discount <= 0 && !isNew && (
                             <li className="product-bestSale-tag-item--off"></li>
                         )}
                         <li className="product-bestSale-tag-item product-sale__tag-icon--noLike-js">
@@ -183,16 +183,18 @@ const HomePage = () => {
         const soluong = product.TONKHO_THUCTE !== undefined ? product.TONKHO_THUCTE : (product.SOLUONG || 0);
         const tonkhoChitiet = product.TONKHO_CHITIET || "[]";
 
+        const isNew = product.IS_NEW == 1;
+
         return (
             <li key={index} data-masp={masp} data-soluong={soluong} data-tonkho-chitiet={tonkhoChitiet} className="product-new-item-level2 col-20 col-custom col-md-3 col-3 ">
                 <img src={img} alt={name} className=" product-sale_img product-sale_img-js" />
                 <ul className="product-bestSale-tag-list">
-                    {product.IS_NEW && (
+                    {isNew && (
                         <li className="product-sale-tag-new" style={{ position: "relative"}}>
                             new
                         </li>
                     )}
-                    {!product.IS_NEW && (
+                    {!isNew && (
                         <li className="product-bestSale-tag-item--off"></li>
                     )}
                     <li className="product-bestSale-tag-item product-sale__tag-icon--noLike-js">

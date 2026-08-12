@@ -5,6 +5,11 @@ export const getRevenueReport = async (type = 'month') => {
   return response.data;
 };
 
+export const getBiDashboardData = async () => {
+  const response = await axiosClient.get('/admin/reports/bi-dashboard');
+  return response.data;
+};
+
 export const getTopProducts = async () => {
   const response = await axiosClient.get('/admin/reports/top-products');
   return response.data;

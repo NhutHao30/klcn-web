@@ -3,9 +3,11 @@ import AdminLayout from '../../Layout/AdminLayout';
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer, restoreCustomer } from '../../services/customerService';
 import { getInvoices } from '../../services/invoiceService';
 import { getStores } from '../../services/storeService';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminCustomerPage = () => {
-  const [customers, setCustomers] = useState([]);
+    const toast = useToast();
+const [customers, setCustomers] = useState([]);
   const [stores, setStores] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -139,10 +141,10 @@ const AdminCustomerPage = () => {
 
       if (editingCustomer) {
         await updateCustomer(editingCustomer.maKH, payload);
-        alert('Cập nhật thành công!');
+        toast.success('Cập nhật thành công!');
       } else {
         await createCustomer(payload);
-        alert('Thêm khách hàng thành công!');
+        toast.success('Thêm khách hàng thành công!');
       }
       closeModal();
       fetchCustomers();
@@ -150,9 +152,9 @@ const AdminCustomerPage = () => {
       console.error("Error saving customer:", error);
       if (error.response) {
         console.error("Backend error data:", error.response.data);
-        alert(`Lỗi từ máy chủ: ${error.response.data.message || error.response.statusText}`);
+        toast.error(`Lỗi từ máy chủ: ${error.response.data.message || error.response.statusText}`);
       } else {
-        alert('Có lỗi xảy ra, vui lòng kiểm tra console!');
+        toast.error('Có lỗi xảy ra, vui lòng kiểm tra console!');
       }
     }
   };
@@ -161,11 +163,11 @@ const AdminCustomerPage = () => {
     if (window.confirm("Bạn có chắc chắn muốn vô hiệu hóa tài khoản khách hàng này? Khách hàng sẽ không thể đăng nhập.")) {
       try {
         await deleteCustomer(id);
-        alert('Vô hiệu hóa thành công!');
+        toast.success('Vô hiệu hóa thành công!');
         fetchCustomers();
       } catch (error) {
         console.error("Error deleting customer:", error);
-        alert('Có lỗi xảy ra khi vô hiệu hóa!');
+        toast.error('Có lỗi xảy ra khi vô hiệu hóa!');
       }
     }
   };
@@ -174,11 +176,11 @@ const AdminCustomerPage = () => {
     if (window.confirm("Bạn muốn kích hoạt lại tài khoản khách hàng này?")) {
       try {
         await restoreCustomer(id);
-        alert('Kích hoạt lại thành công!');
+        toast.success('Kích hoạt lại thành công!');
         fetchCustomers();
       } catch (error) {
         console.error("Error restoring customer:", error);
-        alert('Có lỗi xảy ra khi kích hoạt lại!');
+        toast.error('Có lỗi xảy ra khi kích hoạt lại!');
       }
     }
   };

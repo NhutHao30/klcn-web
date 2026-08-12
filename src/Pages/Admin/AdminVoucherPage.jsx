@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
 import axiosClient from '../../services/axiosClient';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminVoucherPage = () => {
-  const [vouchers, setVouchers] = useState([]);
+    const toast = useToast();
+const [vouchers, setVouchers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVoucher, setEditingVoucher] = useState(null);
@@ -28,7 +30,7 @@ const AdminVoucherPage = () => {
       setVouchers(res.data);
     } catch (e) {
       console.error(e);
-      alert('Không thể tải danh sách voucher. Bạn có phải Quản lý tổng?');
+      toast.error('Không thể tải danh sách voucher. Bạn có phải Quản lý tổng?');
     } finally {
       setIsLoading(false);
     }
@@ -88,16 +90,16 @@ const AdminVoucherPage = () => {
 
       if (editingVoucher) {
         await axiosClient.put(`/admin/vouchers/${editingVoucher.MA_VOUCHER}`, payload);
-        alert('Cập nhật thành công!');
+        toast.success('Cập nhật thành công!');
       } else {
         await axiosClient.post('/admin/vouchers', payload);
-        alert('Thêm mới thành công!');
+        toast.success('Thêm mới thành công!');
       }
       setIsModalOpen(false);
       fetchVouchers();
     } catch (e) {
       console.error(e);
-      alert('Lỗi: ' + (e.response?.data?.message || e.message));
+      toast.error('Lỗi: ' + (e.response?.data?.message || e.message));
     }
   };
 
@@ -107,7 +109,7 @@ const AdminVoucherPage = () => {
       fetchVouchers();
     } catch (e) {
       console.error(e);
-      alert('Lỗi thay đổi trạng thái');
+      toast.error('Lỗi thay đổi trạng thái');
     }
   };
 

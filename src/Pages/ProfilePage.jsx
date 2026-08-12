@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCurrentUser, updateProfile } from '../services/authService';
 import axiosClient from '../services/axiosClient';
+import { useToast } from '../components/Toast/Toast';
 
 const ProfilePage = () => {
-  const navigate = useNavigate();
+    const toast = useToast();
+const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [profileData, setProfileData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +40,7 @@ const ProfilePage = () => {
   const handleRequestPasswordOtp = async () => {
     const emailToUse = user?.EMAIL || formData.EMAIL;
     if (!emailToUse) {
-      alert("Vui lòng cập nhật địa chỉ Email trước khi thực hiện đổi mật khẩu.");
+      toast.warning("Vui lòng cập nhật địa chỉ Email trước khi thực hiện đổi mật khẩu.");
       return;
     }
     setIsSendingPasswordOtp(true);
@@ -46,9 +48,9 @@ const ProfilePage = () => {
         const { forgotPassword } = await import('../services/authService');
         await forgotPassword(emailToUse);
         setPasswordOtpSent(true);
-        alert("Đã gửi mã OTP đến email của bạn.");
+        toast.success("Đã gửi mã OTP đến email của bạn.");
     } catch(e) {
-        alert(e.response?.data?.error || "Lỗi khi gửi OTP.");
+        toast.error(e.response?.data?.error || "Lỗi khi gửi OTP.");
     } finally {
         setIsSendingPasswordOtp(false);
     }
@@ -56,7 +58,7 @@ const ProfilePage = () => {
 
   const handleChangePassword = async () => {
     if (!passwordOtp || !newPassword) {
-        alert("Vui lòng nhập đầy đủ mã OTP và mật khẩu mới.");
+        toast.warning("Vui lòng nhập đầy đủ mã OTP và mật khẩu mới.");
         return;
     }
     setIsChangingPassword(true);
@@ -64,13 +66,13 @@ const ProfilePage = () => {
     try {
         const { resetPassword } = await import('../services/authService');
         await resetPassword(emailToUse, passwordOtp, newPassword);
-        alert("Đổi mật khẩu thành công!");
+        toast.success("Đổi mật khẩu thành công!");
         setShowPasswordChange(false);
         setPasswordOtpSent(false);
         setPasswordOtp('');
         setNewPassword('');
     } catch(e) {
-        alert(e.response?.data?.error || "Mã OTP không chính xác.");
+        toast.error(e.response?.data?.error || "Mã OTP không chính xác.");
     } finally {
         setIsChangingPassword(false);
     }
@@ -164,7 +166,7 @@ const ProfilePage = () => {
       if (cccdSauFile) payload.append('CCCD_SAU', cccdSauFile);
 
       await updateProfile(payload);
-      alert('Cập nhật thông tin thành công!');
+      toast.success('Cập nhật thông tin thành công!');
       setIsEditing(false);
       // Reload profile
       const userData = await getCurrentUser();
@@ -178,7 +180,7 @@ const ProfilePage = () => {
       setAvatarPreview(null);
     } catch (e) {
       console.error(e);
-      alert('Lỗi cập nhật: ' + (e.response?.data?.message || e.message));
+      toast.error('Lỗi cập nhật: ' + (e.response?.data?.message || e.message));
     } finally {
       setIsSaving(false);
     }
@@ -239,7 +241,7 @@ const ProfilePage = () => {
               {isEditing ? (
                 <label style={{ ...styles.avatar, cursor: 'pointer', position: 'relative' }}>
                   {avatarPreview || user?.AVATAR ? (
-                    <img src={avatarPreview || (user.AVATAR.startsWith('http') ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`)} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                    <img src={avatarPreview || ((user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`)} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
                     getInitials(profileData.HOTEN)
                   )}
@@ -251,7 +253,7 @@ const ProfilePage = () => {
               ) : (
                 <div style={styles.avatar}>
                   {user?.AVATAR ? (
-                    <img src={user.AVATAR.startsWith('http') ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                    <img src={(user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
                     getInitials(profileData.HOTEN)
                   )}

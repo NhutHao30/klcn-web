@@ -1,11 +1,14 @@
+import { BASE_URL } from '../../services/axiosClient';
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, importEmployeesFromExcel, scanCccd } from '../../services/employeeService';
 import { getStores } from '../../services/storeService';
 import { getCurrentUser } from '../../services/authService';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminEmployeePage = () => {
-  const [employees, setEmployees] = useState([]);
+    const toast = useToast();
+const [employees, setEmployees] = useState([]);
   const [stores, setStores] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -181,7 +184,7 @@ const AdminEmployeePage = () => {
     e.preventDefault();
 
     if (formData.luong && Number(formData.luong) < 0) {
-      alert("Mức lương không được phép âm!");
+      toast.info("Mức lương không được phép âm!");
       return;
     }
 
@@ -208,10 +211,10 @@ const AdminEmployeePage = () => {
 
       if (editingEmployee) {
         await updateEmployee(editingEmployee.userName, payload);
-        alert('Cập nhật nhân viên thành công!');
+        toast.success('Cập nhật nhân viên thành công!');
       } else {
         await createEmployee(payload);
-        alert('Thêm nhân viên và tạo tài khoản thành công!');
+        toast.success('Thêm nhân viên và tạo tài khoản thành công!');
       }
       closeModal();
       fetchEmployees();
@@ -219,9 +222,9 @@ const AdminEmployeePage = () => {
       console.error("Error saving employee:", error);
       if (error.response) {
         console.error("Backend error data:", error.response.data);
-        alert(`Lỗi từ máy chủ: ${error.response.data.message || error.response.statusText}`);
+        toast.error(`Lỗi từ máy chủ: ${error.response.data.message || error.response.statusText}`);
       } else {
-        alert('Có lỗi xảy ra, vui lòng kiểm tra console!');
+        toast.error('Có lỗi xảy ra, vui lòng kiểm tra console!');
       }
     }
   };
@@ -234,11 +237,11 @@ const AdminEmployeePage = () => {
       setIsImporting(true);
       try {
         const response = await importEmployeesFromExcel(file);
-        alert(response.message || 'Import thành công!');
+        toast.success(response.message || 'Import thành công!');
         fetchEmployees();
       } catch (error) {
         console.error("Lỗi khi import:", error);
-        alert("Lỗi khi import file Excel/CSV. Vui lòng kiểm tra lại định dạng.");
+        toast.error("Lỗi khi import file Excel/CSV. Vui lòng kiểm tra lại định dạng.");
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -265,14 +268,14 @@ const AdminEmployeePage = () => {
           diaChi: data.diaChi || prev.diaChi,
           cccdTruoc: file
         }));
-        alert('Đã quét và tự động điền thông tin thành công!');
+        toast.success('Đã quét và tự động điền thông tin thành công!');
       } else {
-        alert('Không thể nhận diện thông tin từ ảnh này. Vui lòng thử lại ảnh rõ nét hơn!');
+        toast.error('Không thể nhận diện thông tin từ ảnh này. Vui lòng thử lại ảnh rõ nét hơn!');
       }
     } catch (error) {
       console.error("Lỗi khi scan CCCD:", error);
       const errMsg = error.response?.data?.message || 'Lỗi mạng hoặc không thể kết nối tới server.';
-      alert('Lỗi quét CCCD: ' + errMsg);
+      toast.error('Lỗi quét CCCD: ' + errMsg);
     } finally {
       setIsScanning(false);
       // Reset input value so the same file can be selected again
@@ -284,11 +287,11 @@ const AdminEmployeePage = () => {
     if (window.confirm("Xác nhận vô hiệu hóa tài khoản và cho nhân viên này nghỉ việc?")) {
       try {
         await deleteEmployee(id);
-        alert('Đã vô hiệu hóa thành công!');
+        toast.success('Đã vô hiệu hóa thành công!');
         fetchEmployees();
       } catch (error) {
         console.error("Error deleting employee:", error);
-        alert(error.response?.data?.message || 'Có lỗi xảy ra khi vô hiệu hóa!');
+        toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi vô hiệu hóa!');
       }
     }
   };
@@ -620,7 +623,7 @@ const AdminEmployeePage = () => {
                   <h4 style={{ marginBottom: '15px', color: 'var(--admin-text-muted)' }}>Mặt trước CCCD</h4>
                   {viewingEmployee.cccdTruoc ? (
                     <img 
-                      src={viewingEmployee.cccdTruoc.startsWith('http') ? viewingEmployee.cccdTruoc : `http://localhost:8000${viewingEmployee.cccdTruoc}`} 
+                      src={(viewingEmployee.cccdTruoc.startsWith('http') || viewingEmployee.cccdTruoc.startsWith('/api/')) ? viewingEmployee.cccdTruoc : viewingEmployee.cccdTruoc} 
                       alt="CCCD Trước" 
                       style={{ width: '100%', maxWidth: '600px', borderRadius: '6px', border: '1px solid var(--admin-outline)', objectFit: 'contain', maxHeight: '400px', margin: '0 auto', display: 'block' }} 
                     />
@@ -633,7 +636,7 @@ const AdminEmployeePage = () => {
                   <h4 style={{ marginBottom: '15px', color: 'var(--admin-text-muted)' }}>Mặt sau CCCD</h4>
                   {viewingEmployee.cccdSau ? (
                     <img 
-                      src={viewingEmployee.cccdSau.startsWith('http') ? viewingEmployee.cccdSau : `http://localhost:8000${viewingEmployee.cccdSau}`} 
+                      src={(viewingEmployee.cccdSau.startsWith('http') || viewingEmployee.cccdSau.startsWith('/api/')) ? viewingEmployee.cccdSau : viewingEmployee.cccdSau} 
                       alt="CCCD Sau" 
                       style={{ width: '100%', maxWidth: '600px', borderRadius: '6px', border: '1px solid var(--admin-outline)', objectFit: 'contain', maxHeight: '400px', margin: '0 auto', display: 'block' }} 
                     />

@@ -1,10 +1,13 @@
+import { BASE_URL } from '../services/axiosClient';
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Footer from "../Layout/Footer";
 import { register } from "../services/authService";
+import { useToast } from '../components/Toast/Toast';
 
 const RegisterPage = () => {
-    const [formData, setFormData] = useState({
+      const toast = useToast();
+const [formData, setFormData] = useState({
         username: "",
         password: "",
         repassword: "",
@@ -45,7 +48,7 @@ const RegisterPage = () => {
 
         try {
             const res = await register(formData);
-            alert(res.message || "Đăng ký thành công!");
+            toast.success(res.message || "Đăng ký thành công!");
             navigate("/dang-nhap");
         } catch (e) {
             const errorMsg = e.response?.data?.message || e.response?.data?.error || "Đã xảy ra lỗi khi đăng ký!";
@@ -140,7 +143,7 @@ const RegisterPage = () => {
                                     </div>
                                     <div className="Register__Social-text">Facebook</div>
                                 </a>
-                                <a href="http://localhost:8000/api/auth/google" className="Register__Social-link gooleBG">
+                                <a href={`${BASE_URL}/api/auth/google`} className="Register__Social-link gooleBG">
                                     <div className="Register__Social-icon">
                                         <i className="Social-icon__google fa-brands fa-google-plus-g"></i>
                                     </div>

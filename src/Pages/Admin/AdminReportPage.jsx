@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
 import { getRevenueReport, getTopProducts, getUsersForReport, getChamCong, postChamCong } from '../../services/reportService';
 import '../../css/admin.css';
+import { useToast } from '../../components/Toast/Toast';
 
 const AdminReportPage = () => {
-  const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, customer, chamcong
+    const toast = useToast();
+const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, customer, chamcong
   const [reportType, setReportType] = useState('month'); // used for revenue
   const [revenueData, setRevenueData] = useState([]);
+  const [biData, setBiData] = useState(null);
   const [topProducts, setTopProducts] = useState([]);
   const [usersData, setUsersData] = useState([]);
   const [chamCongData, setChamCongData] = useState([]);
@@ -30,13 +33,17 @@ const AdminReportPage = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [revenue, topProd, users, attendance] = await Promise.all([
+      // Import the new getBiDashboardData if not already imported
+      const { getRevenueReport, getTopProducts, getUsersForReport, getChamCong, getBiDashboardData } = await import('../../services/reportService');
+      const [revenue, bi, topProd, users, attendance] = await Promise.all([
         getRevenueReport(reportType),
+        getBiDashboardData(),
         getTopProducts(),
         getUsersForReport(),
         getChamCong(currentMonth, currentYear)
       ]);
       setRevenueData(revenue);
+      setBiData(bi);
       setTopProducts(topProd);
       setUsersData(users);
       setChamCongData(attendance);
@@ -55,13 +62,13 @@ const AdminReportPage = () => {
         NGAYCHAMCONG: currentDateStr,
         TRANGTHAI: newStatus
       });
-      alert('Đã cập nhật chấm công thành công!');
+      toast.success('Đã cập nhật chấm công thành công!');
       const newAttendance = await getChamCong(currentMonth, currentYear);
       setChamCongData(newAttendance);
     } catch (error) {
       console.error("Lỗi chấm công:", error);
       const errorMessage = error.response?.data?.error || 'Có lỗi xảy ra khi chấm công!';
-      alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -119,6 +126,46 @@ const AdminReportPage = () => {
         <p class="text-center" style="font-size: 12px; color: #666; margin-top: 5px;">Biểu đồ Doanh Thu (${reportType === 'month' ? 'Tháng' : 'Ngày'})</p>
       `;
 
+      const summaryHTML = biData && biData.summary ? `
+        <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+          <div style="flex: 1; border: 1px solid #ddd; border-left: 4px solid #17a2b8; padding: 15px; border-radius: 5px;">
+            <div style="color: #666; font-size: 12px; font-weight: bold; text-transform: uppercase;">Doanh thu hôm nay</div>
+            <div style="font-size: 20px; font-weight: bold; color: #333; margin-top: 10px;">${Number(biData.summary.today).toLocaleString('vi-VN')} ₫</div>
+          </div>
+          <div style="flex: 1; border: 1px solid #ddd; border-left: 4px solid #28a745; padding: 15px; border-radius: 5px;">
+            <div style="color: #666; font-size: 12px; font-weight: bold; text-transform: uppercase;">Doanh thu tháng này</div>
+            <div style="font-size: 20px; font-weight: bold; color: #333; margin-top: 10px;">${Number(biData.summary.this_month).toLocaleString('vi-VN')} ₫</div>
+            <div style="font-size: 11px; color: #888; margin-top: 5px;">So với tháng trước: ${biData.summary.percent_increase_month >= 0 ? '+' : '-'}${Math.abs(biData.summary.percent_increase_month).toFixed(1)}%</div>
+          </div>
+          <div style="flex: 1; border: 1px solid #ddd; border-left: 4px solid #d82d8b; padding: 15px; border-radius: 5px;">
+            <div style="color: #666; font-size: 12px; font-weight: bold; text-transform: uppercase;">Doanh thu năm nay</div>
+            <div style="font-size: 20px; font-weight: bold; color: #333; margin-top: 10px;">${Number(biData.summary.this_year).toLocaleString('vi-VN')} ₫</div>
+          </div>
+        </div>
+      ` : '';
+
+      const storeHTML = biData && biData.revenue_by_store.length > 0 ? `
+        <h2>DOANH THU THEO CHI NHÁNH (THÁNG NÀY)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th class="text-center">STT</th>
+              <th>Tên Chi Nhánh</th>
+              <th class="text-right">Doanh Thu (VNĐ)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${biData.revenue_by_store.map((item, index) => `
+              <tr>
+                <td class="text-center">${index + 1}</td>
+                <td >${item.TENCUAHANG}</td>
+                <td class="text-right">${Number(item.total).toLocaleString('vi-VN')} ₫</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      ` : '';
+
       content = `
         <div class="header">
           <h1>BÁO CÁO KẾT QUẢ KINH DOANH</h1>
@@ -126,10 +173,15 @@ const AdminReportPage = () => {
           <p>Thời gian báo cáo: ${reportType === 'month' ? '12 Tháng gần nhất' : '30 Ngày gần nhất'}</p>
         </div>
         
-        <h2>I. BIỂU ĐỒ DOANH THU</h2>
+        <h2>I. TỔNG QUAN DOANH THU</h2>
+        ${summaryHTML}
+        
+        ${storeHTML}
+
+        <h2>II. BIỂU ĐỒ DOANH THU</h2>
         ${chartHTML}
 
-        <h2>II. BẢNG KÊ CHI TIẾT</h2>
+        <h2>III. BẢNG KÊ CHI TIẾT DOANH THU</h2>
         <table>
           <thead>
             <tr>
@@ -152,7 +204,7 @@ const AdminReportPage = () => {
             </tr>
           </tbody>
         </table>
-        <h2>III. TOP 5 SẢN PHẨM BÁN CHẠY NHẤT</h2>
+        <h2>IV. TOP 5 SẢN PHẨM BÁN CHẠY NHẤT</h2>
         <table>
           <thead>
             <tr>
@@ -351,6 +403,110 @@ const AdminReportPage = () => {
         <>
           {activeTab === 'revenue' && (
             <>
+              {/* BI DASHBOARD - KPI CARDS */}
+              {biData && biData.summary && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+                  <div className="admin-card" style={{ borderLeft: '4px solid #17a2b8', padding: '20px' }}>
+                    <div style={{ color: '#666', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>Doanh thu hôm nay</div>
+                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginTop: '10px' }}>
+                      {Number(biData.summary.today).toLocaleString('vi-VN')} ₫
+                    </div>
+                  </div>
+                  
+                  <div className="admin-card" style={{ borderLeft: '4px solid #28a745', padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ color: '#666', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>Doanh thu tháng này</div>
+                      <div style={{ 
+                        padding: '4px 8px', 
+                        borderRadius: '20px', 
+                        fontSize: '12px', 
+                        fontWeight: 'bold',
+                        backgroundColor: biData.summary.percent_increase_month >= 0 ? '#e8f5e9' : '#ffebee',
+                        color: biData.summary.percent_increase_month >= 0 ? '#2e7d32' : '#c62828'
+                      }}>
+                        {biData.summary.percent_increase_month >= 0 ? '▲' : '▼'} {Math.abs(biData.summary.percent_increase_month)}%
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginTop: '10px' }}>
+                      {Number(biData.summary.this_month).toLocaleString('vi-VN')} ₫
+                    </div>
+                    <div style={{ fontSize: '16px', color: '#888', marginTop: '5px' }}>
+                      So với tháng trước ({Number(biData.summary.last_month).toLocaleString('vi-VN')} ₫)
+                    </div>
+                  </div>
+
+                  <div className="admin-card" style={{ borderLeft: '4px solid #d82d8b', padding: '20px' }}>
+                    <div style={{ color: '#666', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>Doanh thu năm nay</div>
+                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginTop: '10px' }}>
+                      {Number(biData.summary.this_year).toLocaleString('vi-VN')} ₫
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* BI DASHBOARD - CHARTS */}
+              {biData && (
+                <div style={{ display: 'grid', gridTemplateColumns: biData.revenue_by_store.length > 0 ? '1fr 1fr' : '1fr', gap: '20px', marginBottom: '20px' }}>
+                  
+                  {/* Revenue by Time (Today) */}
+                  <div className="admin-card">
+                    <h3 style={{ fontSize: '16px', marginBottom: '15px', color: '#444' }}>Phân bổ doanh thu theo khung giờ (Hôm nay)</h3>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', height: '200px', gap: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px', paddingTop: '20px' }}>
+                      {biData.revenue_by_time.map((item, index) => {
+                        const maxTimeRev = Math.max(...biData.revenue_by_time.map(d => Number(d.total)), 1);
+                        const heightPercent = (Number(item.total) / maxTimeRev) * 90;
+                        return (
+                          <div key={index} style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+                            <div 
+                              style={{ 
+                                width: '100%', 
+                                maxWidth: '40px', 
+                                height: `${Math.max(heightPercent, 2)}%`, 
+                                backgroundColor: '#17a2b8', 
+                                borderRadius: '4px 4px 0 0',
+                                position: 'relative'
+                              }}
+                              title={`${item.time_range}: ${Number(item.total).toLocaleString('vi-VN')} ₫`}
+                            >
+                              <span style={{ position: 'absolute', top: '-20px', width: '100%', textAlign: 'center', fontSize: '10px', color: '#555', fontWeight: 'bold' }}>
+                                {Number(item.total) >= 1000000 ? (Number(item.total)/1000000).toFixed(1) + 'M' : (Number(item.total) > 0 ? (Number(item.total)/1000).toFixed(0) + 'K' : '')}
+                              </span>
+                            </div>
+                            <span style={{ marginTop: '10px', fontSize: '11px', color: '#666', fontWeight: 'bold', textAlign: 'center' }}>
+                              {item.time_range.split('-')[0].trim()}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Revenue by Store */}
+                  {biData.revenue_by_store.length > 0 && (
+                    <div className="admin-card">
+                      <h3 style={{ fontSize: '16px', marginBottom: '15px', color: '#444' }}>Doanh thu theo chi nhánh (Tháng này)</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '220px', gap: '15px' }}>
+                        {biData.revenue_by_store.map((item, index) => {
+                          const maxStoreRev = Math.max(...biData.revenue_by_store.map(d => Number(d.total)), 1);
+                          const widthPercent = (Number(item.total) / maxStoreRev) * 100;
+                          return (
+                            <div key={index} style={{ width: '100%' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>
+                                <span>{item.TENCUAHANG}</span>
+                                <span>{Number(item.total).toLocaleString('vi-VN')} ₫</span>
+                              </div>
+                              <div style={{ width: '100%', height: '12px', backgroundColor: '#eee', borderRadius: '6px', overflow: 'hidden' }}>
+                                <div style={{ width: `${widthPercent}%`, height: '100%', backgroundColor: '#d82d8b', borderRadius: '6px' }}></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="admin-card">
                 <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
                   <h2 className="admin-card-title" style={{ marginBottom: 0 }}>Biểu đồ Doanh Thu</h2>
