@@ -61,15 +61,14 @@ const [products, setProducts] = useState([]);
       
       const data = await getProducts(params);
       
-      // Laravel trả về data.data cho mảng sản phẩm
-      const productList = data.data || data;
-      setProducts(productList);
-      
-      if (data.last_page !== undefined) {
-        setTotalPages(data.last_page);
-      } else {
-        setTotalPages(1);
+      let rawList = data?.data?.data || data?.data || data || [];
+      if (rawList && typeof rawList === 'object' && Array.isArray(rawList.data)) {
+        rawList = rawList.data;
       }
+      setProducts(Array.isArray(rawList) ? rawList : []);
+      
+      const lastPage = data?.last_page || data?.data?.last_page || 1;
+      setTotalPages(lastPage);
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
@@ -100,11 +99,12 @@ const [products, setProducts] = useState([]);
   const openAddModal = () => {
     setEditingProduct(null);
     setSelectedFile(null);
+    const defaultCat = categories.length > 0 ? (categories[0].MALOAI || categories[0].id || categories[0].maloai || '') : '';
     setFormData({ 
       MaSP: '', 
       TenSP: '', 
       GIABAN: '', 
-      LOAISP: categories.length > 0 ? categories[0].MALOAI : '', 
+      LOAISP: defaultCat, 
       SOLUONG: '0',
       DVT: 'Cái', 
       GHICHU: '',
@@ -185,16 +185,22 @@ const [products, setProducts] = useState([]);
       
       payload.append('MASP', masp);
       payload.append('TENSP', formData.TenSP);
+      payload.append('ten_san_pham', formData.TenSP);
       payload.append('GIABAN', formData.GIABAN);
+      payload.append('gia_ban', formData.GIABAN);
       payload.append('MALOAI', formData.LOAISP);
+      payload.append('loai_id', formData.LOAISP);
       payload.append('DVT', formData.DVT);
+      payload.append('don_vi_tinh', formData.DVT);
       payload.append('SOLUONG', formData.SOLUONG || 0);
       payload.append('GHICHU', formData.GHICHU || '');
+      payload.append('mo_ta', formData.GHICHU || '');
       payload.append('IS_NEW', formData.IS_NEW ? 1 : 0);
       payload.append('PHAN_TRAM_GIAM', formData.PHAN_TRAM_GIAM || 0);
       
       if (selectedFile) {
         payload.append('HINHANH', selectedFile);
+        payload.append('hinh_anh_file', selectedFile);
       }
 
       if (editingProduct) {
@@ -452,9 +458,14 @@ const [products, setProducts] = useState([]);
               <div className="admin-form-group">
                 <label>Danh mục sản phẩm *</label>
                 <select name="LOAISP" value={formData.LOAISP} onChange={handleInputChange} className="admin-input" required>
-                  {categories.map(cat => (
-                    <option key={cat.MALOAI} value={cat.MALOAI}>{cat.TENLOAI}</option>
-                  ))}
+                  <option value="">-- Chọn danh mục sản phẩm --</option>
+                  {categories.map(cat => {
+                    const catId = cat.MALOAI || cat.id || cat.maloai;
+                    const catName = cat.TENLOAI || cat.ten_loai || cat.tenloai;
+                    return (
+                      <option key={catId} value={catId}>{catName}</option>
+                    );
+                  })}
                 </select>
               </div>
 

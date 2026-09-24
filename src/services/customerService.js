@@ -31,3 +31,9 @@ export const restoreCustomer = async (id) => {
     const response = await axiosClient.put(`${API_URL}/${id}/restore`);
     return response.data;
 };
+
+export const lookupCustomerBySdt = async (sdt) => {
+    const response = await axiosClient.get(`${API_URL}/lookup`, { params: { sdt } });
+    return response.data;
+};
+

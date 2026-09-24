@@ -20,9 +20,38 @@ const [stores, setStores] = useState([]);
     setIsLoading(true);
     try {
       const data = await getStores();
-      setStores(data);
+      const rawStores = data?.data || data || [];
+      const list = Array.isArray(rawStores) ? rawStores : [];
+      
+      const normalizedStores = list.map(st => {
+        const emps = Array.isArray(st.employees) ? st.employees : (Array.isArray(st.nguoi_dungs) ? st.nguoi_dungs : (Array.isArray(st.nguoiDungs) ? st.nguoiDungs : []));
+        const inv = Array.isArray(st.inventory) ? st.inventory : (Array.isArray(st.lo_hangs) ? st.lo_hangs : (Array.isArray(st.loHangs) ? st.loHangs : []));
+        
+        return {
+          ...st,
+          id: st.id || st.MACUAHANG,
+          name: st.name || st.ten_cuahang || st.TENCUAHANG || `Chi nhánh #${st.id}`,
+          address: st.address || st.dia_chi_chi_tiet || st.DIACHI || 'Chưa cập nhật địa chỉ',
+          phone: st.phone || st.so_dien_thoai || st.SDT || '-',
+          status: st.status || (st.trang_thai === 1 ? 'Đang hoạt động' : 'Tạm đóng cửa'),
+          GHN_SHOP_ID: st.GHN_SHOP_ID || st.ghn_shop_id || '',
+          employees: emps,
+          customerCount: st.customerCount || 0,
+          revenue: st.revenue || 0,
+          inventory: inv,
+          revenueChart: Array.isArray(st.revenueChart) ? st.revenueChart : [],
+          invoiceChart: Array.isArray(st.invoiceChart) ? st.invoiceChart : [],
+          totalSalary: st.totalSalary || 0,
+          newCustomers: st.newCustomers || 0,
+          totalDaysWorked: st.totalDaysWorked || 0,
+          totalDaysOff: st.totalDaysOff || 0
+        };
+      });
+
+      setStores(normalizedStores);
     } catch (error) {
       console.error('Error fetching stores:', error);
+      toast.error('Không thể tải danh sách chi nhánh cửa hàng');
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +170,7 @@ const [stores, setStores] = useState([]);
                 </div>
                 <div>
                   <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Nhân viên</p>
-                  <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--admin-text)' }}>{store.employees.length} NV</p>
+                  <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--admin-text)' }}>{store.employees?.length || 0} NV</p>
                 </div>
               </div>
 
@@ -236,7 +265,7 @@ const [stores, setStores] = useState([]);
               
               {/* Cột trái: Nhân viên */}
               <div>
-                <h3 style={{ fontSize: '1.1.2rem', marginBottom: '1.2rem', color: 'var(--admin-text)' }}>👥 Danh sách Nhân viên ({selectedStore.employees.length})</h3>
+                <h3 style={{ fontSize: '1.1.2rem', marginBottom: '1.2rem', color: 'var(--admin-text)' }}>👥 Danh sách Nhân viên ({selectedStore.employees?.length || 0})</h3>
                 <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   <table className="admin-table" style={{ fontSize: '0.9rem' }}>
                     <thead>
@@ -249,13 +278,13 @@ const [stores, setStores] = useState([]);
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedStore.employees.length > 0 ? selectedStore.employees.map((nv, idx) => (
+                      {selectedStore.employees && selectedStore.employees.length > 0 ? selectedStore.employees.map((nv, idx) => (
                         <tr key={idx}>
-                          <td style={{ fontWeight: 600 }}>{nv.HOTEN}</td>
-                          <td>{nv.CHUCVU}</td>
-                          <td style={{ textAlign: 'center', color: 'var(--admin-success)', fontWeight: 'bold' }}>{nv.workingDays}</td>
-                          <td style={{ textAlign: 'center', color: 'var(--admin-danger)', fontWeight: 'bold' }}>{nv.absentDays}</td>
-                          <td>{Number(nv.LUONG || 0).toLocaleString('vi-VN')} đ</td>
+                          <td style={{ fontWeight: 600 }}>{nv.HOTEN || nv.ho_ten || nv.name}</td>
+                          <td>{nv.CHUCVU || nv.chuc_vu || 'Nhân viên'}</td>
+                          <td style={{ textAlign: 'center', color: 'var(--admin-success)', fontWeight: 'bold' }}>{nv.workingDays || 0}</td>
+                          <td style={{ textAlign: 'center', color: 'var(--admin-danger)', fontWeight: 'bold' }}>{nv.absentDays || 0}</td>
+                          <td>{Number(nv.LUONG || nv.luong || 0).toLocaleString('vi-VN')} đ</td>
                         </tr>
                       )) : (
                         <tr><td colSpan="5" style={{ textAlign: 'center' }}>Chưa có nhân viên</td></tr>
@@ -278,13 +307,13 @@ const [stores, setStores] = useState([]);
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedStore.inventory.length > 0 ? selectedStore.inventory.map((sp, idx) => (
+                      {selectedStore.inventory && selectedStore.inventory.length > 0 ? selectedStore.inventory.map((sp, idx) => (
                         <tr key={idx}>
-                          <td>{sp.MASP}</td>
-                          <td>{sp.TENSP}</td>
+                          <td>{sp.MASP || sp.id}</td>
+                          <td>{sp.TENSP || sp.ten_san_pham}</td>
                           <td>
-                            <span style={{ fontWeight: 'bold', color: sp.SOLUONG_TON <= 5 ? 'var(--admin-danger)' : 'var(--admin-success)' }}>
-                              {sp.SOLUONG_TON}
+                            <span style={{ fontWeight: 'bold', color: (sp.SOLUONG_TON || sp.so_luong_con || 0) <= 5 ? 'var(--admin-danger)' : 'var(--admin-success)' }}>
+                              {sp.SOLUONG_TON ?? sp.so_luong_con ?? 0}
                             </span>
                           </td>
                         </tr>

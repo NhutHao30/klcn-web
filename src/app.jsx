@@ -40,6 +40,14 @@ const AdminVoucherPage = lazy(() => import("./Pages/Admin/AdminVoucherPage"));
 const AdminNewsPage = lazy(() => import("./Pages/Admin/AdminNewsPage"));
 const AdminInventoryLedgerPage = lazy(() => import("./Pages/Admin/AdminInventoryLedgerPage"));
 const AdminAdvancedAuditPage = lazy(() => import("./Pages/Admin/AdminAdvancedAuditPage"));
+const AdminPreOrderPage = lazy(() => import("./Pages/Admin/AdminPreOrderPage"));
+const AdminLoHangPage = lazy(() => import("./Pages/Admin/AdminLoHangPage"));
+const AdminNhaCungCapPage = lazy(() => import("./Pages/Admin/AdminNhaCungCapPage"));
+const AdminBienBanHuyPage = lazy(() => import("./Pages/Admin/AdminBienBanHuyPage"));
+const AdminSignatureApprovalPage = lazy(() => import("./Pages/Admin/AdminSignatureApprovalPage"));
+const AdminNhapLoPage = lazy(() => import("./Pages/Admin/AdminNhapLoPage"));
+const AdminCategoryPage = lazy(() => import("./Pages/Admin/AdminCategoryPage"));
+const AdminOnlineOrderPage = lazy(() => import("./Pages/Admin/AdminOnlineOrderPage"));
 
 // Tạo hiệu ứng Loading nhẹ khi đang tải file JS
 const LoadingFallback = () => (
@@ -127,6 +135,14 @@ function App() {
         <Route path="/admin/tin-tuc" element={<AdminNewsPage />} />
         <Route path="/admin/so-cai-ton-kho" element={<AdminInventoryLedgerPage />} />
         <Route path="/admin/nhat-ky-nang-cao" element={<AdminAdvancedAuditPage />} />
+        <Route path="/admin/dat-hang-truoc" element={<AdminPreOrderPage />} />
+        <Route path="/admin/lo-hang" element={<AdminLoHangPage />} />
+        <Route path="/admin/nha-cung-cap" element={<AdminNhaCungCapPage />} />
+        <Route path="/admin/bien-ban-huy" element={<AdminBienBanHuyPage />} />
+        <Route path="/admin/duyet-ky-so" element={<AdminSignatureApprovalPage />} />
+        <Route path="/admin/nhap-lo-hang" element={<AdminNhapLoPage />} />
+        <Route path="/admin/loai-san-pham" element={<AdminCategoryPage />} />
+        <Route path="/admin/don-hang-online" element={<AdminOnlineOrderPage />} />
       </Routes>
       </Suspense>
       <Modal />

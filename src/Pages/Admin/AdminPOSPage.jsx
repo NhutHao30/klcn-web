@@ -260,7 +260,7 @@ const AdminPOSPage = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', width: '400px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <h2 style={{ marginBottom: '20px', color: 'var(--primary-color)' }}><i className="fa-solid fa-cash-register"></i> Bắt Đầu Ca Làm Việc</h2>
-            <p style={{ marginBottom: '15px', color: '#555' }}>Vui lòng kiểm đếm và nhập số tiền mặt có trong két hiện tại để mở ca.</p>
+            <p style={{ marginBottom: '15px', color: '#555', fontSize: '18px', }}>Vui lòng kiểm đếm và nhập số tiền mặt có trong két hiện tại để mở ca.</p>
             <input 
               type="number" 
               className="admin-input" 

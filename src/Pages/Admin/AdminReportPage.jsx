@@ -6,13 +6,15 @@ import { useToast } from '../../components/Toast/Toast';
 
 const AdminReportPage = () => {
     const toast = useToast();
-const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, customer, chamcong
+const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, customer
   const [reportType, setReportType] = useState('month'); // used for revenue
   const [revenueData, setRevenueData] = useState([]);
   const [biData, setBiData] = useState(null);
   const [topProducts, setTopProducts] = useState([]);
   const [usersData, setUsersData] = useState([]);
   const [chamCongData, setChamCongData] = useState([]);
+  const [profitData, setProfitData] = useState(null);
+  const [lossData, setLossData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -33,20 +35,25 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Import the new getBiDashboardData if not already imported
       const { getRevenueReport, getTopProducts, getUsersForReport, getChamCong, getBiDashboardData } = await import('../../services/reportService');
-      const [revenue, bi, topProd, users, attendance] = await Promise.all([
+      const { getThongKeLoiNhuan, getThongKeHaoHut } = await import('../../services/batchService');
+      
+      const [revenue, bi, topProd, users, attendance, profitRes, lossRes] = await Promise.all([
         getRevenueReport(reportType),
         getBiDashboardData(),
         getTopProducts(),
         getUsersForReport(),
-        getChamCong(currentMonth, currentYear)
+        getChamCong(currentMonth, currentYear),
+        getThongKeLoiNhuan(),
+        getThongKeHaoHut()
       ]);
       setRevenueData(revenue);
       setBiData(bi);
       setTopProducts(topProd);
       setUsersData(users);
       setChamCongData(attendance);
+      if (profitRes && profitRes.status) setProfitData(profitRes.data);
+      if (lossRes && lossRes.status) setLossData(lossRes.data);
     } catch (error) {
       console.error("Lỗi khi tải báo cáo:", error);
     } finally {
@@ -359,11 +366,9 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <h1 className="admin-title" style={{ marginBottom: 0 }}>Báo cáo & Thống kê</h1>
-        {activeTab !== 'chamcong' && (
-          <button className="admin-btn admin-btn-success" onClick={exportPDF}>
+        <button className="admin-btn admin-btn-success" onClick={exportPDF}>
             📥 Xuất Báo Cáo (PDF)
           </button>
-        )}
       </div>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -372,7 +377,7 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
           style={{ backgroundColor: activeTab !== 'revenue' ? '#f8f9fa' : '', color: activeTab !== 'revenue' ? '#333' : '', border: '1px solid #ddd' }}
           onClick={() => setActiveTab('revenue')}
         >
-          💰 Báo cáo Doanh thu
+          💰 Doanh thu, Lợi nhuận & Hao hụt
         </button>
         <button 
           className={`admin-btn ${activeTab === 'employee' ? 'admin-btn-primary' : ''}`}
@@ -387,13 +392,6 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
           onClick={() => setActiveTab('customer')}
         >
           💎 Báo cáo Khách hàng
-        </button>
-        <button 
-          className={`admin-btn ${activeTab === 'chamcong' ? 'admin-btn-primary' : ''}`}
-          style={{ backgroundColor: activeTab !== 'chamcong' ? '#f8f9fa' : '', color: activeTab !== 'chamcong' ? '#333' : '', border: '1px solid #ddd' }}
-          onClick={() => setActiveTab('chamcong')}
-        >
-          📅 Bảng Chấm Công
         </button>
       </div>
 
@@ -602,6 +600,85 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
                   </div>
                 )}
               </div>
+              {/* ═══ LỢI NHUẬN RÒNG & HAO HỤT (merged) ═══ */}
+              <div style={{ marginTop: '2rem', borderTop: '2px solid var(--admin-outline)', paddingTop: '2rem' }}>
+                <h2 className="admin-card-title" style={{ marginBottom: '1.25rem' }}>📈 Lợi Nhuận Ròng & Hao Hụt</h2>
+                {/* KPI Cards Lợi Nhuận */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+                  <div className="admin-card" style={{ borderLeft: '4px solid #17a2b8', padding: '20px' }}>
+                    <div style={{ color: '#666', fontSize: '13px', fontWeight: 'bold' }}>DOANH THU BÁN HÀNG</div>
+                    <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#17a2b8', marginTop: '8px' }}>
+                      {Number(profitData?.doanh_thu || 0).toLocaleString('vi-VN')} ₫
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#888' }}>Từ các hóa đơn đã hoàn thành</div>
+                  </div>
+
+                  <div className="admin-card" style={{ borderLeft: '4px solid #ffc107', padding: '20px' }}>
+                    <div style={{ color: '#666', fontSize: '13px', fontWeight: 'bold' }}>CHI PHÍ NHẬP HÀNG (NCC)</div>
+                    <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#b45309', marginTop: '8px' }}>
+                      {Number(profitData?.chi_phi_nhap || 0).toLocaleString('vi-VN')} ₫
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#888' }}>Tổng vốn mua bánh từ NCC</div>
+                  </div>
+
+                  <div className="admin-card" style={{ borderLeft: '4px solid #dc3545', padding: '20px' }}>
+                    <div style={{ color: '#666', fontSize: '13px', fontWeight: 'bold' }}>TỔN THẤT HỦY BÁNH (HSD)</div>
+                    <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#dc3545', marginTop: '8px' }}>
+                      {Number(profitData?.chi_phi_huy || 0).toLocaleString('vi-VN')} ₫
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#888' }}>Thiệt hại từ bánh quá hạn/hư hỏng</div>
+                  </div>
+
+                  <div className="admin-card" style={{ borderLeft: '4px solid #28a745', padding: '20px' }}>
+                    <div style={{ color: '#666', fontSize: '13px', fontWeight: 'bold' }}>LỢI NHUẬN RÒNG THỰC TẾ</div>
+                    <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#28a745', marginTop: '8px' }}>
+                      {Number(profitData?.loi_nhuan_rong || 0).toLocaleString('vi-VN')} ₫
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#888' }}>= Doanh Thu - Chi Phí Nhập - Chi Phí Hủy</div>
+                  </div>
+                </div>
+
+                {/* Bảng Chi Tiết Hao Hụt Sản Phẩm */}
+                <div className="admin-card">
+                  <h2 className="admin-card-title">Chi Tiết Tổn Thất & Tỷ Lệ Hao Hụt Theo Sản Phẩm</h2>
+                  <div className="admin-table-container">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>STT</th>
+                          <th>Tên Sản Phẩm Bánh</th>
+                          <th style={{ textAlign: 'center' }}>Số Lượng Bị Hủy</th>
+                          <th style={{ textAlign: 'right' }}>Giá Trị Tổn Thất</th>
+                          <th style={{ textAlign: 'center' }}>Đơn Vị</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {!lossData?.hao_hut_theo_san_pham || lossData.hao_hut_theo_san_pham.length === 0 ? (
+                          <tr>
+                            <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
+                              Không ghi nhận sản phẩm nào bị hủy trong kỳ này
+                            </td>
+                          </tr>
+                        ) : (
+                          lossData.hao_hut_theo_san_pham.map((item, idx) => (
+                            <tr key={idx}>
+                              <td style={{ textAlign: 'center' }}><b>#{idx + 1}</b></td>
+                              <td style={{ fontWeight: 'bold' }}>{item.san_pham?.TENSP || item.MASP}</td>
+                              <td style={{ textAlign: 'center', color: '#dc3545', fontWeight: 'bold' }}>
+                                {item.tong_so_luong_huy} cái
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#dc3545' }}>
+                                {(Number(item.tong_so_luong_huy) * Number(item.san_pham?.GIABAN || 15000)).toLocaleString('vi-VN')} ₫
+                              </td>
+                              <td style={{ textAlign: 'center' }}>{item.san_pham?.DVT || 'Cái'}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </>
           )}
 
@@ -680,50 +757,7 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
             </div>
           )}
 
-          {activeTab === 'chamcong' && (
-            <div className="admin-card">
-              <div className="admin-flex-between">
-                <h2 className="admin-card-title">Chấm Công Ngày Hôm Nay ({today.toLocaleDateString('vi-VN')})</h2>
-              </div>
-              <p style={{ color: '#666', marginBottom: '1.5rem' }}>Click vào nút Trạng Thái để chuyển đổi giữa Có mặt và Vắng mặt</p>
-              <div className="admin-table-container">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Username</th>
-                      <th>Họ Tên</th>
-                      <th>Chức Vụ</th>
-                      <th style={{ textAlign: 'center' }}>Trạng Thái Hôm Nay</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {chamCongEmployees.map((emp, index) => {
-                      const todayAttendance = chamCongData.find(c => c.USERNAME === emp.USERNAME && c.NGAYCHAMCONG === currentDateStr);
-                      // Mặc định là 0 nếu chưa chấm công, 1 nếu đã có mặt
-                      const currentStatus = todayAttendance ? todayAttendance.TRANGTHAI : 0;
-                      
-                      return (
-                        <tr key={index}>
-                          <td>{emp.USERNAME}</td>
-                          <td>{emp.nhanvien.HOTEN}</td>
-                          <td>{emp.nhanvien.CHUCVU || 'Nhân viên'}</td>
-                          <td style={{ textAlign: 'center' }}>
-                            <button 
-                              onClick={() => handleToggleChamCong(emp.USERNAME, currentStatus)}
-                              className={`admin-btn ${currentStatus === 1 ? 'admin-btn-success' : 'admin-btn-danger'}`}
-                              style={{ width: '120px' }}
-                            >
-                              {currentStatus === 1 ? '✅ Có mặt' : '❌ Vắng mặt'}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+
         </>
       )}
     </AdminLayout>

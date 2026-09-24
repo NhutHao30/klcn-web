@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getCurrentUser, updateProfile } from '../services/authService';
 import axiosClient from '../services/axiosClient';
 import { useToast } from '../components/Toast/Toast';
+import SignatureCanvas from '../components/Signature/SignatureCanvas';
 
 const ProfilePage = () => {
     const toast = useToast();
@@ -13,6 +14,8 @@ const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [orders, setOrders] = useState([]);
+  const [signatureData, setSignatureData] = useState(null);
+  const [isSavingSignature, setIsSavingSignature] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
   // Form state
@@ -146,6 +149,27 @@ const navigate = useNavigate();
     } else if (type === 'CCCD_SAU') {
       setCccdSauFile(file);
       setCccdSauPreview(preview);
+    }
+  };
+
+  const handleSaveSignature = async () => {
+    if (!signatureData) {
+      toast.warning('Vui lòng vẽ chữ ký số trước khi lưu!');
+      return;
+    }
+    setIsSavingSignature(true);
+    try {
+      const res = await axiosClient.post('/profile/chu-ky', { chu_ky: signatureData });
+      if (res.data?.status) {
+        toast.success('Đã lưu chữ ký số cá nhân thành công!');
+        const userData = await getCurrentUser();
+        setUser(userData);
+        if (userData.nhanvien) setProfileData(userData.nhanvien);
+      }
+    } catch (e) {
+      toast.error('Lỗi khi lưu chữ ký: ' + (e.response?.data?.error || e.message));
+    } finally {
+      setIsSavingSignature(false);
     }
   };
 
@@ -405,6 +429,58 @@ const navigate = useNavigate();
                     isEditing={isEditing}
                     onFileChange={(e) => handleFileChange(e, 'CCCD_SAU')}
                   />
+                </div>
+              </div>
+            )}
+
+            {/* Digital Signature Section (Employee only) */}
+            {isEmployee && (
+              <div style={styles.infoCard}>
+                <div style={styles.cardHeader}>
+                  <h2 style={styles.cardTitle}>
+                    <i className="fa-solid fa-signature" style={{ marginRight: '8px', color: '#16a085' }}></i>
+                    Chữ Ký Số Cá Nhân (Ký 1 lần - Sử dụng tự động khi duyệt phiếu)
+                  </h2>
+                </div>
+                <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>
+                  Vẽ chữ ký của bạn vào khung bên dưới. Chữ ký này sẽ được lưu cố định vào tài khoản của bạn để tự động đóng dấu vào các <b>Phiếu Nhập Kho</b> và <b>Biên Bản Hủy</b> khi bạn thực hiện duyệt phiếu.
+                </p>
+
+                {profileData.CHU_KY && (
+                  <div style={{ marginBottom: '15px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold', marginBottom: '6px' }}>
+                      <i className="fa-solid fa-circle-check" style={{ color: '#22c55e', marginRight: '6px' }}></i>
+                      Chữ ký đã lưu hiện tại:
+                    </div>
+                    <div style={{ textAlign: 'center', background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                      <img src={profileData.CHU_KY} alt="Chữ ký đã lưu" style={{ maxHeight: '100px', objectFit: 'contain' }} />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ ...styles.statLabel, marginBottom: '6px', display: 'block' }}>
+                    {profileData.CHU_KY ? 'Vẽ chữ ký mới để thay đổi:' : 'Vẽ chữ ký số của bạn:'}
+                  </label>
+                  <SignatureCanvas
+                    onSave={(dataUrl) => setSignatureData(dataUrl)}
+                    height={160}
+                  />
+                  <button
+                    type="button"
+                    style={{ ...styles.saveBtn, width: '100%', marginTop: '12px', backgroundColor: '#16a085' }}
+                    onClick={handleSaveSignature}
+                    disabled={isSavingSignature}
+                  >
+                    {isSavingSignature ? (
+                      <i className="fa fa-spinner fa-spin"></i>
+                    ) : (
+                      <>
+                        <i className="fa-solid fa-floppy-disk" style={{ marginRight: '6px' }}></i>
+                        Lưu Chữ Ký Số Cá Nhân
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             )}

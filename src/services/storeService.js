@@ -6,8 +6,13 @@ export const getPublicStores = async () => {
 };
 
 export const getStores = async () => {
-    const response = await axiosClient.get('/admin/stores');
-    return response.data;
+    try {
+        const response = await axiosClient.get('/stores');
+        return response.data;
+    } catch (e) {
+        const response = await axiosClient.get('/admin/stores');
+        return response.data;
+    }
 };
 
 export const updateStoreStatus = async (id, status) => {
