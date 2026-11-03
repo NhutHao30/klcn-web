@@ -752,8 +752,8 @@ const ProfilePage = () => {
             {/* VÍ VOUCHER CỦA KHÁCH HÀNG & KHO SĂN VOUCHER */}
             {isCustomer && (
               <div style={styles.infoCard}>
-                <div style={styles.cardHeader}>
-                  <h2 style={styles.cardTitle}>
+                <div style={{ ...styles.cardHeader, flexWrap: 'wrap', gap: '10px' }}>
+                  <h2 style={{ ...styles.cardTitle, whiteSpace: 'nowrap', minWidth: 'fit-content' }}>
                     <i className="fa-solid fa-ticket" style={{ marginRight: '8px', color: '#d97706' }}></i>
                     Ví Voucher Của Tôi ({savedVouchers.length})
                   </h2>

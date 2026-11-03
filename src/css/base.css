@@ -299,30 +299,36 @@ html {
 
 
 /* Modal */ 
-.modal {
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 0;
-    bottom: 0;
+.modal,
+.modal.modal-js {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
     display: none;
-    z-index: 10000;
-    animation: FadeIn linear 1s;
+    z-index: 999999 !important;
+    animation: FadeIn linear 0.2s;
 }
 
 .modal__overlay {
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    z-index: 999998 !important;
 }
  
-  .modal__body { 
+.modal__body { 
     --growth-form: 0.7;
     --growth-to: 1;  
     margin: auto;
-    position: relative;
-    z-index: 3;
+    position: relative !important;
+    z-index: 999999 !important;
     animation: growth linear 0.1s;
 }
 
@@ -347,6 +353,8 @@ html {
     padding: 10px 0;
     background-color: #fff;
     display: none;
+    position: relative !important;
+    z-index: 999999 !important;
 } 
 
 .search-list {
@@ -773,7 +781,7 @@ html {
     background-color: #ffffff;
     display: none;
     flex-direction: column;
-    z-index: 10002;
+    z-index: 999999 !important;
     position: fixed;
     top: 0;
     left: 0;

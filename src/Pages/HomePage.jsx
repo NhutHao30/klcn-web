@@ -70,9 +70,10 @@ const HomePage = () => {
 
     // Helper: format image URL
     const formatImageUrl = (url) => {
-        if (!url) return "../../assets/IMG/productSale_5.webp";
+        if (!url) return "/assets/IMG/productSale_5.webp";
         if (url.startsWith("http") || url.startsWith("/api/")) return url;
-        return `../../assets/IMG/${url.split('/').pop()}`;
+        const filename = url.split('/').pop();
+        return `/assets/IMG/${filename}`;
     };
 
     // Helper: format price
