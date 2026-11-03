@@ -328,7 +328,16 @@ const [employees, setEmployees] = useState([]);
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản lý nhân viên</h1>
-        <div className="admin-flex-gap">
+        <div className="admin-flex-gap" style={{ flexWrap: 'wrap' }}>
+          <a 
+            href="/danh_sach_nhan_vien_mau.csv" 
+            download="danh_sach_nhan_vien_mau.csv"
+            className="admin-btn admin-btn-secondary" 
+            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            title="Tải về file CSV mẫu để nhập hàng loạt nhân viên"
+          >
+            📄 Tải file CSV mẫu
+          </a>
           <input 
             type="file" 
             accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
