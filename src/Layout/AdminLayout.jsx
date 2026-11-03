@@ -100,11 +100,11 @@ const AdminLayout = ({ children }) => {
       setOpenGroups(prev => ({ ...prev, products: true }));
     } else if (['/admin/duyet-ky-so', '/admin/bien-ban-huy'].includes(path)) {
       setOpenGroups(prev => ({ ...prev, approval: true }));
-    } else if (['/admin/bao-cao', '/admin', '/admin/khach-hang', '/admin/nhan-vien', '/admin/cua-hang', '/admin/phan-tich-nguoi-dung'].includes(path)) {
+    } else if (['/admin/bao-cao', '/admin', '/admin/khach-hang', '/admin/nhan-vien', '/admin/cua-hang'].includes(path)) {
       setOpenGroups(prev => ({ ...prev, business: true }));
     } else if (['/admin/chat', '/admin/chat-noi-bo', '/admin/tin-tuc'].includes(path)) {
       setOpenGroups(prev => ({ ...prev, communication: true }));
-    } else if (['/admin/nhat-ky-nang-cao', '/admin/bao-tri-he-thong', '/admin/giam-sat-he-thong'].includes(path)) {
+    } else if (['/admin/nhat-ky-nang-cao', '/admin/bao-tri-he-thong', '/admin/giam-sat-he-thong', '/admin/phan-tich-nguoi-dung'].includes(path)) {
       setOpenGroups(prev => ({ ...prev, system: true }));
     }
   }, [location.pathname]);
@@ -139,9 +139,9 @@ const AdminLayout = ({ children }) => {
   const isSupplierGroupActive = ['/admin/nha-cung-cap', '/admin/nhap-lo-hang', '/admin/lo-hang'].includes(location.pathname);
   const isProductsGroupActive = ['/admin/san-pham', '/admin/loai-san-pham', '/admin/khuyen-mai'].includes(location.pathname);
   const isApprovalGroupActive = ['/admin/duyet-ky-so', '/admin/bien-ban-huy'].includes(location.pathname);
-  const isBusinessGroupActive = ['/admin/bao-cao', '/admin', '/admin/khach-hang', '/admin/nhan-vien', '/admin/cua-hang', '/admin/phan-tich-nguoi-dung'].includes(location.pathname);
+  const isBusinessGroupActive = ['/admin/bao-cao', '/admin', '/admin/khach-hang', '/admin/nhan-vien', '/admin/cua-hang'].includes(location.pathname);
   const isCommGroupActive = ['/admin/chat', '/admin/chat-noi-bo', '/admin/tin-tuc'].includes(location.pathname);
-  const isSystemGroupActive = ['/admin/nhat-ky-nang-cao', '/admin/bao-tri-he-thong', '/admin/giam-sat-he-thong'].includes(location.pathname);
+  const isSystemGroupActive = ['/admin/nhat-ky-nang-cao', '/admin/bao-tri-he-thong', '/admin/giam-sat-he-thong', '/admin/phan-tich-nguoi-dung'].includes(location.pathname);
 
   return (
     <div className="admin-dashboard">
@@ -430,17 +430,6 @@ const AdminLayout = ({ children }) => {
                 </Link>
               )}
 
-              {(isAdmin || isDirector || isManager) && (
-                <Link 
-                  to="/admin/phan-tich-nguoi-dung" 
-                  className={`nav-link ${location.pathname === '/admin/phan-tich-nguoi-dung' ? 'active' : ''}`}
-                >
-                  <i className="fa-solid fa-chart-simple"></i>
-                  Phân tích người dùng & Hành vi
-                  <span className="nav-badge nav-badge-info">Analytics</span>
-                </Link>
-              )}
-
               {(isAdmin || isDirector || isManager || isCashier || isCskh) && (
                 <Link 
                   to="/admin/khach-hang" 
@@ -535,7 +524,7 @@ const AdminLayout = ({ children }) => {
           </div>
 
           {/* NHÓM 8: HỆ THỐNG */}
-          {isAdmin && (
+          {(isAdmin || isDirector || isManager) && (
             <div className="sidebar-group">
               <button 
                 className={`sidebar-group-header ${openGroups.system ? 'open' : ''} ${isSystemGroupActive ? 'active-group' : ''}`}
@@ -557,6 +546,16 @@ const AdminLayout = ({ children }) => {
                   Giám sát & Hiệu năng
                   <span className="nav-badge nav-badge-live">Live</span>
                 </Link>
+
+                <Link 
+                  to="/admin/phan-tich-nguoi-dung" 
+                  className={`nav-link ${location.pathname === '/admin/phan-tich-nguoi-dung' ? 'active' : ''}`}
+                >
+                  <i className="fa-solid fa-chart-simple"></i>
+                  Phân tích người dùng & Hành vi
+                  <span className="nav-badge nav-badge-info">Analytics</span>
+                </Link>
+
                 <Link 
                   to="/admin/nhat-ky-nang-cao" 
                   className={`nav-link ${location.pathname === '/admin/nhat-ky-nang-cao' ? 'active' : ''}`}
@@ -565,6 +564,7 @@ const AdminLayout = ({ children }) => {
                   Audit Logs
                   <span className="nav-badge nav-badge-purple">Audit</span>
                 </Link>
+
                 <Link 
                   to="/admin/bao-tri-he-thong" 
                   className={`nav-link ${location.pathname === '/admin/bao-tri-he-thong' ? 'active' : ''}`}

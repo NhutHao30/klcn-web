@@ -18,9 +18,10 @@ const AdminAdvancedAuditPage = () => {
             if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
             if (actionFilter) url += `&action=${encodeURIComponent(actionFilter)}`;
             const res = await axiosClient.get(url);
-            setLogs(res.data.data);
-            setTotalPages(res.data.last_page);
-            setPage(res.data.current_page);
+            const logsData = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+            setLogs(logsData);
+            setTotalPages(res.data?.last_page || 1);
+            setPage(res.data?.current_page || 1);
         } catch (error) {
             console.error("Lỗi lấy audit logs:", error);
         } finally {
