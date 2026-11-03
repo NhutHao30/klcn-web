@@ -7,10 +7,10 @@ export const getPublicStores = async () => {
 
 export const getStores = async () => {
     try {
-        const response = await axiosClient.get('/stores');
+        const response = await axiosClient.get('/admin/stores');
         return response.data;
     } catch (e) {
-        const response = await axiosClient.get('/admin/stores');
+        const response = await axiosClient.get('/stores');
         return response.data;
     }
 };

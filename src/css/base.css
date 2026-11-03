@@ -97,17 +97,11 @@ html {
     0% {
         transform: rotateY(0deg);
     }
-    /* 45% {
+    50% {
         transform: rotateY(180deg);
-    } */
-    /* 50% {
-        transform: rotateY(180deg);
-    } */
-    /* 95% {
-        transform: rotateY(360deg);
-    } */
+    }
     100% {
-        transform: rotateY(180deg); /* Trở lại trạng thái ban đầu */
+        transform: rotateY(360deg);
     }
 }
 
@@ -312,7 +306,7 @@ html {
     left: 0;
     bottom: 0;
     display: none;
-    z-index: 999;
+    z-index: 10000;
     animation: FadeIn linear 1s;
 }
 
@@ -853,4 +847,20 @@ html {
 /* Tablet */
 @media (min-width: 740px) and (max-width: 1023px) {
     
+}
+/* Profile Page Responsive Grid */
+.profile-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: -20px;
+    position: relative;
+    z-index: 1;
+}
+
+@media (max-width: 900px) {
+    .profile-content-grid {
+        grid-template-columns: 1fr !important;
+        margin-top: 10px !important;
+    }
 }

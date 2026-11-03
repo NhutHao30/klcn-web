@@ -6,8 +6,8 @@ import { useToast } from '../components/Toast/Toast';
 import SignatureCanvas from '../components/Signature/SignatureCanvas';
 
 const ProfilePage = () => {
-    const toast = useToast();
-const navigate = useNavigate();
+  const toast = useToast();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [profileData, setProfileData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,6 +29,33 @@ const navigate = useNavigate();
   const [cccdTruocPreview, setCccdTruocPreview] = useState(null);
   const [cccdSauPreview, setCccdSauPreview] = useState(null);
 
+  // Address Book state (2 cấp hành chính mới: Tỉnh/Thành -> Phường/Xã, không còn Quận/Huyện)
+  const [addresses, setAddresses] = useState([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [addrProvinces, setAddrProvinces] = useState([]);
+  const [addrWards, setAddrWards] = useState([]);
+  const [isLoadingAddrWards, setIsLoadingAddrWards] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    hoTenNguoiNhan: '',
+    soDienThoai: '',
+    diaChiChiTiet: '',
+    maTinh: '',
+    maHuyen: '',
+    maXa: '',
+    isDefault: false,
+  });
+
+  // Voucher Wallet state
+  const [voucherTab, setVoucherTab] = useState('wallet'); // 'wallet' | 'discover'
+  const [savedVouchers, setSavedVouchers] = useState([]);
+  const [availableVouchers, setAvailableVouchers] = useState([]);
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
+  const [collectCodeInput, setCollectCodeInput] = useState('');
+  const [isCollectingVoucher, setIsCollectingVoucher] = useState(false);
+
   // Change password state
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [passwordOtpSent, setPasswordOtpSent] = useState(false);
@@ -37,11 +64,188 @@ const navigate = useNavigate();
   const [isSendingPasswordOtp, setIsSendingPasswordOtp] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  const isEmployee = user && [0, 1, 2, 4].includes(Number(user.MAROLE));
-  const isCustomer = user && Number(user.MAROLE) === 3;
+  const isEmployee = user && (
+    [0, 1, 2, 4, 5, 6].includes(Number(user.MAROLE)) && Number(user.MAROLE) !== 3 && Number(user.vaiTroId) !== 6
+  );
+  const isCustomer = user && (Number(user.MAROLE) === 3 || Number(user.vaiTroId) === 6 || !isEmployee);
+
+  const fetchAddresses = async () => {
+    setIsLoadingAddresses(true);
+    try {
+      const res = await axiosClient.get('/addresses');
+      const list = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      setAddresses(list);
+    } catch (e) {
+      console.error('Lỗi lấy danh sách địa chỉ:', e);
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  const fetchVoucherWallet = async () => {
+    setIsLoadingVouchers(true);
+    try {
+      const res = await axiosClient.get('/vouchers/my-wallet');
+      const data = res.data || {};
+      const saved = Array.isArray(data) ? data : (data.saved_vouchers || data.data || []);
+      const avail = Array.isArray(data.available_vouchers) ? data.available_vouchers : saved;
+      setSavedVouchers(saved);
+      setAvailableVouchers(avail);
+    } catch (e) {
+      console.error('Lỗi tải Ví Voucher:', e);
+    } finally {
+      setIsLoadingVouchers(false);
+    }
+  };
+
+  const handleCollectVoucher = async (codeToSave) => {
+    const cleanCode = String(codeToSave || collectCodeInput || '').trim().toUpperCase();
+    if (!cleanCode) {
+      toast.warning('Vui lòng nhập hoặc chọn mã Voucher cần lưu vào ví!');
+      return;
+    }
+    setIsCollectingVoucher(true);
+    try {
+      const res = await axiosClient.post('/vouchers/collect', { maVoucher: cleanCode });
+      toast.success(res.data?.message || `Đã lưu Voucher ${cleanCode} vào Ví Voucher!`);
+      setCollectCodeInput('');
+      fetchVoucherWallet();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Không thể lưu mã Voucher này');
+    } finally {
+      setIsCollectingVoucher(false);
+    }
+  };
+
+  const handleOpenAddAddress = () => {
+    setEditingAddressId(null);
+    setAddressForm({
+      hoTenNguoiNhan: profileData?.HOTEN || user?.HOTEN || '',
+      soDienThoai: profileData?.SDT || user?.SDT || '',
+      diaChiChiTiet: '',
+      maTinh: '',
+      maHuyen: '',
+      maXa: '',
+      isDefault: addresses.length === 0,
+    });
+    setAddrWards([]);
+    setIsAddressModalOpen(true);
+  };
+
+  const handleOpenEditAddress = async (addr) => {
+    setEditingAddressId(addr.id);
+    setAddressForm({
+      hoTenNguoiNhan: addr.hoTenNguoiNhan || '',
+      soDienThoai: addr.soDienThoai || '',
+      diaChiChiTiet: addr.diaChiChiTiet || addr.diaChi || '',
+      maTinh: addr.maTinh ? String(addr.maTinh) : '',
+      maHuyen: addr.maHuyen ? String(addr.maHuyen) : '',
+      maXa: addr.maXa ? String(addr.maXa) : '',
+      isDefault: Number(addr.isDefault ?? addr.is_default) === 1,
+    });
+
+    setIsAddressModalOpen(true);
+
+    if (addr.maTinh) {
+      setIsLoadingAddrWards(true);
+      try {
+        const wRes = await axiosClient.get('/ghn/wards-by-province?province_id=' + addr.maTinh);
+        const wardList = wRes.data?.data || [];
+        setAddrWards(wardList);
+        if (addr.maXa) {
+          const foundW = wardList.find(w => String(w.WardCode) === String(addr.maXa));
+          if (foundW && foundW.DistrictID) {
+            setAddressForm(prev => ({ ...prev, maHuyen: String(foundW.DistrictID) }));
+          }
+        }
+      } catch (err) {
+        console.error('Lỗi tải phường/xã theo tỉnh khi chỉnh sửa địa chỉ:', err);
+      } finally {
+        setIsLoadingAddrWards(false);
+      }
+    } else {
+      setAddrWards([]);
+    }
+  };
+
+  const handleProvinceChange = async (provId) => {
+    setAddressForm(prev => ({ ...prev, maTinh: provId, maHuyen: '', maXa: '' }));
+    setAddrWards([]);
+    if (!provId) return;
+    setIsLoadingAddrWards(true);
+    try {
+      const res = await axiosClient.get('/ghn/wards-by-province?province_id=' + provId);
+      if (res.data?.data) setAddrWards(res.data.data);
+    } catch (e) {
+      console.error('Lỗi lấy danh sách phường/xã:', e);
+    } finally {
+      setIsLoadingAddrWards(false);
+    }
+  };
+
+  const handleWardChange = (wardCode) => {
+    const foundWard = addrWards.find(w => String(w.WardCode) === String(wardCode));
+    setAddressForm(prev => ({
+      ...prev,
+      maXa: wardCode,
+      maHuyen: foundWard?.DistrictID ? String(foundWard.DistrictID) : prev.maHuyen,
+    }));
+  };
+
+  const handleSaveAddress = async (e) => {
+    e?.preventDefault();
+    if (!addressForm.diaChiChiTiet.trim()) {
+      toast.warning('Vui lòng nhập địa chỉ cụ thể (số nhà, tên đường)!');
+      return;
+    }
+    setIsSavingAddress(true);
+    try {
+      const payload = {
+        ...addressForm,
+        maTinh: addressForm.maTinh ? Number(addressForm.maTinh) : 0,
+        maHuyen: addressForm.maHuyen ? Number(addressForm.maHuyen) : 0,
+        maXa: addressForm.maXa ? String(addressForm.maXa) : '',
+      };
+
+      if (editingAddressId) {
+        await axiosClient.put(`/addresses/${editingAddressId}`, payload);
+        toast.success('Cập nhật địa chỉ thành công!');
+      } else {
+        await axiosClient.post('/addresses', payload);
+        toast.success('Thêm địa chỉ mới thành công!');
+      }
+      setIsAddressModalOpen(false);
+      fetchAddresses();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Không thể lưu địa chỉ');
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
+
+  const handleSetDefaultAddress = async (addrId) => {
+    try {
+      await axiosClient.put(`/addresses/${addrId}/default`);
+      toast.success('Đã đặt làm địa chỉ mặc định!');
+      fetchAddresses();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Lỗi đặt địa chỉ mặc định');
+    }
+  };
+
+  const handleDeleteAddress = async (addrId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa địa chỉ này khỏi sổ địa chỉ?')) return;
+    try {
+      await axiosClient.delete(`/addresses/${addrId}`);
+      toast.success('Đã xóa địa chỉ!');
+      fetchAddresses();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Lỗi khi xóa địa chỉ');
+    }
+  };
 
   const handleRequestPasswordOtp = async () => {
-    const emailToUse = user?.EMAIL || formData.EMAIL;
+    const emailToUse = user?.EMAIL || user?.email || formData.EMAIL;
     if (!emailToUse) {
       toast.warning("Vui lòng cập nhật địa chỉ Email trước khi thực hiện đổi mật khẩu.");
       return;
@@ -65,7 +269,7 @@ const navigate = useNavigate();
         return;
     }
     setIsChangingPassword(true);
-    const emailToUse = user?.EMAIL || formData.EMAIL;
+    const emailToUse = user?.EMAIL || user?.email || formData.EMAIL;
     try {
         const { resetPassword } = await import('../services/authService');
         await resetPassword(emailToUse, passwordOtp, newPassword);
@@ -84,28 +288,19 @@ const navigate = useNavigate();
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const userData = await getCurrentUser();
+        const userData = await getCurrentUser(true);
         setUser(userData);
 
-        if (Number(userData.MAROLE) === 3 && userData.khachhang) {
-          setProfileData(userData.khachhang);
+        const profile = userData.nguoidung || userData.khachhang || userData.nhanvien;
+        if (profile) {
+          setProfileData(profile);
           setFormData({
-            HOTEN: userData.khachhang.HOTEN || '',
-            SDT: userData.khachhang.SDT || '',
-            DIACHI: userData.khachhang.DIACHI || '',
-            GioiTinh: userData.khachhang.GioiTinh || '',
-            NGAYSINH: userData.khachhang.NGAYSINH || '',
-            EMAIL: userData.EMAIL || ''
-          });
-        } else if (userData.nhanvien) {
-          setProfileData(userData.nhanvien);
-          setFormData({
-            HOTEN: userData.nhanvien.HOTEN || '',
-            SDT: userData.nhanvien.SDT || '',
-            DIACHI: userData.nhanvien.DIACHI || '',
-            GioiTinh: userData.nhanvien.GioiTinh || '',
-            NGAYSINH: userData.nhanvien.NGAYSINH || '',
-            EMAIL: userData.EMAIL || ''
+            HOTEN: profile.HOTEN || profile.hoTen || profile.ho_ten || '',
+            SDT: profile.SDT || profile.soDienThoai || profile.so_dien_thoai || '',
+            DIACHI: profile.DIACHI || profile.dia_chi || '',
+            GioiTinh: profile.GioiTinh !== undefined ? profile.GioiTinh : (profile.gioi_tinh === 1 ? 'Nam' : profile.gioi_tinh === 0 ? 'Nữ' : ''),
+            NGAYSINH: profile.NGAYSINH || profile.ngay_sinh || '',
+            EMAIL: userData.email || userData.EMAIL || ''
           });
         }
       } catch (e) {
@@ -115,9 +310,13 @@ const navigate = useNavigate();
       }
     };
     fetchProfile();
+    fetchAddresses();
+    fetchVoucherWallet();
+    axiosClient.get('/ghn/provinces').then(res => {
+      if (res.data?.data) setAddrProvinces(res.data.data);
+    }).catch(() => {});
   }, [navigate]);
 
-  // Fetch orders for customer
   useEffect(() => {
     if (isCustomer) {
       const fetchOrders = async () => {
@@ -162,7 +361,7 @@ const navigate = useNavigate();
       const res = await axiosClient.post('/profile/chu-ky', { chu_ky: signatureData });
       if (res.data?.status) {
         toast.success('Đã lưu chữ ký số cá nhân thành công!');
-        const userData = await getCurrentUser();
+        const userData = await getCurrentUser(true);
         setUser(userData);
         if (userData.nhanvien) setProfileData(userData.nhanvien);
       }
@@ -185,17 +384,15 @@ const navigate = useNavigate();
       payload.append('EMAIL', formData.EMAIL || '');
 
       if (avatarFile) payload.append('AVATAR', avatarFile);
-
       if (cccdTruocFile) payload.append('CCCD_TRUOC', cccdTruocFile);
       if (cccdSauFile) payload.append('CCCD_SAU', cccdSauFile);
 
       await updateProfile(payload);
       toast.success('Cập nhật thông tin thành công!');
       setIsEditing(false);
-      // Reload profile
-      const userData = await getCurrentUser();
+      const userData = await getCurrentUser(true);
       setUser(userData);
-      setProfileData(Number(userData.MAROLE) === 3 ? userData.khachhang : userData.nhanvien);
+      setProfileData(userData.nguoidung || userData.khachhang || userData.nhanvien);
       setCccdTruocFile(null);
       setCccdSauFile(null);
       setCccdTruocPreview(null);
@@ -211,16 +408,17 @@ const navigate = useNavigate();
   };
 
   const getRoleName = (role) => {
-    const roles = { 0: 'Quản lý tổng', 1: 'Quản lý chi nhánh', 2: 'Nhân viên bán hàng', 3: 'Khách hàng', 4: 'CSKH' };
-    return roles[role] || 'Không xác định';
+    const roles = { 0: 'Quản lý tổng', 1: 'Quản lý chi nhánh', 2: 'Nhân viên bán hàng', 3: 'Khách hàng', 4: 'CSKH', 5: 'Giám đốc', 6: 'Kế toán' };
+    return roles[role] || 'Khách hàng';
   };
 
   const getMembershipRank = (points) => {
-    if (points >= 1000) return { name: 'Thách đấu', color: '#e74c3c', icon: '🏆' };
-    if (points >= 500) return { name: 'Kim cương', color: '#3498db', icon: '💎' };
-    if (points >= 200) return { name: 'Vàng', color: '#f39c12', icon: '🥇' };
-    if (points >= 50) return { name: 'Bạc', color: '#95a5a6', icon: '🥈' };
-    return { name: 'Đồng', color: '#cd7f32', icon: '🥉' };
+    const pts = Number(points || 0);
+    if (pts >= 1000) return { name: 'Thách đấu', color: '#e74c3c', icon: '🏆', nextName: null, nextPoints: 1000 };
+    if (pts >= 500) return { name: 'Kim cương', color: '#2980b9', icon: '💎', nextName: 'Thách đấu', nextPoints: 1000 };
+    if (pts >= 200) return { name: 'Vàng', color: '#d97706', icon: '🥇', nextName: 'Kim cương', nextPoints: 500 };
+    if (pts >= 50) return { name: 'Bạc', color: '#64748b', icon: '🥈', nextName: 'Vàng', nextPoints: 200 };
+    return { name: 'Đồng', color: '#b45309', icon: '🥉', nextName: 'Bạc', nextPoints: 50 };
   };
 
   const getInitials = (name) => {
@@ -251,7 +449,26 @@ const navigate = useNavigate();
     );
   }
 
-  const rank = isCustomer ? getMembershipRank(profileData.DIEMTICHLUY || 0) : null;
+  // Tính toán điểm tích lũy thực tế (lấy từ profileData.DIEMTICHLUY hoặc tính từ các đơn hoàn thành)
+  const completedOrdersTotal = orders
+    .filter(o => {
+      const st = String(o.trangThai || o.TRANGTHAI || '').toLowerCase();
+      return Number(o.trangThaiDonHang) === 4 || Number(o.trangThaiDonHang) === 5 || st.includes('hoàn thành');
+    })
+    .reduce((sum, o) => sum + Number(o.tongTien || o.TONGTIEN || o.total || 0), 0);
+
+  const loyaltyPoints = Math.max(
+    Number(profileData.DIEMTICHLUY ?? profileData.diemTichLuy ?? 0),
+    Math.floor(completedOrdersTotal / 10000)
+  );
+  const totalSpent = Math.max(
+    Number(profileData.TONGCHITIEU ?? profileData.tongChiTieu ?? 0),
+    completedOrdersTotal
+  );
+  const rank = isCustomer ? getMembershipRank(loyaltyPoints) : null;
+  const progressPercent = rank?.nextName
+    ? Math.min(100, Math.round((loyaltyPoints / rank.nextPoints) * 100))
+    : 100;
 
   return (
     <div style={styles.pageContainer}>
@@ -267,7 +484,7 @@ const navigate = useNavigate();
                   {avatarPreview || user?.AVATAR ? (
                     <img src={avatarPreview || ((user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`)} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
-                    getInitials(profileData.HOTEN)
+                    getInitials(profileData.HOTEN || profileData.hoTen)
                   )}
                   <div style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: 'var(--primary-color)', color: '#fff', padding: '6px', borderRadius: '50%', fontSize: '14px' }}>
                     <i className="fa-solid fa-camera"></i>
@@ -279,29 +496,29 @@ const navigate = useNavigate();
                   {user?.AVATAR ? (
                     <img src={(user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
-                    getInitials(profileData.HOTEN)
+                    getInitials(profileData.HOTEN || profileData.hoTen)
                   )}
                 </div>
               )}
               {isCustomer && rank && (
                 <span style={{ ...styles.rankBadge, backgroundColor: rank.color }}>
-                  {rank.icon} {rank.name}
+                  {rank.icon} Hạng {rank.name}
                 </span>
               )}
             </div>
-            <h1 style={styles.heroName}>{profileData.HOTEN || 'Chưa cập nhật'}</h1>
+            <h1 style={styles.heroName}>{profileData.HOTEN || profileData.hoTen || 'Chưa cập nhật'}</h1>
             <p style={styles.heroRole}>
               <i className="fa-solid fa-shield-halved" style={{ marginRight: '6px' }}></i>
-              {getRoleName(Number(user.MAROLE))}
+              {getRoleName(Number(user.MAROLE ?? 3))}
             </p>
             <p style={styles.heroId}>
-              {isEmployee ? `Mã NV: ${user.USERNAME}` : `Mã KH: ${profileData.MAKH}`}
+              {isEmployee ? `Mã NV: ${user.USERNAME || user.username}` : `Mã KH: ${profileData.MAKH || ('KH_' + profileData.id)}`}
             </p>
           </div>
         </div>
 
         {/* ===== CONTENT GRID ===== */}
-        <div style={styles.contentGrid}>
+        <div style={styles.contentGrid} className="profile-content-grid">
 
           {/* LEFT COLUMN - Info Card */}
           <div style={styles.infoCard}>
@@ -371,37 +588,380 @@ const navigate = useNavigate();
               </div>
             )}
 
-            {/* Customer-specific: Điểm + Hạng */}
-            {isCustomer && (
-              <div style={{ marginTop: '24px', padding: '16px', background: 'linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%)', borderRadius: '12px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '12px', color: '#856404' }}>
-                  <i className="fa-solid fa-crown" style={{ marginRight: '8px', color: '#f39c12' }}></i>
-                  Thành viên thân thiết
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {/* Customer-specific: Điểm tích lũy + Hạng thành viên */}
+            {isCustomer && rank && (
+              <div style={{ marginTop: '24px', padding: '18px', background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', borderRadius: '14px', border: '1px solid #fde68a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: '700', margin: 0, color: '#92400e' }}>
+                    <i className="fa-solid fa-crown" style={{ marginRight: '8px', color: '#d97706' }}></i>
+                    Điểm Tích Lũy & Hạng Thành Viên
+                  </h3>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#b45309', backgroundColor: '#fff', padding: '3px 10px', borderRadius: '12px', border: '1px solid #fcd34d' }}>
+                    10.000đ = 1 điểm
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                   <div style={styles.statItem}>
                     <span style={styles.statLabel}>Điểm tích lũy</span>
-                    <span style={{ ...styles.statValue, color: '#f39c12', fontSize: '20px' }}>
-                      {(profileData.DIEMTICHLUY || 0).toLocaleString('vi-VN')} điểm
+                    <span style={{ ...styles.statValue, color: '#d97706', fontSize: '19px', fontWeight: '800' }}>
+                      {loyaltyPoints.toLocaleString('vi-VN')} điểm
                     </span>
                   </div>
                   <div style={styles.statItem}>
                     <span style={styles.statLabel}>Hạng thành viên</span>
-                    <span style={{ ...styles.statValue, color: rank.color, fontSize: '20px' }}>
+                    <span style={{ ...styles.statValue, color: rank.color, fontSize: '18px', fontWeight: '800' }}>
                       {rank.icon} {rank.name}
                     </span>
                   </div>
+                  <div style={styles.statItem}>
+                    <span style={styles.statLabel}>Tổng chi tiêu tích lũy</span>
+                    <span style={{ ...styles.statValue, color: '#15803d', fontSize: '16px', fontWeight: '700' }}>
+                      {totalSpent.toLocaleString('vi-VN')}₫
+                    </span>
+                  </div>
                 </div>
-                <div style={{ marginTop: '12px', fontSize: '13px', color: '#856404', lineHeight: '1.6' }}>
+
+                {/* Thanh tiến trình lên hạng tiếp theo */}
+                <div style={{ marginTop: '14px', backgroundColor: '#fff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #fde68a' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#78350f', marginBottom: '6px', fontWeight: '600' }}>
+                    {rank.nextName ? (
+                      <>
+                        <span>Tiến trình lên hạng <b>{rank.nextName}</b></span>
+                        <span>Còn thiếu <b>{Math.max(0, rank.nextPoints - loyaltyPoints)} điểm</b> ({loyaltyPoints}/{rank.nextPoints})</span>
+                      </>
+                    ) : (
+                      <span>🎉 Bạn đã đạt hạng thành viên cao nhất (Thách đấu)!</span>
+                    )}
+                  </div>
+                  <div style={{ width: '100%', height: '8px', backgroundColor: '#fef3c7', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div style={{ width: `${progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, #f59e0b, #d97706)', borderRadius: '999px', transition: 'width 0.4s ease' }}></div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '10px', fontSize: '12px', color: '#856404', lineHeight: '1.6' }}>
                   <p style={{ margin: 0 }}>🥉 Đồng: 0 - 49 điểm &nbsp;|&nbsp; 🥈 Bạc: 50 - 199 điểm &nbsp;|&nbsp; 🥇 Vàng: 200 - 499 điểm</p>
                   <p style={{ margin: 0 }}>💎 Kim cương: 500 - 999 điểm &nbsp;|&nbsp; 🏆 Thách đấu: 1000+ điểm</p>
                 </div>
               </div>
             )}
+
+            {/* SỔ ĐỊA CHỈ NHẬN HÀNG (CUSTOMER & ALL USERS) */}
+            <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '2px solid #f1f5f9' }}>
+              <div style={styles.cardHeader}>
+                <h2 style={styles.cardTitle}>
+                  <i className="fa-solid fa-location-dot" style={{ marginRight: '8px', color: 'var(--primary-color)' }}></i>
+                  Sổ địa chỉ nhận hàng ({addresses.length})
+                </h2>
+                <button
+                  type="button"
+                  style={{ ...styles.saveBtn, backgroundColor: 'var(--primary-color)', fontSize: '12px', padding: '6px 12px' }}
+                  onClick={handleOpenAddAddress}
+                >
+                  <i className="fa-solid fa-plus" style={{ marginRight: '6px' }}></i> Thêm địa chỉ mới
+                </button>
+              </div>
+
+              {isLoadingAddresses ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                  <i className="fa fa-spinner fa-spin"></i> Đang tải sổ địa chỉ...
+                </div>
+              ) : addresses.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#888', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                  <i className="fa-solid fa-map-location-dot" style={{ fontSize: '30px', color: '#cbd5e1', marginBottom: '8px', display: 'block' }}></i>
+                  Bạn chưa có địa chỉ nào được lưu. Bấm "Thêm địa chỉ mới" để không phải nhập lại mỗi lần đặt hàng!
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {addresses.map((addr) => {
+                    const isDef = Number(addr.isDefault ?? addr.is_default) === 1;
+                    return (
+                      <div
+                        key={addr.id}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: '8px',
+                          border: isDef ? '2px solid var(--primary-color)' : '1px solid #e2e8f0',
+                          backgroundColor: isDef ? '#fffaf5' : '#ffffff',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '10px'
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                            <span style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b' }}>
+                              {addr.hoTenNguoiNhan || 'Người nhận'}
+                            </span>
+                            {addr.soDienThoai && (
+                              <span style={{ fontSize: '12px', color: '#64748b' }}>
+                                • {addr.soDienThoai}
+                              </span>
+                            )}
+                            {isDef && (
+                              <span style={{ backgroundColor: '#dcfce7', color: '#15803d', fontSize: '11px', fontWeight: '700', padding: '1px 6px', borderRadius: '4px' }}>
+                                Mặc định
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.4' }}>
+                            {addr.diaChiChiTiet || addr.diaChi || addr.address}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {!isDef && (
+                            <button
+                              type="button"
+                              title="Đặt làm mặc định"
+                              style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}
+                              onClick={() => handleSetDefaultAddress(addr.id)}
+                            >
+                              Đặt mặc định
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            title="Chỉnh sửa"
+                            style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
+                            onClick={() => handleOpenEditAddress(addr)}
+                          >
+                            <i className="fa-solid fa-pen"></i>
+                          </button>
+                          <button
+                            type="button"
+                            title="Xóa địa chỉ"
+                            style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
+                            onClick={() => handleDeleteAddress(addr.id)}
+                          >
+                            <i className="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* RIGHT COLUMN */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+            {/* VÍ VOUCHER CỦA KHÁCH HÀNG & KHO SĂN VOUCHER */}
+            {isCustomer && (
+              <div style={styles.infoCard}>
+                <div style={styles.cardHeader}>
+                  <h2 style={styles.cardTitle}>
+                    <i className="fa-solid fa-ticket" style={{ marginRight: '8px', color: '#d97706' }}></i>
+                    Ví Voucher Của Tôi ({savedVouchers.length})
+                  </h2>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setVoucherTab('wallet')}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: voucherTab === 'wallet' ? 'var(--primary-color)' : '#f1f5f9',
+                        color: voucherTab === 'wallet' ? '#fff' : '#475569'
+                      }}
+                    >
+                      Ví đã lưu ({savedVouchers.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVoucherTab('discover')}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: voucherTab === 'discover' ? 'var(--primary-color)' : '#f1f5f9',
+                        color: voucherTab === 'discover' ? '#fff' : '#475569'
+                      }}
+                    >
+                      Kho săn Voucher ({availableVouchers.length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Ô nhập mã Voucher để lưu nhanh vào ví */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                  <input
+                    type="text"
+                    placeholder="Nhập mã Voucher để lưu vào ví (VD: GIAM20K)..."
+                    value={collectCodeInput}
+                    onChange={e => setCollectCodeInput(e.target.value.toUpperCase())}
+                    style={{ ...styles.infoInput, flex: 1, textTransform: 'uppercase', fontWeight: '600' }}
+                  />
+                  <button
+                    type="button"
+                    disabled={isCollectingVoucher}
+                    onClick={() => handleCollectVoucher(collectCodeInput)}
+                    style={{ ...styles.saveBtn, whiteSpace: 'nowrap', fontWeight: '700', padding: '8px 16px' }}
+                  >
+                    {isCollectingVoucher ? <i className="fa fa-spinner fa-spin"></i> : '+ Lưu vào ví'}
+                  </button>
+                </div>
+
+                {isLoadingVouchers ? (
+                  <div style={{ textAlign: 'center', padding: '24px', color: '#999' }}>
+                    <i className="fa fa-spinner fa-spin"></i> Đang tải Ví Voucher...
+                  </div>
+                ) : voucherTab === 'wallet' ? (
+                  savedVouchers.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '24px 16px', backgroundColor: '#fffbeb', borderRadius: '10px', border: '1px dashed #fcd34d', color: '#92400e' }}>
+                      <i className="fa-solid fa-ticket" style={{ fontSize: '28px', color: '#f59e0b', display: 'block', marginBottom: '8px' }}></i>
+                      <div style={{ fontWeight: '600', fontSize: '13px' }}>Ví Voucher của bạn đang trống</div>
+                      <div style={{ fontSize: '12px', marginTop: '4px', marginBottom: '10px' }}>
+                        Hãy chuyển sang tab <b>"Kho săn Voucher"</b> để lưu các mã giảm giá hấp dẫn về ví nhé!
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setVoucherTab('discover')}
+                        style={{ ...styles.saveBtn, fontSize: '12px', padding: '6px 14px' }}
+                      >
+                        Khám phá Kho Voucher ngay →
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '340px', overflowY: 'auto' }}>
+                      {savedVouchers.map(v => (
+                        <div
+                          key={v.MA_VOUCHER}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px 14px',
+                            borderRadius: '10px',
+                            border: '1px solid #fde68a',
+                            background: 'linear-gradient(90deg, #fffbeb 0%, #ffffff 100%)'
+                          }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                              <span style={{ backgroundColor: '#d97706', color: '#fff', fontWeight: '800', fontSize: '12px', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.5px' }}>
+                                {v.MA_VOUCHER}
+                              </span>
+                              <span style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b' }}>
+                                {v.TEN_VOUCHER}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>
+                              {v.LOAI_GIAM === 'PHAN_TRAM'
+                                ? `Giảm ${v.GIA_TRI}%${v.GIAM_TOI_DA ? ` (tối đa ${Number(v.GIAM_TOI_DA).toLocaleString('vi-VN')}đ)` : ''}`
+                                : `Giảm trực tiếp ${Number(v.GIA_TRI).toLocaleString('vi-VN')}đ`}
+                              {' • '}Đơn tối thiểu {Number(v.DON_TOI_THIEU || 0).toLocaleString('vi-VN')}đ
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                              HSD: {formatDate(v.NGAY_KET_THUC)}
+                            </div>
+                          </div>
+
+                          <Link
+                            to={`/gio-hang?voucher=${encodeURIComponent(v.MA_VOUCHER)}`}
+                            style={{
+                              backgroundColor: '#16a34a',
+                              color: '#fff',
+                              textDecoration: 'none',
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Dùng ngay
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '340px', overflowY: 'auto' }}>
+                    {availableVouchers.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
+                        Hiện chưa có chương trình Voucher mới.
+                      </div>
+                    ) : (
+                      availableVouchers.map(v => {
+                        const isSaved = Boolean(v.is_saved) || savedVouchers.some(sv => sv.MA_VOUCHER === v.MA_VOUCHER);
+                        return (
+                          <div
+                            key={v.MA_VOUCHER}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '12px 14px',
+                              borderRadius: '10px',
+                              border: '1px solid #e2e8f0',
+                              backgroundColor: '#f8fafc'
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                                <span style={{ backgroundColor: '#0284c7', color: '#fff', fontWeight: '800', fontSize: '12px', padding: '2px 8px', borderRadius: '4px' }}>
+                                  {v.MA_VOUCHER}
+                                </span>
+                                <span style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b' }}>
+                                  {v.TEN_VOUCHER}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#475569' }}>
+                                {v.LOAI_GIAM === 'PHAN_TRAM'
+                                  ? `Giảm ${v.GIA_TRI}%${v.GIAM_TOI_DA ? ` (tối đa ${Number(v.GIAM_TOI_DA).toLocaleString('vi-VN')}đ)` : ''}`
+                                  : `Giảm trực tiếp ${Number(v.GIA_TRI).toLocaleString('vi-VN')}đ`}
+                                {' • '}Đơn từ {Number(v.DON_TOI_THIEU || 0).toLocaleString('vi-VN')}đ
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                                Còn lại: <b>{v.con_lai ?? (v.SO_LUONG_GIOI_HAN - v.SO_LUONG_DA_DUNG)}</b> lượt • HSD: {formatDate(v.NGAY_KET_THUC)}
+                              </div>
+                            </div>
+
+                            {isSaved ? (
+                              <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                                ✓ Đã có trong ví
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={isCollectingVoucher}
+                                onClick={() => handleCollectVoucher(v.MA_VOUCHER)}
+                                style={{
+                                  backgroundColor: '#d97706',
+                                  color: '#fff',
+                                  border: 'none',
+                                  padding: '7px 14px',
+                                  borderRadius: '8px',
+                                  fontSize: '12px',
+                                  fontWeight: '700',
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                + Lưu Voucher
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* CCCD Upload Section (Employee only) */}
             {isEmployee && (
@@ -413,7 +973,6 @@ const navigate = useNavigate();
                   </h2>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  {/* CCCD Mặt trước */}
                   <CccdUploadCard
                     label="Mặt trước"
                     currentImage={profileData.CCCD_TRUOC}
@@ -421,7 +980,6 @@ const navigate = useNavigate();
                     isEditing={isEditing}
                     onFileChange={(e) => handleFileChange(e, 'CCCD_TRUOC')}
                   />
-                  {/* CCCD Mặt sau */}
                   <CccdUploadCard
                     label="Mặt sau"
                     currentImage={profileData.CCCD_SAU}
@@ -508,7 +1066,7 @@ const navigate = useNavigate();
                     <p>Bạn chưa có đơn hàng nào</p>
                   </div>
                 ) : (
-                  <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
                     {orders.slice(0, 10).map((order, idx) => {
                       const maHD = order.MAHD || order.maHD || order.mahd;
                       const ngayLap = order.NGAYLAP || order.ngayLap || order.created_at;
@@ -518,7 +1076,7 @@ const navigate = useNavigate();
                         <div key={idx} style={styles.orderItem}>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: '600', fontSize: '14px', color: '#2c3e50' }}>{maHD}</div>
-                            <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{formatDate(ngayLap)}</div>
+                            <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{ngayLap}</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontWeight: '600', fontSize: '14px', color: 'var(--primary-color)' }}>
@@ -559,7 +1117,7 @@ const navigate = useNavigate();
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {!passwordOtpSent ? (
                         <>
-                            <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.5, margin: 0 }}>Hệ thống sẽ gửi một mã xác nhận (OTP) đến email <b>{user?.EMAIL || formData.EMAIL}</b> của bạn để thực hiện đổi mật khẩu.</p>
+                            <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.5, margin: 0 }}>Hệ thống sẽ gửi một mã xác nhận (OTP) đến email <b>{user?.EMAIL || user?.email || formData.EMAIL}</b> của bạn để thực hiện đổi mật khẩu.</p>
                             <button style={{...styles.saveBtn, width: '100%', backgroundColor: '#e74c3c'}} onClick={handleRequestPasswordOtp} disabled={isSendingPasswordOtp}>
                                 {isSendingPasswordOtp ? <i className="fa fa-spinner fa-spin"></i> : 'Gửi mã OTP'}
                             </button>
@@ -576,7 +1134,7 @@ const navigate = useNavigate();
                             </div>
                             <div>
                                 <label style={{...styles.statLabel, marginBottom: '4px'}}>Mật khẩu mới</label>
-                                <input type="password" style={styles.infoInput} placeholder="Tối thiểu 12 ký tự, chữ hoa, số, ký tự đb" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                                <input type="password" style={styles.infoInput} placeholder="Tối thiểu 10 ký tự, chữ hoa, số, ký tự đb" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                             </div>
                             <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                                 <button style={{...styles.saveBtn, flex: 1, backgroundColor: '#e74c3c'}} onClick={handleChangePassword} disabled={isChangingPassword}>
@@ -595,6 +1153,123 @@ const navigate = useNavigate();
           </div>
         </div>
       </div>
+
+      {/* MODAL THÊM / SỬA ĐỊA CHỈ (2 CẤP: TỈNH/THÀNH -> PHƯỜNG/XÃ, ĐÃ BỎ QUẬN/HUYỆN) */}
+      {isAddressModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }} onClick={() => setIsAddressModalOpen(false)}>
+          <div style={{ backgroundColor: '#fff', borderRadius: '14px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+                <i className="fa-solid fa-location-dot" style={{ color: 'var(--primary-color)', marginRight: '8px' }}></i>
+                {editingAddressId ? 'Chỉnh sửa địa chỉ nhận hàng' : 'Thêm địa chỉ nhận hàng mới'}
+              </h3>
+              <button type="button" style={{ border: 'none', background: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }} onClick={() => setIsAddressModalOpen(false)}>×</button>
+            </div>
+
+            <form onSubmit={handleSaveAddress} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>Họ tên người nhận *</label>
+                  <input
+                    type="text"
+                    required
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                    value={addressForm.hoTenNguoiNhan}
+                    onChange={e => setAddressForm({ ...addressForm, hoTenNguoiNhan: e.target.value })}
+                    placeholder="VD: Nguyễn Văn A"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>Số điện thoại *</label>
+                  <input
+                    type="tel"
+                    required
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                    value={addressForm.soDienThoai}
+                    onChange={e => setAddressForm({ ...addressForm, soDienThoai: e.target.value })}
+                    placeholder="VD: 0901234567"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>
+                  Khu vực giao hàng (Tỉnh/Thành & Phường/Xã mới)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <select
+                      style={{ width: '100%', padding: '9px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      value={addressForm.maTinh}
+                      onChange={e => handleProvinceChange(e.target.value)}
+                    >
+                      <option value="">-- Chọn Tỉnh/Thành --</option>
+                      {addrProvinces.map(p => <option key={p.ProvinceID} value={p.ProvinceID}>{p.ProvinceName}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <select
+                      style={{ width: '100%', padding: '9px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      value={addressForm.maXa}
+                      onChange={e => handleWardChange(e.target.value)}
+                      disabled={!addressForm.maTinh || isLoadingAddrWards}
+                    >
+                      <option value="">
+                        {isLoadingAddrWards ? 'Đang tải Phường/Xã...' : '-- Chọn Phường/Xã --'}
+                      </option>
+                      {addrWards.map(w => (
+                        <option key={w.WardCode} value={w.WardCode}>
+                          {w.WardName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>Địa chỉ chi tiết (Số nhà, tên đường, tòa nhà...) *</label>
+                <input
+                  type="text"
+                  required
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  value={addressForm.diaChiChiTiet}
+                  onChange={e => setAddressForm({ ...addressForm, diaChiChiTiet: e.target.value })}
+                  placeholder="VD: 140 Lê Trọng Tấn"
+                />
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#334155' }}>
+                <input
+                  type="checkbox"
+                  checked={addressForm.isDefault}
+                  onChange={e => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--primary-color)' }}
+                />
+                <span style={{ fontWeight: '600' }}>Đặt làm địa chỉ nhận hàng mặc định</span>
+              </label>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}
+                  onClick={() => setIsAddressModalOpen(false)}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingAddress}
+                  style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--primary-color)', color: '#fff', fontWeight: '700', cursor: isSavingAddress ? 'not-allowed' : 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {isSavingAddress ? <i className="fa fa-spinner fa-spin"></i> : <i className="fa-solid fa-floppy-disk"></i>}
+                  Lưu địa chỉ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -663,6 +1338,7 @@ const styles = {
     minHeight: '80vh',
     backgroundColor: '#f0f2f5',
     paddingBottom: '40px',
+    fontFamily: "'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
   pageWrapper: {
     maxWidth: '1100px',
@@ -707,7 +1383,7 @@ const styles = {
 
   // Content Grid
   contentGrid: {
-    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '-20px', position: 'relative', zIndex: 2,
+    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '-20px', position: 'relative', zIndex: 1,
   },
 
   // Cards
@@ -786,7 +1462,6 @@ const styles = {
   },
 };
 
-// Responsive: On small screens, switch to single column
 const mediaQuery = window.matchMedia('(max-width: 768px)');
 if (mediaQuery.matches) {
   styles.contentGrid.gridTemplateColumns = '1fr';

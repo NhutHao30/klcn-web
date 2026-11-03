@@ -28,6 +28,14 @@ const [username, setUsername] = useState("");
     const navigate = useNavigate();
 
     useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("error") === "google_login_failed") {
+            setError("Đăng nhập bằng Google thất bại! Vui lòng thử lại.");
+        } else if (params.get("error") === "google_cancelled") {
+            setError("Bạn đã hủy thao tác đăng nhập bằng Google.");
+        } else if (params.get("error") === "google_no_email") {
+            setError("Tài khoản Google không trả về email hợp lệ.");
+        }
         const fetchUser = async () => {
             try {
                 const res = await getCurrentUser();
@@ -57,13 +65,14 @@ const [username, setUsername] = useState("");
 
             toast.success("Đăng nhập thành công!");
             
-            // Lấy quyền từ res.user.MAROLE của Laravel
-            const role = res.user ? Number(res.user.MAROLE) : 2;
+            // Kiểm tra vai trò: Nếu không phải Khách hàng (vaiTroId 6 / MAROLE 3), chuyển hướng sang /admin
+            const vaiTroId = res.user ? (res.user.vaiTroId !== undefined ? Number(res.user.vaiTroId) : null) : null;
+            const marole = res.user ? Number(res.user.MAROLE) : null;
 
-            if (role === 0 || role === 1 || role === 2 || role === 4) {
-                window.location.href = "/admin"; // Chuyển đến trang admin
+            if (vaiTroId === 6 || marole === 3) {
+                window.location.href = "/"; // Trang chủ dành cho Khách hàng
             } else {
-                window.location.href = "/"; // Reload về trang chủ
+                window.location.href = "/admin"; // Giao diện Admin cho tất cả nhân sự (Quản trị, Quản lý, Kế toán, Kho, CSKH, Bán hàng)
             }
         } catch (e) {
             setError(e.response?.data?.error || "Sai tài khoản hoặc mật khẩu!");
@@ -270,7 +279,7 @@ const [username, setUsername] = useState("");
                                                 Facebook
                                             </div>
                                         </a>
-                                        <a href={`${BASE_URL}/api/auth/google`} className="Register__Social-link gooleBG">
+                                        <a href={`${BASE_URL}/api/auth/google?redirect_to=${encodeURIComponent(window.location.origin)}`} className="Register__Social-link gooleBG">
                                             <div className="Register__Social-icon">
                                                 <i className="Social-icon__google fa-brands fa-google-plus-g"></i>
                                             </div>

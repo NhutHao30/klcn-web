@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
 import { getInvoices, getInvoiceDetails, updateInvoiceStatus } from '../../services/invoiceService';
 import { useToast } from '../../components/Toast/Toast';
+import { formatImageUrl } from '../../utils/imageUtils';
 
 const AdminInvoicePage = () => {
     const toast = useToast();
@@ -15,6 +16,7 @@ const [invoices, setInvoices] = useState([]);
   const [invoiceDetails, setInvoiceDetails] = useState([]);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
   const [editingStatus, setEditingStatus] = useState('');
+  const [previewReceiptModalUrl, setPreviewReceiptModalUrl] = useState(null);
 
   const printRef = useRef(null);
 
@@ -83,12 +85,20 @@ const [invoices, setInvoices] = useState([]);
     windowPrint.document.write('<style>');
     windowPrint.document.write(`
       body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-      .invoice-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+      .invoice-header { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 20px; border-bottom: 2px solid #5c3d2e; padding-bottom: 15px; }
+      .invoice-header img { width: 70px; height: 70px; object-fit: contain; border-radius: 6px; }
+      .invoice-header-title { text-align: left; }
+      .invoice-header-title h2 { margin: 0; color: #5c3d2e; font-size: 22px; font-weight: bold; }
+      .invoice-header-title p { margin: 4px 0 0; font-size: 13px; color: #666; }
       .invoice-info { margin-bottom: 20px; display: flex; justify-content: space-between; }
       table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
       th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
       th { background-color: #f2f2f2; }
       .total { text-align: right; font-size: 1.2rem; font-weight: bold; }
+      @media print {
+        body { padding: 0; }
+        img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      }
     `);
     windowPrint.document.write('</style></head><body>');
     windowPrint.document.write(printContent.innerHTML);
@@ -112,7 +122,7 @@ const [invoices, setInvoices] = useState([]);
   return (
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
-        <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản lý hóa đơn</h1>
+        <h1 className="admin-title" style={{ marginBottom: 0 }}>Hóa đơn bán hàng</h1>
       </div>
 
       <div className="admin-card">
@@ -123,7 +133,7 @@ const [invoices, setInvoices] = useState([]);
             <input 
               type="text" 
               className="admin-input" 
-              placeholder="Tìm kiếm mã HĐ, mã KH..." 
+              placeholder="Tìm mã HĐ, tên KH, số ĐT..." 
               style={{ width: '250px', marginBottom: 0 }} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -149,7 +159,8 @@ const [invoices, setInvoices] = useState([]);
               <tr>
                 <th>Mã HĐ</th>
                 <th>Cửa hàng</th>
-                <th>Mã Khách Hàng</th>
+                <th>Khách Hàng</th>
+                <th>Nhân Viên Lập</th>
                 <th>Ngày lập</th>
                 <th>Tổng tiền</th>
                 <th>Vận chuyển</th>
@@ -166,7 +177,15 @@ const [invoices, setInvoices] = useState([]);
                 <tr key={invoice.maHD}>
                   <td><strong>{invoice.maHD}</strong></td>
                   <td>{invoice.tenCuaHang || 'Không rõ'}</td>
-                  <td>{invoice.maKH || 'Khách lẻ'}</td>
+                  <td>
+                    <div><strong>{invoice.tenKH || invoice.hoTenKH || invoice.HOTEN_KH || invoice.maKH || 'Khách lẻ'}</strong></div>
+                    {invoice.sdtKH && <div style={{ fontSize: '11px', color: '#64748b' }}>📞 {invoice.sdtKH}</div>}
+                  </td>
+                  <td>
+                    <span style={{ fontWeight: '500', color: '#2563eb' }}>
+                      {invoice.nhanVienLap || invoice.tenNhanVien || 'Quản trị viên'}
+                    </span>
+                  </td>
                   <td>{invoice.ngayLap}</td>
                   <td style={{ fontWeight: 600, color: 'var(--admin-primary)' }}>
                     {Number(invoice.tongTien).toLocaleString('vi-VN')} ₫
@@ -198,17 +217,27 @@ const [invoices, setInvoices] = useState([]);
             
             {/* Nội dung để In */}
             <div ref={printRef} style={{ marginBottom: '1.5rem' }}>
-              <div className="invoice-header">
-                <h2>Dola Bakery - Hóa Đơn Bán Hàng</h2>
-                <p>Mã hóa đơn: <strong>{viewingInvoice.maHD}</strong> | Ngày lập: {viewingInvoice.ngayLap}</p>
+              <div className="invoice-header" style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+                <img
+                  src="/assets/IMG/Logo.jpg"
+                  alt="Givral Bakery"
+                  style={{ width: '60px', height: '60px', maxWidth: '60px', maxHeight: '60px', objectFit: 'contain', borderRadius: '8px' }}
+                />
+                <div className="invoice-header-title">
+                  <h2>Givral Bakery - Hóa Đơn Bán Hàng</h2>
+                  <p>Mã hóa đơn: <strong>{viewingInvoice.maHD}</strong> | Ngày lập: {viewingInvoice.ngayLap}</p>
+                </div>
               </div>
               
               <div className="invoice-info">
                 <div>
-                  <p><strong>Khách hàng:</strong> {viewingInvoice.maKH || 'Khách vãng lai'}</p>
+                  <p><strong>Khách hàng:</strong> <strong>{viewingInvoice.tenKH || viewingInvoice.hoTenKH || viewingInvoice.HOTEN_KH || 'Khách vãng lai'}</strong></p>
+                  {viewingInvoice.sdtKH && <p><strong>Số điện thoại:</strong> {viewingInvoice.sdtKH}</p>}
+                  {viewingInvoice.diaChiGiao && <p><strong>Địa chỉ giao:</strong> {viewingInvoice.diaChiGiao}</p>}
                   <p><strong>Ghi chú:</strong> {viewingInvoice.ghiChu || 'Không có'}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
+                  <p><strong>Nhân viên lập đơn:</strong> <span style={{ color: '#2563eb', fontWeight: 'bold' }}>{viewingInvoice.nhanVienLap || viewingInvoice.tenNhanVien || 'Quản trị viên'}</span></p>
                   <p><strong>Đơn vị vận chuyển:</strong> {viewingInvoice.donViVanChuyen || 'Mua tại cửa hàng'}</p>
                   <p><strong>Mã vận đơn:</strong> {viewingInvoice.maVanDon || 'Không có'}</p>
                 </div>
@@ -249,8 +278,34 @@ const [invoices, setInvoices] = useState([]);
               </div>
             </div>
 
+            {/* Payment Proof Receipt Image if available */}
+            {viewingInvoice.minhChungThanhToan && (
+              <div style={{ marginTop: '1rem', marginBottom: '1.2rem', padding: '12px', backgroundColor: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#065f46' }}>📷 MINH CHỨNG CHUYỂN KHOẢN KHÁCH HÀNG</h4>
+                <div
+                  onClick={() => setPreviewReceiptModalUrl(formatImageUrl(viewingInvoice.minhChungThanhToan))}
+                  style={{ cursor: 'pointer', display: 'inline-block' }}
+                  title="Nhấp để xem toàn màn hình"
+                >
+                  <img
+                    src={formatImageUrl(viewingInvoice.minhChungThanhToan)}
+                    alt="Minh chứng chuyển khoản"
+                    style={{ maxWidth: '100%', maxHeight: '260px', minHeight: '100px', objectFit: 'contain', borderRadius: '8px', border: '2px solid #10b981', backgroundColor: '#fff', display: 'block' }}
+                  />
+                </div>
+                <span style={{ fontSize: '11px', color: '#047857', marginTop: '4px', display: 'block', fontWeight: '500' }}>🔍 Nhấp vào ảnh để xem toàn màn hình</span>
+              </div>
+            )}
+
             {/* Cập nhật trạng thái - Ẩn đi nếu đã hoàn thành hoặc đã hủy */}
-            {viewingInvoice.trangThai !== 'Đã hoàn thành' && viewingInvoice.trangThai !== 'Đã hủy' ? (
+            {!(
+              String(viewingInvoice.trangThai || '').toLowerCase().includes('hoàn thành') ||
+              String(viewingInvoice.trangThai || '').toLowerCase().includes('đã giao') ||
+              String(viewingInvoice.trangThai || '').toLowerCase().includes('hủy') ||
+              String(viewingInvoice.trangThai || '').toLowerCase().includes('cancel') ||
+              viewingInvoice.trangThai === 'DA_HUY' ||
+              viewingInvoice.trangThai === 'HOAN_THANH'
+            ) ? (
               <div style={{ backgroundColor: 'var(--admin-tertiary)', padding: '1rem', borderRadius: '8px', marginTop: '1.5rem' }}>
                 <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Cập nhật trạng thái</h3>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -269,8 +324,8 @@ const [invoices, setInvoices] = useState([]);
                 </div>
               </div>
             ) : (
-              <div style={{ backgroundColor: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginTop: '1.5rem', textAlign: 'center', color: '#6c757d', fontStyle: 'italic' }}>
-                Đơn hàng {viewingInvoice.trangThai}. Không thể thay đổi trạng thái.
+              <div style={{ backgroundColor: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginTop: '1.5rem', textAlign: 'center', color: '#6c757d', fontStyle: 'italic', border: '1px dashed #cbd5e1' }}>
+                🔒 Đơn hàng ở trạng thái <b>{viewingInvoice.trangThai}</b> (Đã chốt, không thể thay đổi trạng thái).
               </div>
             )}
             
@@ -278,6 +333,63 @@ const [invoices, setInvoices] = useState([]);
               <button type="button" className="admin-btn admin-btn-success" onClick={handlePrint}>🖨 In Hóa Đơn</button>
               <button type="button" className="admin-btn admin-btn-secondary" onClick={closeModal}>Đóng</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Preview Modal for Receipt Image */}
+      {previewReceiptModalUrl && (
+        <div
+          onClick={() => setPreviewReceiptModalUrl(null)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            cursor: 'zoom-out',
+            padding: '20px'
+          }}
+        >
+          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+            <img
+              src={previewReceiptModalUrl}
+              alt="Minh chứng chuyển khoản phóng to"
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '85vh',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                backgroundColor: '#fff'
+              }}
+            />
+            <button
+              onClick={() => setPreviewReceiptModalUrl(null)}
+              style={{
+                position: 'absolute',
+                top: '-15px',
+                right: '-15px',
+                backgroundColor: '#ef4444',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Đóng"
+            >
+              &times;
+            </button>
           </div>
         </div>
       )}

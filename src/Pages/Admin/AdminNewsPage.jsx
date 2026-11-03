@@ -1,6 +1,6 @@
 import { BASE_URL } from '../../services/axiosClient';
 import React, { useState, useEffect } from "react";
-import { getAdminNews, createNews, updateNews, deleteNews, getNewsDetail, getNewsComments, postNewsComment, deleteNewsComment } from "../../services/newsService";
+import { getAdminNews, createNews, updateNews, deleteNews, toggleNewsVisibility, getNewsDetail, getNewsComments, postNewsComment, deleteNewsComment } from "../../services/newsService";
 import AdminLayout from '../../Layout/AdminLayout';
 import { useToast } from '../../components/Toast/Toast';
 
@@ -36,6 +36,22 @@ const [news, setNews] = useState([]);
     useEffect(() => {
         fetchNews();
     }, [searchTerm]);
+
+    // Polling tự động làm mới bình luận khi đang mở modal chi tiết bài viết (mỗi 4 giây)
+    useEffect(() => {
+        if (!selectedNews?.MATINTUC) return;
+        const interval = setInterval(async () => {
+            try {
+                const updated = await getNewsComments(selectedNews.MATINTUC);
+                if (Array.isArray(updated)) {
+                    setNewsComments(updated);
+                }
+            } catch (err) {
+                // Ignore silent poll error
+            }
+        }, 4000);
+        return () => clearInterval(interval);
+    }, [selectedNews?.MATINTUC]);
 
     const fetchNews = async () => {
         setLoading(true);
@@ -130,6 +146,20 @@ const [news, setNews] = useState([]);
         } catch (error) {
             console.error("Delete error:", error);
             toast.error("Lỗi khi xóa: " + (error.response?.data?.error || error.message));
+        }
+    };
+
+    const handleToggleVisibility = async (id) => {
+        try {
+            const res = await toggleNewsVisibility(id);
+            toast.success(res.message || "Đã cập nhật trạng thái hiển thị!");
+            fetchNews();
+            if (selectedNews?.MATINTUC === id) {
+                setSelectedNews(prev => prev ? { ...prev, trangThai: res.trangThai } : null);
+            }
+        } catch (error) {
+            console.error("Toggle error:", error);
+            toast.error("Lỗi: " + (error.response?.data?.error || error.message));
         }
     };
 
@@ -241,11 +271,16 @@ const [news, setNews] = useState([]);
                     </div>
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                 <strong style={{ fontSize: '0.95rem' }}>{authorName}</strong>
                                 {isAdmin && (
                                     <span style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: '#ffc107', color: '#000', borderRadius: '10px', fontWeight: 'bold' }}>
                                         🛡️ Admin
+                                    </span>
+                                )}
+                                {cmt.replyTo?.HOTEN && (
+                                    <span style={{ fontSize: '0.8rem', color: '#666' }}>
+                                        trả lời <strong style={{ color: 'var(--admin-primary)' }}>@{cmt.replyTo.HOTEN}</strong>
                                     </span>
                                 )}
                             </div>
@@ -308,8 +343,8 @@ const [news, setNews] = useState([]);
                     </div>
                 </div>
 
-                {/* Child Replies */}
-                {cmt.replies && cmt.replies.length > 0 && (
+                {/* Child Replies (chỉ ở cấp 1 để không bao giờ bị thụt lề vô tận) */}
+                {!isReply && cmt.replies && cmt.replies.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
                         {cmt.replies.map(reply => renderAdminCommentItem(reply, true))}
                     </div>
@@ -375,14 +410,15 @@ const [news, setNews] = useState([]);
                                 <th>Tiêu đề</th>
                                 <th>Mô tả</th>
                                 <th>Ngày đăng</th>
-                                <th style={{ width: '180px' }}>Thao tác</th>
+                                <th>Trạng thái</th>
+                                <th style={{ width: '220px' }}>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>Đang tải...</td></tr>
+                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>Đang tải...</td></tr>
                             ) : news.length === 0 ? (
-                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>Chưa có tin tức nào</td></tr>
+                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>Chưa có tin tức nào</td></tr>
                             ) : news.map((item) => (
                                 <tr key={item.MATINTUC} style={{ cursor: 'pointer' }} onClick={() => openDetail(item)}>
                                     <td><strong>{item.MATINTUC}</strong></td>
@@ -400,7 +436,35 @@ const [news, setNews] = useState([]);
                                     </td>
                                     <td style={{ fontSize: '13px' }}>{formatDate(item.NGAYDANG)}</td>
                                     <td>
+                                        <span style={{
+                                            display: 'inline-block',
+                                            padding: '3px 8px',
+                                            borderRadius: '12px',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold',
+                                            backgroundColor: item.trangThai === 0 ? '#fee2e2' : '#dcfce7',
+                                            color: item.trangThai === 0 ? '#b91c1c' : '#15803d'
+                                        }}>
+                                            {item.trangThai === 0 ? '🔒 Đang ẩn' : '✅ Hiển thị'}
+                                        </span>
+                                    </td>
+                                    <td>
                                         <div className="admin-flex-gap" onClick={(e) => e.stopPropagation()}>
+                                            <button
+                                                className="admin-btn"
+                                                style={{
+                                                    padding: '4px 10px',
+                                                    backgroundColor: item.trangThai === 0 ? '#10b981' : '#f59e0b',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onClick={() => handleToggleVisibility(item.MATINTUC)}
+                                                title={item.trangThai === 0 ? "Hiện bài viết tới khách hàng" : "Ẩn bài viết khỏi khách hàng"}
+                                            >
+                                                {item.trangThai === 0 ? '👁️ Hiện' : '👁️‍🗨️ Ẩn'}
+                                            </button>
                                             <button className="admin-btn admin-btn-secondary" style={{ padding: '4px 10px' }} onClick={() => openEditModal(item)}>
                                                 ✏️ Sửa
                                             </button>
@@ -438,6 +502,47 @@ const [news, setNews] = useState([]);
                                         <span>📅 {formatDate(selectedNews.NGAYDANG)}</span>
                                         <span>🔑 {selectedNews.MATINTUC}</span>
                                         <span>💬 {newsComments.length} bình luận</span>
+                                        <span style={{
+                                            fontWeight: 'bold',
+                                            color: selectedNews.trangThai === 0 ? '#b91c1c' : '#15803d'
+                                        }}>
+                                            {selectedNews.trangThai === 0 ? '🔒 Đang ẩn' : '✅ Đang hiển thị'}
+                                        </span>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.2rem', flexWrap: 'wrap' }}>
+                                        <button
+                                            type="button"
+                                            className="admin-btn"
+                                            style={{
+                                                padding: '6px 14px',
+                                                backgroundColor: selectedNews.trangThai === 0 ? '#10b981' : '#f59e0b',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                fontSize: '0.85rem'
+                                            }}
+                                            onClick={() => handleToggleVisibility(selectedNews.MATINTUC)}
+                                        >
+                                            {selectedNews.trangThai === 0 ? '👁️ Hiển thị bài viết' : '👁️‍🗨️ Ẩn bài viết'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="admin-btn admin-btn-secondary"
+                                            style={{ padding: '6px 14px', fontSize: '0.85rem' }}
+                                            onClick={() => { const item = selectedNews; closeDetail(); openEditModal(item); }}
+                                        >
+                                            ✏️ Chỉnh sửa
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="admin-btn admin-btn-danger"
+                                            style={{ padding: '6px 14px', fontSize: '0.85rem' }}
+                                            onClick={() => handleDelete(selectedNews.MATINTUC)}
+                                        >
+                                            🗑️ Xóa bài viết
+                                        </button>
                                     </div>
 
                                     {selectedNews.HINHANH && (

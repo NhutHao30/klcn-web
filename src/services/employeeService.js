@@ -2,26 +2,47 @@ import axiosClient from './axiosClient';
 
 export const getEmployees = async () => {
     const response = await axiosClient.get('/admin/users');
-    const users = response.data;
-    return users.filter(u => (u.MAROLE === 1 || u.MAROLE === 2) && u.nhanvien).map(u => ({
-        userName: u.USERNAME,
-        email: u.EMAIL,
-        maRole: u.MAROLE,
-        hoTen: u.nhanvien.HOTEN,
-        sdt: u.nhanvien.SDT,
-        ngaySinh: u.nhanvien.NGAYSINH,
-        gioiTinh: u.nhanvien.GioiTinh,
-        diaChi: u.nhanvien.DIACHI,
-        chucVu: u.nhanvien.CHUCVU,
-        luong: u.nhanvien.LUONG,
-        trangThai: u.nhanvien.TRANGTHAI || 'Đang làm việc',
-        caLamViec: u.nhanvien.CALAMVIEC || 'Chưa cập nhật',
-        cccd: u.nhanvien.CCCD || '',
-        cccdTruoc: u.nhanvien.CCCD_TRUOC,
-        cccdSau: u.nhanvien.CCCD_SAU,
-        macuahang: u.nhanvien.MACUAHANG,
-        tenCuaHang: u.nhanvien.cuahang ? u.nhanvien.cuahang.TENCUAHANG : 'Chưa phân bổ'
-    }));
+    const users = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+    return users
+        .filter(u => {
+            const username = (u.USERNAME || u.username || '').toLowerCase();
+            const roleId = u.vaiTroId !== undefined ? (parseInt(u.vaiTroId, 10)) : null;
+            const tenVaiTro = (u.vaitro?.tenVaiTro || u.vaitro?.TEN_VAITRO || '').toUpperCase();
+
+            // 1. Hide superadmin 'admin' account from employee management page
+            if (username === 'admin') return false;
+
+            // 2. Hide customer accounts (Role 6 / Customer)
+            if (roleId === 6 || tenVaiTro === 'CUSTOMER' || tenVaiTro === 'KHÁCH HÀNG') return false;
+            if (u.nguoidung && u.nguoidung.loaiNguoiDung === 0) return false;
+
+            // 3. Must have valid staff profile
+            if (!u.nhanvien && !u.nguoidung) return false;
+
+            return true;
+        })
+        .map(u => {
+            const isWorking = (u.trangThai === 1 || u.TRANGTHAI === 'Đang làm việc' || u.nhanvien?.TRANGTHAI === 'Đang làm việc');
+            return {
+                userName: u.USERNAME || u.username,
+                email: u.EMAIL || u.email,
+                maRole: u.vaiTroId !== undefined ? u.vaiTroId : u.MAROLE,
+                hoTen: u.nhanvien?.HOTEN || u.nguoidung?.hoTen || '',
+                sdt: u.nhanvien?.SDT || u.nguoidung?.soDienThoai || '',
+                ngaySinh: u.nhanvien?.NGAYSINH || u.nguoidung?.ngaySinh || '',
+                gioiTinh: u.nhanvien?.GioiTinh || (u.nguoidung?.gioiTinh === 1 ? 'Nam' : 'Nữ'),
+                diaChi: u.nhanvien?.DIACHI || '',
+                chucVu: u.vaitro?.tenVaiTro || u.nhanvien?.CHUCVU || 'Nhân viên bán hàng',
+                luong: u.nhanvien?.LUONG || 0,
+                trangThai: isWorking ? 'Đang làm việc' : 'Nghỉ việc',
+                caLamViec: u.nhanvien?.CALAMVIEC || 'Ca Sáng',
+                cccd: u.nhanvien?.CCCD || u.nguoidung?.cccdNumber || '',
+                cccdTruoc: u.nhanvien?.CCCD_TRUOC,
+                cccdSau: u.nhanvien?.CCCD_SAU,
+                macuahang: u.nhanvien?.MACUAHANG || u.nguoidung?.cuaHangId || 1,
+                tenCuaHang: u.nhanvien?.cuahang ? (u.nhanvien.cuahang.TENCUAHANG || u.nhanvien.cuahang.tenCuaHang) : 'Chưa phân bổ'
+            };
+        });
 };
 
 export const getEmployeeById = async (id) => {

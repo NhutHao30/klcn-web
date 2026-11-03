@@ -41,3 +41,28 @@ export const getMyOrderDetails = async (maHD) => {
     const response = await axiosClient.get(`/my-orders/${maHD}/chi-tiet`);
     return response.data;
 };
+
+export const getGhnTrackingDetail = async (orderCode) => {
+    const response = await axiosClient.get(`/ghn/tracking/${orderCode}`);
+    return response.data;
+};
+
+export const updateOrderItemsApi = async (maHD, itemsData) => {
+    const response = await axiosClient.put(`${API_URL}/${maHD}/items`, itemsData);
+    return response.data;
+};
+
+export const refundOrderApi = async (maHD, refundData = {}) => {
+    const response = await axiosClient.post(`${API_URL}/${maHD}/refund`, refundData);
+    return response.data;
+};
+
+export const approveReturnOrderApi = async (maHD, data = {}) => {
+    const response = await axiosClient.post(`${API_URL}/${maHD}/approve-return`, data);
+    return response.data;
+};
+
+export const rejectReturnOrderApi = async (maHD, data = {}) => {
+    const response = await axiosClient.post(`${API_URL}/${maHD}/reject-return`, data);
+    return response.data;
+};

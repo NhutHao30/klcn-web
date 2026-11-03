@@ -58,14 +58,14 @@ const [customers, setCustomers] = useState([]);
   }, []);
 
   const handleSearch = () => {
-    let result = customers;
+    let result = Array.isArray(customers) ? customers : [];
     if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
+      const lowerQuery = searchQuery.toLowerCase().trim();
       result = result.filter(c => 
-        (c.hoTen && c.hoTen.toLowerCase().includes(lowerQuery)) || 
-        (c.sdt && c.sdt.includes(lowerQuery)) ||
-        (c.maKH && c.maKH.toLowerCase().includes(lowerQuery)) ||
-        (c.email && c.email.toLowerCase().includes(lowerQuery))
+        (c.hoTen && String(c.hoTen).toLowerCase().includes(lowerQuery)) || 
+        (c.sdt && String(c.sdt).includes(lowerQuery)) ||
+        (c.maKH && String(c.maKH).toLowerCase().includes(lowerQuery)) ||
+        (c.email && String(c.email).toLowerCase().includes(lowerQuery))
       );
     }
     if (searchRank) {
@@ -253,7 +253,7 @@ const [customers, setCustomers] = useState([]);
               ) : filteredCustomers.map(customer => {
                 const isDeactivated = !!customer.deleted_at;
                 return (
-                <tr key={customer.maKH} style={{ opacity: isDeactivated ? 0.6 : 1 }}>
+                <tr key={customer.id || customer.maKH} style={{ opacity: isDeactivated ? 0.6 : 1 }}>
                   <td><strong>{customer.maKH}</strong></td>
                   <td style={{ fontWeight: 600 }}>{customer.hoTen} {isDeactivated && <span style={{color:'red', fontSize:'12px'}}>(Vô hiệu hóa)</span>}</td>
                   <td>{customer.sdt || '-'}</td>
@@ -269,11 +269,11 @@ const [customers, setCustomers] = useState([]);
                       <button className="admin-btn admin-btn-info" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => openDetailModal(customer)}>Chi tiết</button>
                       
                       {isDeactivated ? (
-                        <button className="admin-btn admin-btn-success" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleRestore(customer.maKH)}>Kích hoạt lại</button>
+                        <button className="admin-btn admin-btn-success" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleRestore(customer.id || customer.maKH)}>Kích hoạt lại</button>
                       ) : (
                         <>
                           <button className="admin-btn admin-btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => openEditModal(customer)}>Sửa</button>
-                          <button className="admin-btn admin-btn-danger" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleDelete(customer.maKH)}>Vô hiệu hóa</button>
+                          <button className="admin-btn admin-btn-danger" style={{ padding: '0.25rem 0.75rem', fontSize: '12px' }} onClick={() => handleDelete(customer.id || customer.maKH)}>Vô hiệu hóa</button>
                         </>
                       )}
                     </div>

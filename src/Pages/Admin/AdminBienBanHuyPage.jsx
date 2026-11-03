@@ -31,7 +31,7 @@ const AdminBienBanHuyPage = () => {
       }
       setBienBans(Array.isArray(raw) ? raw : []);
     } catch (e) {
-      toast.error('Lỗi tải danh sách biên bản hủy sản phẩm!');
+      toast.error('Lỗi tải danh sách biên bản hủy');
     } finally {
       setIsLoading(false);
     }
@@ -106,20 +106,29 @@ const AdminBienBanHuyPage = () => {
                   </tr>
                 ) : (
                   bienBans.map(b => {
-                    const maBbStr = b.MABB || `BBH${String(b.id || '').padStart(6, '0')}`;
-                    const prodName = b.loHang?.sanpham?.TENSP || b.san_pham?.TENSP || b.MASP || '-';
-                    const storeName = b.cuahang?.TENCUAHANG || b.cua_hang?.TENCUAHANG || `CH #${b.MACUAHANG}`;
-                    const usernameStr = b.taikhoan?.USERNAME || b.USERNAME || b.NGUOI_HUY || 'Admin';
-                    const dateStr = b.NGAY_HUY ? new Date(b.NGAY_HUY).toLocaleString('vi-VN') : '-';
+                    const maBbStr = b.MABB || b.maBienBan || `BBH${String(b.id || '').padStart(6, '0')}`;
+                    const maLoStr = b.MALOHAN || b.chiTiets?.[0]?.loHang?.maLoHang || b.chi_tiets?.[0]?.lo_hang?.maLoHang || '-';
+                    const prodName = b.TENSP || b.chiTiets?.[0]?.sanPham?.tenSanPham || b.chi_tiets?.[0]?.san_pham?.tenSanPham || b.MASP || '-';
+                    const storeName = b.cuaHang?.tenCuaHang || b.cuahang?.TENCUAHANG || b.cua_hang?.TENCUAHANG || `Chi nhánh #${b.cuaHangId || b.MACUAHANG || 1}`;
+                    const usernameStr = b.NGUOI_HUY || b.nguoiLap?.hoTen || b.nguoi_lap?.hoTen || b.nguoiLap?.HOTEN || b.nguoi_lap?.HOTEN || b.nguoiLap?.username || 'Nhân viên kho';
+                    const rawDate = b.NGAY_HUY || b.ngayLap || b.ngay_lap || b.createdAt || b.created_at;
+                    const dateStr = rawDate ? new Date(rawDate).toLocaleString('vi-VN') : '-';
+                    const qtyHuy = b.SOLUONG_HUY ?? b.chiTiets?.[0]?.soLuongHuy ?? b.chi_tiets?.[0]?.soLuongHuy ?? 0;
+                    const lyDoText = b.ly_do_label || (
+                      b.lyDo === 'het_han' ? 'Hết hạn sử dụng (FEFO)' :
+                      b.lyDo === 'hong_hong' ? 'Hư hỏng trong bảo quản' :
+                      b.lyDo === 'thu_hoi' ? 'Thu hồi từ NCC' :
+                      b.lyDo === 'khac' ? 'Lý do khác' : (b.lyDo || b.ly_do || 'Tiêu hủy định kỳ')
+                    );
 
                     return (
-                      <tr key={b.id || b.MABB}>
+                      <tr key={b.id || b.MABB || b.maBienBan}>
                         <td><b>{maBbStr}</b></td>
-                        <td><span style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>{b.MALOHAN}</span></td>
+                        <td><span style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>{maLoStr}</span></td>
                         <td style={{ fontWeight: 'bold' }}>{prodName}</td>
                         <td>{storeName}</td>
                         <td style={{ textAlign: 'center' }}>
-                          <b style={{ color: '#dc3545' }}>{b.SOLUONG_HUY} cái</b>
+                          <b style={{ color: '#dc3545' }}>{qtyHuy} cái</b>
                         </td>
                         <td>
                           <span style={{
@@ -130,7 +139,7 @@ const AdminBienBanHuyPage = () => {
                             fontSize: '11px',
                             fontWeight: 'bold'
                           }}>
-                            {b.ly_do_label || b.LY_DO_TEXT || b.LY_DO}
+                            {lyDoText}
                           </span>
                         </td>
                         <td><b>{usernameStr}</b></td>
@@ -139,7 +148,7 @@ const AdminBienBanHuyPage = () => {
                           <button
                             className="admin-btn admin-btn-info"
                             style={{ padding: '3px 8px', fontSize: '11px' }}
-                            onClick={() => handleViewDetail(b.id || b.MABB)}
+                            onClick={() => handleViewDetail(b.id || b.MABB || b.maBienBan)}
                           >
                             <i className="fa-solid fa-file-invoice"></i> Xem Chứng Từ
                           </button>
@@ -154,7 +163,7 @@ const AdminBienBanHuyPage = () => {
         )}
       </div>
 
-      {/* MODAL PRINTABLE DOCUMENT WITH 4 SIGNATURE BLOCKS */}
+      {/* MODAL PRINTABLE DOCUMENT WITH 3 SIGNATURE BLOCKS */}
       {showModal && selectedBb && (
         <div style={{
           position: 'fixed',
@@ -185,20 +194,28 @@ const AdminBienBanHuyPage = () => {
               marginBottom: '20px',
               border: '2px solid #5c3d2e'
             }}>
-              {/* Header Dola Bakery */}
+              {/* Header Givral Bakery */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed #5c3d2e', paddingBottom: '15px', marginBottom: '15px' }}>
-                <div>
-                  <h3 style={{ margin: 0, color: '#5c3d2e', fontSize: '1.4rem', fontWeight: 800 }}>DOLA BAKERY</h3>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#555' }}>Chuyên bánh ngọt & bánh kem cao cấp</p>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#777' }}>Chi nhánh: {selectedBb.cuahang?.TENCUAHANG || `Cửa Hàng #${selectedBb.MACUAHANG}`}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <img src="/assets/IMG/Logo.jpg" alt="Givral Bakery" style={{ width: '54px', height: '54px', objectFit: 'contain', borderRadius: '6px' }} />
+                  <div>
+                    <h3 style={{ margin: 0, color: '#5c3d2e', fontSize: '1.4rem', fontWeight: 800 }}>GIVRAL BAKERY</h3>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#555' }}>Chuyên bánh ngọt & bánh kem cao cấp</p>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#777' }}>
+                      Chi nhánh: {selectedBb.cuaHang?.tenCuaHang || selectedBb.cuahang?.TENCUAHANG || selectedBb.cua_hang?.TENCUAHANG || `Cửa Hàng #${selectedBb.cuaHangId || selectedBb.MACUAHANG || 1}`}
+                    </p>
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <h3 style={{ margin: 0, color: '#c62828', fontSize: '1.3rem', textTransform: 'uppercase', fontWeight: 800 }}>BIÊN BẢN HỦY SẢN PHẨM</h3>
                   <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#444' }}>
-                    Số phiếu: <b>{selectedBb.MABB || `BBH${String(selectedBb.id || '').padStart(6, '0')}`}</b>
+                    Số phiếu: <b>{selectedBb.MABB || selectedBb.maBienBan || `BBH${String(selectedBb.id || '').padStart(6, '0')}`}</b>
                   </p>
                   <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#444' }}>
-                    Ngày lập: {selectedBb.NGAY_HUY ? new Date(selectedBb.NGAY_HUY).toLocaleDateString('vi-VN') : '-'}
+                    Ngày lập: {(() => {
+                      const d = selectedBb.NGAY_HUY || selectedBb.ngayLap || selectedBb.ngay_lap || selectedBb.createdAt;
+                      return d ? new Date(d).toLocaleDateString('vi-VN') : '-';
+                    })()}
                   </p>
                 </div>
               </div>
@@ -208,72 +225,127 @@ const AdminBienBanHuyPage = () => {
                 <tbody>
                   <tr>
                     <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc', width: '30%' }}>Mã Lô Hàng:</td>
-                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0' }}><b style={{ color: '#2563eb' }}>{selectedBb.MALOHAN}</b></td>
+                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0' }}>
+                      <b style={{ color: '#2563eb' }}>
+                        {selectedBb.MALOHAN || selectedBb.chiTiets?.[0]?.loHang?.maLoHang || selectedBb.chi_tiets?.[0]?.lo_hang?.maLoHang || '-'}
+                      </b>
+                    </td>
                   </tr>
                   <tr>
                     <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>Tên Sản Phẩm Bánh:</td>
-                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>{selectedBb.loHang?.sanpham?.TENSP || selectedBb.san_pham?.TENSP || selectedBb.MASP}</td>
+                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>
+                      {selectedBb.TENSP || selectedBb.chiTiets?.[0]?.sanPham?.tenSanPham || selectedBb.chi_tiets?.[0]?.san_pham?.tenSanPham || selectedBb.san_pham?.TENSP || selectedBb.MASP || '-'}
+                    </td>
                   </tr>
                   <tr>
                     <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>Số Lượng Tiêu Hủy:</td>
-                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0' }}><b style={{ color: '#dc2626', fontSize: '15px' }}>{selectedBb.SOLUONG_HUY} cái bánh</b></td>
+                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0' }}>
+                      <b style={{ color: '#dc2626', fontSize: '15px' }}>
+                        {selectedBb.SOLUONG_HUY ?? selectedBb.chiTiets?.[0]?.soLuongHuy ?? selectedBb.chi_tiets?.[0]?.soLuongHuy ?? 0} cái bánh
+                      </b>
+                    </td>
                   </tr>
                   <tr>
                     <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>Lý Do Hủy Bánh:</td>
                     <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0' }}>
                       <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
-                        {selectedBb.ly_do_label || selectedBb.LY_DO_TEXT || selectedBb.LY_DO}
+                        {selectedBb.ly_do_label || (
+                          selectedBb.lyDo === 'het_han' ? 'Hết hạn sử dụng (FEFO)' :
+                          selectedBb.lyDo === 'hong_hong' ? 'Hư hỏng trong bảo quản' :
+                          selectedBb.lyDo === 'thu_hoi' ? 'Thu hồi từ NCC' :
+                          selectedBb.lyDo === 'khac' ? 'Lý do khác' : (selectedBb.lyDo || selectedBb.ly_do || 'Tiêu hủy định kỳ')
+                        )}
                       </span>
                     </td>
                   </tr>
                   <tr>
+                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>Người Lập Phiếu:</td>
+                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0' }}>
+                      <b>{selectedBb.NGUOI_HUY || selectedBb.nguoiLap?.hoTen || selectedBb.nguoi_lap?.hoTen || selectedBb.nguoiLap?.HOTEN || 'Nhân viên kho'}</b>
+                    </td>
+                  </tr>
+                  <tr>
                     <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>Ghi Chú Chi Tiết:</td>
-                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0' }}>{selectedBb.GHICHU || 'Hủy tự động theo quy trình kiểm tra HSD định kỳ của cửa hàng'}</td>
+                    <td style={{ padding: '8px 12px', border: '1px solid #e2e8f0' }}>{selectedBb.GHICHU || selectedBb.ghiChu || 'Hủy theo quy trình kiểm soát chất lượng & HSD định kỳ'}</td>
                   </tr>
                 </tbody>
               </table>
 
-              {/* 3 Chữ Ký Số Các Bên (Thủ Kho, Kế Toán, Giám Đốc Chi Nhánh) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginTop: '30px', textAlign: 'center', fontSize: '11px' }}>
-                <div>
-                  <b style={{ fontSize: '12px' }}>THỦ KHO / NGƯỜI LẬP</b><br/>
-                  <span style={{ color: '#666' }}>(Ký & ghi rõ họ tên)</span>
-                  <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
-                    {selectedBb.KY_THU_KHO ? (
-                      <img src={selectedBb.KY_THU_KHO} alt="Chữ ký Thủ kho" style={{ maxHeight: '65px', objectFit: 'contain' }} />
-                    ) : (
-                      <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Chưa ký)</span>
-                    )}
-                  </div>
-                  <b style={{ fontSize: '12px' }}>{selectedBb.nhanvien?.HOTEN || selectedBb.USERNAME || 'Thủ kho'}</b>
-                </div>
+              {/* 3 Chữ Ký Số Các Bên (Nhân Viên Kho, Nhân Viên Kế Toán, Quản Lý Chi Nhánh) */}
+              {(() => {
+                const sigs = selectedBb.chu_ky_sos || selectedBb.chuKySos || [];
+                const sigKho = sigs.find(s => Number(s.vaiTroKy || s.vai_tro_ky) === 2);
+                const sigKeToan = sigs.find(s => Number(s.vaiTroKy || s.vai_tro_ky) === 1);
+                const sigQuanLy = sigs.find(s => Number(s.vaiTroKy || s.vai_tro_ky) === 3);
 
-                <div>
-                  <b style={{ fontSize: '12px' }}>KẾ TOÁN HẠCH TOÁN</b><br/>
-                  <span style={{ color: '#666' }}>(Ký & ghi rõ họ tên)</span>
-                  <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
-                    {selectedBb.KY_KE_TOAN ? (
-                      <img src={selectedBb.KY_KE_TOAN} alt="Chữ ký Kế toán" style={{ maxHeight: '65px', objectFit: 'contain' }} />
-                    ) : (
-                      <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Chưa ký)</span>
-                    )}
-                  </div>
-                  <b style={{ fontSize: '12px' }}>{selectedBb.NGUOI_KY_KE_TOAN || 'Kế toán trưởng'}</b>
-                </div>
+                const isSignedKho = sigKho && Number(sigKho.trangThai) === 1;
+                const isSignedKeToan = sigKeToan && Number(sigKeToan.trangThai) === 1;
+                const isSignedQuanLy = sigQuanLy && Number(sigQuanLy.trangThai) === 1;
 
-                <div>
-                  <b style={{ fontSize: '12px' }}>GIÁM ĐỐC CHI NHÁNH</b><br/>
-                  <span style={{ color: '#666' }}>(Ký & ghi rõ họ tên)</span>
-                  <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
-                    {selectedBb.KY_GIAM_DOC ? (
-                      <img src={selectedBb.KY_GIAM_DOC} alt="Chữ ký Giám đốc" style={{ maxHeight: '65px', objectFit: 'contain' }} />
-                    ) : (
-                      <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Chưa ký)</span>
-                    )}
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginTop: '30px', textAlign: 'center', fontSize: '11px' }}>
+                    <div>
+                      <b style={{ fontSize: '12px' }}>NHÂN VIÊN KHO</b><br/>
+                      <span style={{ color: '#666' }}>(Ký & ghi rõ họ tên)</span>
+                      <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
+                        {selectedBb.KY_THU_KHO ? (
+                          <img src={selectedBb.KY_THU_KHO} alt="Chữ ký Nhân viên kho" style={{ maxHeight: '65px', objectFit: 'contain' }} />
+                        ) : isSignedKho ? (
+                          <div style={{ padding: '4px 8px', backgroundColor: '#f0fdf4', border: '1px dashed #16a34a', borderRadius: '6px' }}>
+                            <div style={{ color: '#16a34a', fontWeight: 'bold', fontSize: '11px' }}>✓ ĐÃ KÝ SỐ</div>
+                            <div style={{ fontSize: '9px', color: '#15803d' }}>{sigKho.ngayKy ? new Date(sigKho.ngayKy).toLocaleDateString('vi-VN') : 'Đã xác nhận'}</div>
+                          </div>
+                        ) : isSignedQuanLy ? (
+                          <span style={{ color: '#16a34a', fontStyle: 'italic' }}>(Miễn ký do Quản lý CN đã duyệt)</span>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Chưa ký)</span>
+                        )}
+                      </div>
+                      <b style={{ fontSize: '12px' }}>{sigKho?.tenNguoiKy || sigKho?.nguoi_ky?.hoTen || selectedBb.NGUOI_HUY || selectedBb.nguoiLap?.hoTen || 'Nhân viên kho'}</b>
+                    </div>
+
+                    <div>
+                      <b style={{ fontSize: '12px' }}>NHÂN VIÊN KẾ TOÁN</b><br/>
+                      <span style={{ color: '#666' }}>(Ký & ghi rõ họ tên)</span>
+                      <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
+                        {selectedBb.KY_KE_TOAN ? (
+                          <img src={selectedBb.KY_KE_TOAN} alt="Chữ ký Nhân viên kế toán" style={{ maxHeight: '65px', objectFit: 'contain' }} />
+                        ) : isSignedKeToan ? (
+                          <div style={{ padding: '4px 8px', backgroundColor: '#f0fdf4', border: '1px dashed #16a34a', borderRadius: '6px' }}>
+                            <div style={{ color: '#16a34a', fontWeight: 'bold', fontSize: '11px' }}>✓ ĐÃ KÝ SỐ</div>
+                            <div style={{ fontSize: '9px', color: '#15803d' }}>{sigKeToan.ngayKy ? new Date(sigKeToan.ngayKy).toLocaleDateString('vi-VN') : 'Đã xác nhận'}</div>
+                          </div>
+                        ) : isSignedQuanLy ? (
+                          <span style={{ color: '#16a34a', fontStyle: 'italic' }}>(Miễn ký do Quản lý CN đã duyệt)</span>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Chưa ký)</span>
+                        )}
+                      </div>
+                      <b style={{ fontSize: '12px' }}>{sigKeToan?.tenNguoiKy || sigKeToan?.nguoi_ky?.hoTen || selectedBb.NGUOI_KY_KE_TOAN || 'Nhân viên kế toán'}</b>
+                    </div>
+
+                    <div>
+                      <b style={{ fontSize: '12px' }}>QUẢN LÝ CHI NHÁNH</b><br/>
+                      <span style={{ color: '#666' }}>(Ký duyệt chốt ngay)</span>
+                      <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
+                        {selectedBb.KY_GIAM_DOC ? (
+                          <img src={selectedBb.KY_GIAM_DOC} alt="Chữ ký Quản lý chi nhánh" style={{ maxHeight: '65px', objectFit: 'contain' }} />
+                        ) : isSignedQuanLy ? (
+                          <div style={{ padding: '4px 8px', backgroundColor: '#f0fdf4', border: '1px dashed #16a34a', borderRadius: '6px' }}>
+                            <div style={{ color: '#16a34a', fontWeight: 'bold', fontSize: '11px' }}>✓ ĐÃ PHÊ DUYỆT</div>
+                            <div style={{ fontSize: '9px', color: '#15803d' }}>{sigQuanLy.ngayKy ? new Date(sigQuanLy.ngayKy).toLocaleDateString('vi-VN') : 'Đã xác nhận'}</div>
+                          </div>
+                        ) : (isSignedKho && isSignedKeToan) ? (
+                          <span style={{ color: '#16a34a', fontStyle: 'italic' }}>(Đã đủ chữ ký Kho & Kế toán)</span>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Chưa ký)</span>
+                        )}
+                      </div>
+                      <b style={{ fontSize: '12px' }}>{sigQuanLy?.tenNguoiKy || sigQuanLy?.nguoi_ky?.hoTen || selectedBb.NGUOI_KY_GIAM_DOC || 'Quản lý chi nhánh'}</b>
+                    </div>
                   </div>
-                  <b style={{ fontSize: '12px' }}>{selectedBb.NGUOI_KY_GIAM_DOC || 'Giám đốc chi nhánh'}</b>
-                </div>
-              </div>
+                );
+              })()}
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>

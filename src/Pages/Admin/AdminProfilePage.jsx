@@ -19,7 +19,7 @@ const AdminProfilePage = () => {
     HOTEN: '',
     SDT: '',
     DIACHI: '',
-    GioiTinh: '',
+    GioiTinh: 'Nam',
     NGAYSINH: '',
     EMAIL: ''
   });
@@ -43,16 +43,16 @@ const AdminProfilePage = () => {
     try {
       const userData = await getCurrentUser();
       setUser(userData);
-      const nv = userData.nhanvien || userData.khachhang || {};
+      const nv = userData.nguoidung || userData.nhanvien || userData.khachhang || {};
       setFormData({
-        HOTEN: nv.HOTEN || userData.HOTEN || '',
-        SDT: nv.SDT || userData.SDT || '',
-        DIACHI: nv.DIACHI || userData.DIACHI || '',
-        GioiTinh: nv.GioiTinh || userData.GioiTinh || 'Nam',
-        NGAYSINH: nv.NGAYSINH ? String(nv.NGAYSINH).split('T')[0] : '',
-        EMAIL: userData.EMAIL || nv.EMAIL || ''
+        HOTEN: nv.hoTen || nv.HOTEN || userData.hoTen || userData.HOTEN || '',
+        SDT: nv.soDienThoai || nv.SDT || userData.soDienThoai || userData.SDT || '',
+        DIACHI: nv.diaChi || nv.DIACHI || userData.diaChi || userData.DIACHI || '',
+        GioiTinh: nv.gioiTinh || nv.GioiTinh || userData.gioiTinh || userData.GioiTinh || 'Nam',
+        NGAYSINH: nv.ngaySinh ? String(nv.ngaySinh).split('T')[0] : (nv.NGAYSINH ? String(nv.NGAYSINH).split('T')[0] : ''),
+        EMAIL: userData.email || userData.EMAIL || nv.email || nv.EMAIL || ''
       });
-      if (nv.HINHANH) setAvatarPreview(nv.HINHANH);
+      if (nv.hinhAnh || nv.HINHANH) setAvatarPreview(nv.hinhAnh || nv.HINHANH);
     } catch (e) {
       toast.error('Không thể tải thông tin cá nhân: ' + (e.response?.data?.message || e.message));
     } finally {
@@ -73,13 +73,24 @@ const AdminProfilePage = () => {
     setIsSaving(true);
     try {
       const payload = new FormData();
+      payload.append('hoTen', formData.HOTEN);
       payload.append('HOTEN', formData.HOTEN);
+      payload.append('soDienThoai', formData.SDT);
       payload.append('SDT', formData.SDT);
+      payload.append('email', formData.EMAIL);
       payload.append('EMAIL', formData.EMAIL);
+      payload.append('diaChi', formData.DIACHI);
       payload.append('DIACHI', formData.DIACHI);
+      payload.append('gioiTinh', formData.GioiTinh);
       payload.append('GioiTinh', formData.GioiTinh);
-      if (formData.NGAYSINH) payload.append('NGAYSINH', formData.NGAYSINH);
-      if (avatarFile) payload.append('HINHANH', avatarFile);
+      if (formData.NGAYSINH) {
+        payload.append('ngaySinh', formData.NGAYSINH);
+        payload.append('NGAYSINH', formData.NGAYSINH);
+      }
+      if (avatarFile) {
+        payload.append('avatar', avatarFile);
+        payload.append('HINHANH', avatarFile);
+      }
 
       const res = await updateProfile(payload);
       toast.success(res.message || 'Cập nhật thông tin thành công!');
@@ -111,7 +122,7 @@ const AdminProfilePage = () => {
   };
 
   const handleRequestOtp = async () => {
-    const emailToUse = formData.EMAIL || user?.EMAIL;
+    const emailToUse = formData.EMAIL || user?.email || user?.EMAIL;
     if (!emailToUse) {
       toast.warning('Vui lòng cập nhật email trước khi đổi mật khẩu.');
       return;
@@ -135,7 +146,7 @@ const AdminProfilePage = () => {
       return;
     }
     setIsChangingPassword(true);
-    const emailToUse = formData.EMAIL || user?.EMAIL;
+    const emailToUse = formData.EMAIL || user?.email || user?.EMAIL;
     try {
       const { resetPassword } = await import('../../services/authService');
       await resetPassword(emailToUse, passwordOtp, newPassword);
@@ -151,14 +162,32 @@ const AdminProfilePage = () => {
     }
   };
 
-  const getRoleBadge = (marole) => {
-    switch (Number(marole)) {
-      case 0: return <span className="admin-badge admin-badge-danger">Quản trị viên (Admin)</span>;
-      case 1: return <span className="admin-badge admin-badge-primary">Quản lý (Manager)</span>;
-      case 2: return <span className="admin-badge admin-badge-success">Thu ngân (Cashier)</span>;
-      case 4: return <span className="admin-badge admin-badge-info">Nhân viên kho (Stockist)</span>;
-      default: return <span className="admin-badge admin-badge-warning">Khách hàng / Nhân viên</span>;
+  const getRoleBadge = (marole, vaiTroId) => {
+    const vt = Number(vaiTroId || user?.vaiTroId || user?.role_id);
+    const mr = Number(marole !== undefined ? marole : user?.MAROLE);
+    
+    if (vt === 8 || mr === 5) {
+      return <span className="admin-badge admin-badge-danger" style={{ background: '#7c3aed', color: '#fff' }}>Ban Giám Đốc (Director)</span>;
     }
+    if (vt === 1 || mr === 0) {
+      return <span className="admin-badge admin-badge-danger">Quản trị viên (Admin)</span>;
+    }
+    if (vt === 2 || mr === 1) {
+      return <span className="admin-badge admin-badge-primary">Quản lý chi nhánh (Manager)</span>;
+    }
+    if (vt === 3) {
+      return <span className="admin-badge admin-badge-success">Nhân viên bán hàng (Cashier)</span>;
+    }
+    if (vt === 4 || mr === 2) {
+      return <span className="admin-badge admin-badge-info">Nhân viên kho (Stockist)</span>;
+    }
+    if (vt === 5 || mr === 4) {
+      return <span className="admin-badge admin-badge-info" style={{ background: '#0284c7', color: '#fff' }}>Chăm sóc khách hàng (CSKH)</span>;
+    }
+    if (vt === 7 || mr === 6) {
+      return <span className="admin-badge admin-badge-warning" style={{ background: '#ea580c', color: '#fff' }}>Nhân viên kế toán (Accountant)</span>;
+    }
+    return <span className="admin-badge admin-badge-warning">{user?.tenVaiTro || 'Nhân viên hệ thống'}</span>;
   };
 
   if (isLoading) {
@@ -172,13 +201,15 @@ const AdminProfilePage = () => {
     );
   }
 
-  const employeeData = user?.nhanvien || {};
+  const employeeData = user?.nguoidung || user?.nhanvien || {};
+  const storeName = employeeData.cuahang?.tenCuaHang || employeeData.cuahang?.TENCUAHANG || employeeData.tenCuaHang || user?.tenCuaHang || null;
+  const signatureUrl = employeeData.chuKy || employeeData.CHU_KY || user?.chuKy;
 
   return (
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="admin-title" style={{ marginBottom: 0 }}>Hồ Sơ Cá Nhân Administrator</h1>
+          <h1 className="admin-title" style={{ marginBottom: 0 }}>Thông tin cá nhân</h1>
           <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>Quản lý thông tin tài khoản, chữ ký số và bảo mật cá nhân</p>
         </div>
         <button
@@ -238,33 +269,33 @@ const AdminProfilePage = () => {
             </div>
 
             <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 'bold' }}>
-              {formData.HOTEN || user?.USERNAME || 'Tài khoản Quản trị'}
+              {formData.HOTEN || user?.username || user?.USERNAME || 'Tài khoản Quản trị'}
             </h3>
             <p style={{ margin: '0 0 12px 0', color: '#666', fontSize: '13px' }}>
-              @{user?.USERNAME || 'admin'}
+              @{user?.username || user?.USERNAME || 'admin'}
             </p>
 
             <div style={{ marginBottom: '1rem' }}>
-              {getRoleBadge(user?.MAROLE)}
+              {getRoleBadge(user?.MAROLE, user?.vaiTroId)}
             </div>
 
             <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: '1rem', textAlign: 'left', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div>
                 <span style={{ color: '#888' }}>Mã nhân viên: </span>
-                <b>{employeeData.MANV || user?.MANV || 'NV-ADMIN'}</b>
+                <b>{employeeData.id ? `NV-${employeeData.id}` : (employeeData.MANV || user?.MANV || 'NV-ADMIN')}</b>
               </div>
               <div>
                 <span style={{ color: '#888' }}>Email: </span>
-                <b>{formData.EMAIL || user?.EMAIL || 'Chưa cập nhật'}</b>
+                <b>{formData.EMAIL || user?.email || user?.EMAIL || 'Chưa cập nhật'}</b>
               </div>
               <div>
                 <span style={{ color: '#888' }}>Số điện thoại: </span>
-                <b>{formData.SDT || 'Chưa cập nhật'}</b>
+                <b>{formData.SDT || employeeData.soDienThoai || 'Chưa cập nhật'}</b>
               </div>
-              {employeeData.cuahang && (
+              {storeName && (
                 <div>
                   <span style={{ color: '#888' }}>Chi nhánh: </span>
-                  <b>{employeeData.cuahang.TENCUAHANG}</b>
+                  <b>{storeName}</b>
                 </div>
               )}
             </div>
@@ -276,10 +307,10 @@ const AdminProfilePage = () => {
               <i className="fa-solid fa-file-signature" style={{ marginRight: '6px', color: 'var(--admin-primary)' }}></i>
               Chữ Ký Số Đã Lưu
             </h4>
-            {employeeData.CHU_KY ? (
+            {signatureUrl ? (
               <div style={{ textAlign: 'center', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
                 <img
-                  src={employeeData.CHU_KY}
+                  src={signatureUrl}
                   alt="Chữ ký số"
                   style={{ maxHeight: '100px', maxWidth: '100%', objectFit: 'contain' }}
                 />
@@ -401,8 +432,8 @@ const AdminProfilePage = () => {
 
             <SignatureCanvas
               onSave={(data) => setSignatureData(data)}
-              initialSignature={employeeData.CHU_KY}
-              height={160}
+              initialSignature={signatureUrl}
+              height={220}
             />
 
             <div style={{ textAlign: 'right', marginTop: '1rem' }}>
@@ -438,7 +469,7 @@ const AdminProfilePage = () => {
 
             <div className="admin-modal-body">
               <p style={{ color: '#666', fontSize: '13px', marginBottom: '1rem' }}>
-                Mã xác thực OTP sẽ được gửi tới Email: <b>{formData.EMAIL || user?.EMAIL}</b>
+                Mã xác thực OTP sẽ được gửi tới Email: <b>{formData.EMAIL || user?.email || user?.EMAIL}</b>
               </p>
 
               {!passwordOtpSent ? (

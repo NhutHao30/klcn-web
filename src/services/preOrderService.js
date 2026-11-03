@@ -17,12 +17,18 @@ export const getPreOrders = async (filters = {}) => {
 /** Chi tiết 1 đơn (dùng để in phiếu) */
 export const getPreOrderById = async (maDHT) => {
     const response = await axiosClient.get(`${API_URL}/${maDHT}`);
-    return response.data;
+    return response.data?.data || response.data;
 };
 
 /** Tạo đơn đặt trước mới */
 export const createPreOrder = async (data) => {
     const response = await axiosClient.post(API_URL, data);
+    return response.data;
+};
+
+/** Cập nhật thông tin đơn đặt trước */
+export const updatePreOrder = async (maDHT, data) => {
+    const response = await axiosClient.put(`${API_URL}/${maDHT}`, data);
     return response.data;
 };
 

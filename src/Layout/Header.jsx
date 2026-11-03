@@ -6,15 +6,14 @@ import Breadcrumb from "../components/Breadcrumb";
 import { getCurrentUser, logout } from "../services/authService";
 import { getCart, removeFromCart } from "../services/cartService";
 import { useToast } from "../components/Toast/Toast";
+import { formatImageUrl } from "../utils/imageUtils";
 
 const getMasp = (item) => {
     return item.masp || item.MASP || item.MaSP || item.product?.masp || item.product?.MASP || "";
 };
 
 const getImageSrc = (imageUrl) => {
-    if (!imageUrl) return "../../assets/IMG/productnew2.webp";
-    if (imageUrl.startsWith("http") || imageUrl.startsWith("/api/")) return imageUrl;
-    return `../../assets/IMG/${imageUrl.split('/').pop()}`;
+    return formatImageUrl(imageUrl);
 };
 
 const getProductName = (product) => {
@@ -27,7 +26,31 @@ const getProductPrice = (product) => {
     return Number(product.price || product.GIABAN || 0);
 };
 
+const getUserDisplayName = (user) => {
+    if (!user) return '';
+    return (
+        user?.nguoidung?.ho_ten ||
+        user?.nguoidung?.HOTEN ||
+        user?.khachhang?.ho_ten ||
+        user?.khachhang?.HOTEN ||
+        user?.nhanvien?.ho_ten ||
+        user?.nhanvien?.HOTEN ||
+        user?.ho_ten ||
+        user?.username ||
+        ''
+    );
+};
+
 const Header = () => {
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 80);
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
     const location = useLocation();
     const [user, setUser] = useState(null);
     const [cartItems, setCartItems] = useState([]);
@@ -36,11 +59,35 @@ const Header = () => {
     const loadCart = async () => {
         try {
             const data = await getCart();
-            const items = Array.isArray(data) ? data : (data?.items || []);
-            setCartItems(items);
+            const rawItems = Array.isArray(data) ? data : (data?.items || []);
+            // Map API data to flat structure for Header display
+            const mappedItems = rawItems.map(item => {
+                const sp = item.sanpham || item.product || {};
+                return {
+                    id: item.sanPhamId || item.sanpham_id || sp.id || sp.MASP || item.id,
+                    name: sp.tenSanPham || sp.TENSP || sp.name || item.name || 'Sản phẩm',
+                    price: Number(sp.giaBan || sp.GIABAN || sp.price || item.price || 0),
+                    image: sp.hinhAnh || sp.HINHANH || sp.image || item.image || '',
+                    quantity: Number(item.soLuong || item.quantity || 1),
+                };
+            });
+            setCartItems(mappedItems);
         } catch (e) {
             setCartItems([]);
         }
+    };
+
+    const loadWishlistCount = async () => {
+        try {
+            if (localStorage.getItem('access_token')) {
+                const { getWishlist } = await import('../services/wishlistService.js');
+                const wl = await getWishlist();
+                const items = Array.isArray(wl) ? wl : (wl?.items || []);
+                document.querySelectorAll('#wishlist-count').forEach(el => el.textContent = items.length);
+            } else {
+                document.querySelectorAll('#wishlist-count').forEach(el => el.textContent = '0');
+            }
+        } catch (e) {}
     };
 
     const handleRemoveItem = async (e, masp) => {
@@ -60,19 +107,46 @@ const Header = () => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
+                // Kiểm tra token trên URL (từ callback Google OAuth)
+                const params = new URLSearchParams(window.location.search);
+                const urlToken = params.get("token") || params.get("access_token");
+                if (urlToken) {
+                    localStorage.setItem("access_token", urlToken);
+                    // Làm sạch tham số token trên URL cho đẹp
+                    window.history.replaceState({}, document.title, window.location.pathname + "?google=true");
+                }
+
                 const res = await getCurrentUser();
-                console.log(res);
                 setUser(res);
-                loadCart(); // Load cart if user is logged in
+                const role = Number(res?.MAROLE !== undefined ? res.MAROLE : res?.role);
+                const vaiTroId = Number(res?.vaiTroId || res?.role_id || (res?.vaitro ? res.vaitro.id : 0));
+                if (role === 3 || vaiTroId === 6 || (!vaiTroId && role === undefined)) {
+                    loadCart();
+                } else {
+                    setCartItems([]);
+                }
             } catch (e) {
                 setUser(null);
             }
         };
         fetchUser();
+        loadWishlistCount();
 
-        const handleUpdate = () => loadCart();
-        document.addEventListener('cartUpdated', handleUpdate);
-        return () => document.removeEventListener('cartUpdated', handleUpdate);
+        const handleCartUpdate = () => loadCart();
+        const handleAuthUpdate = () => {
+            fetchUser();
+            loadWishlistCount();
+        };
+        const handleWishlistUpdate = () => loadWishlistCount();
+
+        document.addEventListener('cartUpdated', handleCartUpdate);
+        document.addEventListener('authUpdated', handleAuthUpdate);
+        document.addEventListener('wishlistUpdated', handleWishlistUpdate);
+        return () => {
+            document.removeEventListener('cartUpdated', handleCartUpdate);
+            document.removeEventListener('authUpdated', handleAuthUpdate);
+            document.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+        };
     }, []);
 
     const handleLogout = async (e) => {
@@ -98,7 +172,7 @@ const Header = () => {
                     <div className="show">
                         <HeaderSlideShow />
                     </div>
-                    <div class="navigation navigation-js">
+                    <div className={`navigation navigation-js ${isScrolled ? "navigation-croll is-sticky" : ""}`}>
                         <div className="container">
                             <div className="row">
                                 <ul className="nav-list col-lg-12">
@@ -109,9 +183,9 @@ const Header = () => {
                                     </li>
                                     <li className="nav-item col-lg-2 col-md-2">
 
-                                        <navLink className="nav-item__link-img">
-                                            <img src="../../assets/IMG/logo_header.webp" className="header-logo" />
-                                        </navLink>
+                                        <Link to="/" className="nav-item__link-img">
+                                            <img src="/assets/IMG/Logo.png" className="header-logo" alt="Givral Bakery" />
+                                        </Link>
                                     </li>
                                     <li className="nav-item col-lg-8 col-md-8 hide-on-mobile">
                                         <Navigation />
@@ -121,7 +195,7 @@ const Header = () => {
                                             <div className="nav-item__link-icon search-btn-js">
                                                 <i className="nav-icon fa-solid fa-magnifying-glass"></i>
                                             </div>
-                                            <Link to={user ? "/thong-tin-ca-nhan" : "/dang-nhap"} className="nav-item__link-icon hide-on-mobile" >
+                                            <div className="nav-item__link-icon hide-on-mobile" style={{ cursor: "pointer" }}>
                                                 {user?.AVATAR ? (
                                                     <img src={(user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px', }} />
                                                 ) : (
@@ -132,12 +206,7 @@ const Header = () => {
                                                         <>
                                                             <li className="nav-icon__user-item">
                                                                 <span style={{ padding: '10px  0px 10px 10px', display: 'block', fontWeight: 'bold', color: 'var(--primary-color)', borderBottom: '1px solid #eee' }}>
-                                                                    Xin chào,
-                                                                    {
-                                                                        user?.khachhang?.HOTEN ||
-                                                                        user?.nhanvien?.HOTEN ||
-                                                                        user?.username
-                                                                    }
+                                                                    Xin chào, {getUserDisplayName(user)}
                                                                 </span>
                                                             </li>
                                                             <li className="nav-icon__user-item">
@@ -157,19 +226,19 @@ const Header = () => {
                                                         </>
                                                     )}
                                                 </ul>
-                                            </Link>
+                                            </div>
                                             <Link to="/yeu-thich" className="nav-item__link-icon ">
                                                 <i className="nav-icon fa-regular fa-heart"></i>
                                                 <div className="nav-icon__number" id="wishlist-count">0</div>
                                             </Link>
-                                            <Link to="/gio-hang" className="nav-item__link-icon ">
+                                            <div className="nav-item__link-icon" style={{ cursor: "pointer" }}>
                                                 <i className="nav-icon fa-solid fa-cart-shopping"></i>
                                                 <div className="nav-icon__number" id="cart-count">{cartItems.length}</div>
-                                                <ul className="cart-list" style={{ maxHeight: '400px', overflowY: 'auto', backgroundColor: 'rgba(255, 255, 255, 0.8)', width: 'max-content', minWidth: '320px' }}>
+                                                <ul className="cart-list" style={{ maxHeight: '400px', overflowY: 'auto', backgroundColor: '#ffffff', opacity: 1, width: 'max-content', minWidth: '320px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
                                                     {cartItems.length === 0 ? (
                                                         <>
                                                             <li className="cart-item">
-                                                                <img src="../../assets/IMG/noCart.jpg" className="noCart-img" />
+                                                                <img src="/assets/IMG/noCart.jpg" className="noCart-img" />
                                                             </li>
                                                             <li className="cart-item">
                                                                 <p className="cart-item__title">
@@ -208,7 +277,7 @@ const Header = () => {
                                                         </>
                                                     )}
                                                 </ul>
-                                            </Link>
+                                            </div>
                                         </ul>
 
                                     </li>
@@ -225,7 +294,7 @@ const Header = () => {
                     <div className="header-gioiThieu">
                         <img src="../../assets/IMG/breadcrumb.jpg" alt="" className="header-gioiThieu-img" />
                         <div className="radient">
-                            <div className="navigation navigation-js">
+                            <div className={`navigation navigation-js ${isScrolled ? "navigation-croll is-sticky" : ""}`}>
                                 <div className="container">
                                     <div className="row">
                                         <ul className="nav-list col-lg-12">
@@ -236,7 +305,7 @@ const Header = () => {
                                             </li>
                                             <li className="nav-item col-lg-2 col-md-2">
                                                 <Link to="/" className="nav-item__link-img">
-                                                    <img src="../../assets/IMG/logo_header.webp" className="header-logo" />
+                                                    <img src="/assets/IMG/Logo.png" className="header-logo" alt="Givral Bakery" />
                                                 </Link>
                                             </li>
                                             <li className="nav-item col-lg-8 col-md-8 hide-on-mobile">
@@ -247,7 +316,7 @@ const Header = () => {
                                                     <div className="nav-item__link-icon search-btn-js">
                                                         <i className="nav-icon fa-solid fa-magnifying-glass"></i>
                                                     </div>
-                                                    <Link to={user ? "/thong-tin-ca-nhan" : "/dang-nhap"} className="nav-item__link-icon hide-on-mobile">
+                                                    <div className="nav-item__link-icon hide-on-mobile" style={{ cursor: "pointer" }}>
                                                         {user?.AVATAR ? (
                                                             <img src={(user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px'}} />
                                                         ) : (
@@ -258,12 +327,7 @@ const Header = () => {
                                                                 <>
                                                                     <li className="nav-icon__user-item">
                                                                         <span style={{ padding: '10px  0px 10px 10px', display: 'block', fontWeight: 'bold', color: 'var(--primary-color)', borderBottom: '1px solid #eee' }}>
-                                                                            Xin chào,
-                                                                            {
-                                                                                user?.khachhang?.HOTEN ||
-                                                                                user?.nhanvien?.HOTEN ||
-                                                                                user?.username
-                                                                            }
+                                                                            Xin chào, {getUserDisplayName(user)}
                                                                         </span>
                                                                     </li>
                                                                     <li className="nav-icon__user-item">
@@ -283,19 +347,19 @@ const Header = () => {
                                                                 </>
                                                             )}
                                                         </ul>
-                                                    </Link>
+                                                    </div>
                                                     <Link to="/yeu-thich" className="nav-item__link-icon ">
                                                         <i className="nav-icon fa-regular fa-heart"></i>
                                                         <div className="nav-icon__number" id="wishlist-count">0</div>
                                                     </Link>
-                                                    <Link to="/gio-hang" className="nav-item__link-icon ">
+                                                    <div className="nav-item__link-icon" style={{ cursor: "pointer" }}>
                                                         <i className="nav-icon fa-solid fa-cart-shopping"></i>
                                                         <div className="nav-icon__number" id="cart-count">{cartItems.length}</div>
-                                                        <ul className="cart-list" style={{ maxHeight: '400px', overflowY: 'auto', backgroundColor: 'rgba(255, 255, 255, 0.94)', width: 'max-content', minWidth: '320px' }}>
+                                                        <ul className="cart-list" style={{ maxHeight: '400px', overflowY: 'auto', backgroundColor: '#ffffff', opacity: 1, width: 'max-content', minWidth: '320px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
                                                             {cartItems.length === 0 ? (
                                                                 <>
                                                                     <li className="cart-item">
-                                                                        <img src="../../assets/IMG/noCart.jpg" className="noCart-img" />
+                                                                        <img src="/assets/IMG/noCart.jpg" className="noCart-img" />
                                                                     </li>
                                                                     <li className="cart-item">
                                                                         <p className="cart-item__title">
@@ -334,7 +398,7 @@ const Header = () => {
                                                                 </>
                                                             )}
                                                         </ul>
-                                                    </Link>
+                                                    </div>
                                                 </ul>
 
                                             </li>

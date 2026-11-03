@@ -51,9 +51,20 @@ const AdminCategoryPage = () => {
     }
   };
 
-  const getProductCountForCat = (maloai) => {
+  const getProductCountForCat = (cat) => {
+    if (!cat) return 0;
+    if (typeof cat === 'object') {
+      if (cat.san_phams_count !== undefined) return cat.san_phams_count;
+      if (cat.soLuongSanPham !== undefined) return cat.soLuongSanPham;
+      if (cat.SO_LUONG_SP !== undefined) return cat.SO_LUONG_SP;
+    }
+    
+    const catId = typeof cat === 'object' ? (cat.MALOAI || cat.id) : cat;
     if (!products.length) return 0;
-    return products.filter(p => String(p.MALOAI) === String(maloai)).length;
+    return products.filter(p => {
+      const pCatId = p.loaiId ?? p.loai_id ?? p.MALOAI ?? p.LOAISP;
+      return String(pCatId) === String(catId);
+    }).length;
   };
 
   const handleOpenModal = (cat = null) => {
@@ -98,21 +109,21 @@ const AdminCategoryPage = () => {
 
   const handleDelete = async (cat) => {
     const catId = cat.MALOAI || cat.id;
-    const count = getProductCountForCat(catId);
+    const count = getProductCountForCat(cat);
+    
     if (count > 0) {
-      if (!window.confirm(`Loại sản phẩm "${cat.TENLOAI}" hiện đang chứa ${count} sản phẩm bánh. Bạn có chắc chắn muốn xóa không?`)) {
-        return;
-      }
-    } else {
-      if (!window.confirm(`Bạn có chắc chắn muốn xóa loại sản phẩm "${cat.TENLOAI}"?`)) return;
+      toast.warning(`Không thể xóa loại sản phẩm "${cat.TENLOAI || cat.name}" vì đang chứa ${count} sản phẩm bánh. Vui lòng di chuyển hoặc xóa các sản phẩm thuộc danh mục này trước!`);
+      return;
     }
+
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa loại sản phẩm "${cat.TENLOAI || cat.name}"?`)) return;
 
     try {
       const res = await deleteCategory(catId);
       toast.success(res?.message || 'Đã xóa loại sản phẩm!');
       setCategories(prev => prev.filter(item => (item.MALOAI || item.id) !== catId));
     } catch (e) {
-      toast.error('Lỗi khi xóa loại sản phẩm: ' + (e.response?.data?.message || e.message));
+      toast.error(e.response?.data?.error || e.response?.data?.message || 'Không thể xóa loại sản phẩm này!');
     }
   };
 
@@ -128,7 +139,7 @@ const AdminCategoryPage = () => {
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản Lý Loại Sản Phẩm</h1>
+          <h1 className="admin-title" style={{ marginBottom: 0 }}>Loại sản phẩm</h1>
           <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>Quản lý danh mục phân loại các loại bánh tươi, bánh ngọt, bánh kem và đồ uống</p>
         </div>
         <button className="admin-btn admin-btn-success" onClick={() => handleOpenModal()}>
@@ -179,7 +190,7 @@ const AdminCategoryPage = () => {
                 ) : (
                   filteredCategories.map(cat => {
                     const catId = cat.MALOAI || cat.id;
-                    const count = getProductCountForCat(catId);
+                    const count = getProductCountForCat(cat);
                     return (
                       <tr key={catId}>
                         <td><b>{catId}</b></td>

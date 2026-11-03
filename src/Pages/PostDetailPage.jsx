@@ -9,6 +9,7 @@ import "./PostDetailPage.css";
 import { useToast } from '../components/Toast/Toast';
 
 function PostDetailPage() {
+    const toast = useToast();
     const { id } = useParams();
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -45,10 +46,10 @@ function PostDetailPage() {
 
                 // Fetch comments
                 const cmtData = await getNewsComments(id);
-                setComments(cmtData);
+                setComments(Array.isArray(cmtData) ? cmtData : []);
 
                 // Fetch recent posts for sidebar
-                const recentData = await getNews(1); // Do not pass limit directly to fix paginate issue
+                const recentData = await getNews(1);
                 const postsArr = Array.isArray(recentData) ? recentData : (recentData.data || []);
                 setRecentPosts(postsArr);
             } catch (error) {
@@ -57,6 +58,20 @@ function PostDetailPage() {
             setLoading(false);
         };
         fetchDetail();
+
+        // Tự động cập nhật bình luận mới (Polling mỗi 4 giây)
+        const interval = setInterval(async () => {
+            try {
+                const cmtData = await getNewsComments(id);
+                if (Array.isArray(cmtData)) {
+                    setComments(cmtData);
+                }
+            } catch (err) {
+                // Ignore silent poll error
+            }
+        }, 4000);
+
+        return () => clearInterval(interval);
     }, [id]);
 
     const handleCommentSubmit = async (e) => {
@@ -75,9 +90,8 @@ function PostDetailPage() {
             await postNewsComment(id, commentContent);
             toast.success("Đã gửi bình luận!");
             setCommentContent("");
-            // Refresh comments
             const cmtData = await getNewsComments(id);
-            setComments(cmtData);
+            setComments(Array.isArray(cmtData) ? cmtData : []);
         } catch (error) {
             console.error("Lỗi khi bình luận:", error);
             toast.error("Lỗi: " + (error.response?.data?.error || error.message));
@@ -102,9 +116,8 @@ function PostDetailPage() {
             toast.success("Đã gửi câu trả lời!");
             setReplyContent("");
             setReplyingToId(null);
-            // Refresh comments
             const cmtData = await getNewsComments(id);
-            setComments(cmtData);
+            setComments(Array.isArray(cmtData) ? cmtData : []);
         } catch (error) {
             console.error("Lỗi khi trả lời bình luận:", error);
             toast.error("Lỗi: " + (error.response?.data?.error || error.message));
@@ -113,8 +126,7 @@ function PostDetailPage() {
     };
 
     const countTotalComments = (list) => {
-          const toast = useToast();
-if (!list || !Array.isArray(list)) return 0;
+        if (!list || !Array.isArray(list)) return 0;
         let count = 0;
         for (const item of list) {
             count += 1;
@@ -187,8 +199,13 @@ if (!list || !Array.isArray(list)) return 0;
                             <div className="d-flex alignItems-center flex-wrap">
                                 <h6 className="mb-0 fw-bold me-2">{authorName}</h6>
                                 {isAdmin && (
-                                    <span className="badge bg-warning text-dark fw-bold" style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: '12px' }}>
+                                    <span className="badge bg-warning text-dark fw-bold me-2" style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: '12px' }}>
                                         <i className="fa fa-shield me-1"></i>Quản trị viên
+                                    </span>
+                                )}
+                                {cmt.replyTo?.HOTEN && (
+                                    <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+                                        trả lời <strong className="text-primary">@{cmt.replyTo.HOTEN}</strong>
                                     </span>
                                 )}
                             </div>
@@ -251,8 +268,8 @@ if (!list || !Array.isArray(list)) return 0;
                     </div>
                 </div>
 
-                {/* Render Child Replies */}
-                {cmt.replies && cmt.replies.length > 0 && (
+                {/* Render Child Replies (chỉ ở cấp 1 để không bao giờ bị thụt lề vô tận) */}
+                {!isReply && cmt.replies && cmt.replies.length > 0 && (
                     <ul className="list-unstyled mt-2">
                         {cmt.replies.map(reply => renderCommentItem(reply, true))}
                     </ul>
@@ -264,13 +281,6 @@ if (!list || !Array.isArray(list)) return 0;
     return (
         <>
             <main>
-                {/*<section className="news-banner">
-                    <div className="news-banner-content">
-                        <h1>Tin tức</h1>
-                        <p><Link to="/">Trang chủ</Link> &gt; <Link to="/tin-tuc">Tin tức</Link> &gt; <span>{post?.TIEUDE || "Chi tiết"}</span></p>
-                    </div>
-                </section>*/}
-
                 <section className="news-content-section container mt-4 mb-5">
                     <div className="row">
                         {/* Main Content */}
@@ -327,7 +337,7 @@ if (!list || !Array.isArray(list)) return 0;
                                                         <input 
                                                             type="text" 
                                                             className="form-control" 
-                                                            value={user?.HOTEN || user?.TenKhachHang || user?.TENKH || user?.USERNAME || "Tên của bạn"} 
+                                                            value={user?.nguoidung?.hoTen || user?.HOTEN || user?.TenKhachHang || user?.TENKH || user?.username || user?.USERNAME || "Tên của bạn"} 
                                                             disabled 
                                                         />
                                                     </div>
@@ -335,7 +345,7 @@ if (!list || !Array.isArray(list)) return 0;
                                                         <input 
                                                             type="text" 
                                                             className="form-control" 
-                                                            value={user?.EMAIL || "Email của bạn (Đã ẩn)"} 
+                                                            value={user?.email || user?.EMAIL || "Email của bạn"} 
                                                             disabled 
                                                         />
                                                     </div>

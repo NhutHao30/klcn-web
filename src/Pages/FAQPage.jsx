@@ -4,8 +4,7 @@ import { sendContactEmail } from "../services/contactService";
 import { useToast } from '../components/Toast/Toast';
 
 const FaqItem = ({ question, children }) => {
-      const toast = useToast();
-const [isActive, setIsActive] = useState(false);
+    const [isActive, setIsActive] = useState(false);
 
     return (
         <div className={`faq-item ${isActive ? 'active' : ''}`}>
@@ -21,6 +20,7 @@ const [isActive, setIsActive] = useState(false);
 };
 
 const FAQPage = () => {
+    const toast = useToast();
     const [formData, setFormData] = useState({
         hoTen: "",
         email: "",
@@ -58,7 +58,7 @@ const FAQPage = () => {
                                 <h2 className="faq-section__title">Hỏi đáp về tài khoản</h2>
 
                                 <div className="faq-list">
-                                    <FaqItem question="1. Làm thế nào để tôi trở thành thành viên của Dola?">
+                                    <FaqItem question="1. Làm thế nào để tôi trở thành thành viên của Givral?">
                                         <p>Quý khách vui lòng nhấn vào nút “Đăng ký” ở thanh menu trên cùng của màn hình (Đối với Desktop) hoặc tại góc trái màn hình, chọn biểu tượng Menu rồi chọn “Đăng ký” (Đối với Mobile). </p>
                                     </FaqItem>
                                     
@@ -70,11 +70,11 @@ const FAQPage = () => {
                                         <p>Quý khách nên sử dụng tài khoản cá nhân để đảm bảo độ tin cậy cũng như quyền lợi của bản thân khi mua sắm. Việc sử dụng chung tài khoản có thể dẫn đến những sai sót mà người chịu ảnh hưởng trực tiếp chính là quý khách hàng.</p>
                                     </FaqItem>
                                     
-                                    <FaqItem question="4. Tại sao tôi nên đăng ký thành viên Dola?">
-                                        <p>Việc đăng ký tài khoản là cơ hội giúp quý khách trở thành một trong những khách hàng thân thiết của Dola, được tiếp cận nhanh nhất các chương trình khuyến mãi, thông tin ưu đãi khi mua sắm.</p>
+                                    <FaqItem question="4. Tại sao tôi nên đăng ký thành viên Givral?">
+                                        <p>Việc đăng ký tài khoản là cơ hội giúp quý khách trở thành một trong những khách hàng thân thiết của Givral, được tiếp cận nhanh nhất các chương trình khuyến mãi, thông tin ưu đãi khi mua sắm.</p>
                                     </FaqItem>
                                     
-                                    <FaqItem question="5. Dola có chương trình ưu đãi nào hấp dẫn dành cho khách hàng thân thiết?">
+                                    <FaqItem question="5. Givral có chương trình ưu đãi nào hấp dẫn dành cho khách hàng thân thiết?">
                                         <p>Khi tổng giá trị đơn hàng của quý khách tích lũy đạt đủ điều kiện của từng mức hạng thành viên, quý khách sẽ nhận được ưu đãi giảm giá cho mọi đơn hàng tương, voucher sinh nhật tương ứng của hạng mức thành viên.</p>
                                     </FaqItem>
                                 </div>
@@ -84,8 +84,8 @@ const FAQPage = () => {
                                     <div className="faq-list">
                                         <FaqItem question="1. Tôi có thể đặt hàng bằng những hình thức nào?">
                                             <p>
-                                                Quý khách có thể mua hàng tại Dola bằng những hình thức Mua hàng trực tiếp tại các hệ thống cửa hàng hoặc Đặt hàng trực tuyến tại website
-                                                Dola luôn khuyến khích quý khách tạo tài khoản và đặt hàng online để được hưởng các chính sách ưu đãi thành viên tốt hơn.
+                                                Quý khách có thể mua hàng tại Givral bằng những hình thức Mua hàng trực tiếp tại các hệ thống cửa hàng hoặc Đặt hàng trực tuyến tại website
+                                                Givral luôn khuyến khích quý khách tạo tài khoản và đặt hàng online để được hưởng các chính sách ưu đãi thành viên tốt hơn.
                                             </p>
                                         </FaqItem>
                                         
@@ -93,13 +93,13 @@ const FAQPage = () => {
                                             <p>Để liên hệ với nhân viên tư vấn, quý khách vui lòng liên hệ qua Hotline 1900 6750 trong thời gian từ 9:00 – 18:00,  T2 – T6 hằng tuần.</p>
                                         </FaqItem>
                                         
-                                        <FaqItem question="3. Dola có giới hạn về số lượng sản phẩm khi đặt hàng không?">
+                                        <FaqItem question="3. Givral có giới hạn về số lượng sản phẩm khi đặt hàng không?">
                                             <p>Quý khách có thể đặt hàng với số lượng sản phẩm tùy ý. Đối với các sản phẩm có giới hạn về số lượng (trong các dịp flashsale, sale các dịp lễ Tết), hệ thống sẽ cập nhật số lượng được  mua tối đa và chỉ ghi nhận đơn hàng có số lượng đặt mua trong giới hạn.</p>
                                         </FaqItem>
                                         
                                         <FaqItem question="4. Tôi muốn xem lại lịch sử đơn hàng đã mua?">
                                             <p>
-                                                Quý khách vui lòng liên hệ tư vấn viên của Dola Hotline 1900 6750 để được hủy hoặc thay đổi sản phẩm trong đơn hàng.
+                                                Quý khách vui lòng liên hệ tư vấn viên của Givral Hotline 1900 6750 để được hủy hoặc thay đổi sản phẩm trong đơn hàng.
                                                 <br />
                                                 Lưu ý: Đơn hàng chỉ được hủy khi đơn hàng của quý khách chưa chuyển trạng thái cho đơn vị vận chuyển.
                                             </p>
@@ -113,13 +113,13 @@ const FAQPage = () => {
                                         <div className="faq-list">
                                             <FaqItem question="1. Tôi có thể đặt hàng bằng những hình thức nào?">
                                                 <p>
-                                                    Dola áp dụng giao hàng trên toàn quốc cho tất cả giá trị đơn hàng. Phí vận chuyển và thời gian giao hàng sẽ thay đổi tùy thuộc vào giá trị đơn hàng và từng khu vực cụ thể.
+                                                    Givral áp dụng giao hàng trên toàn quốc cho tất cả giá trị đơn hàng. Phí vận chuyển và thời gian giao hàng sẽ thay đổi tùy thuộc vào giá trị đơn hàng và từng khu vực cụ thể.
                                                 </p>
                                             </FaqItem>
                                             
                                             <FaqItem question="2. Tôi có được hỗ trợ phí vận chuyển không?">
                                                 <p>
-                                                    Dola hỗ trợ Miễn phí vận chuyển cho khách hàng theo khu vực và giá trị đơn hàng:
+                                                    Givral hỗ trợ Miễn phí vận chuyển cho khách hàng theo khu vực và giá trị đơn hàng:
                                                     <br />
                                                     TP.HCM: Miễn phí vận chuyển với đơn hàng từ 500,000
                                                     <br />
@@ -134,7 +134,7 @@ const FAQPage = () => {
                                                     Đối với khu vực nội thành Hồ Chí Minh, thời gian giao hàng dao động trong khoảng 1 – 2 ngày làm việc; đối với khu vực ngoại thành và các tỉnh, thời gian trung bình nhận hàng dao động từ 3 – 5 ngày.
                                                     Lưu ý:
                                                     <br />
-                                                    Thời gian giao hàng được tính từ lúc Dola hoàn tất việc xác nhận đơn hàng đến khi nhận được hàng, không kể ngày lễ hay thứ 7 và chủ nhật.
+                                                    Thời gian giao hàng được tính từ lúc Givral hoàn tất việc xác nhận đơn hàng đến khi nhận được hàng, không kể ngày lễ hay thứ 7 và chủ nhật.
                                                     <br />
                                                     Trường hợp khách hàng tại Hồ Chí Minh có nhu cầu nhận hàng hỏa tốc, vui lòng liên hệ trực tiếp tới Hotline 1900 6750 để được hỗ trợ.
                                                 </p>

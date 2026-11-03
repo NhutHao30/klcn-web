@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Footer from "../Layout/Footer";
-import { getBestSellers, getHomepageProducts } from "../services/productService";
+import { getBestSellers, getHomepageProducts, getProducts } from "../services/productService";
+import { getNews } from "../services/newsService";
 import axiosClient from "../services/axiosClient";
 
 const HomePage = () => {
@@ -10,26 +11,62 @@ const HomePage = () => {
     const [newestProducts, setNewestProducts] = useState([]);
     const [expensiveProducts, setExpensiveProducts] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [newsArticles, setNewsArticles] = useState([]);
+    const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+    const [categoryProducts, setCategoryProducts] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [homepageData, bestSellersData, categoriesData] = await Promise.all([
+                const [homepageData, bestSellersData, categoriesData, newsRes] = await Promise.all([
                     getHomepageProducts(),
                     getBestSellers(),
-                    axiosClient.get('/categories').then(res => res.data)
+                    axiosClient.get('/categories').then(res => res.data).catch(() => []),
+                    getNews(1, 3).catch(() => ({ data: [] }))
                 ]);
                 setDiscountedProducts(homepageData.discounted || []);
                 setNewestProducts(homepageData.newest || []);
                 setExpensiveProducts(homepageData.expensive || []);
                 setBestSellers(bestSellersData || []);
-                setCategories(categoriesData || []);
+                const cats = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.data || []);
+                setCategories(cats);
+
+                const articles = Array.isArray(newsRes) ? newsRes : (newsRes?.data || []);
+                setNewsArticles(articles.slice(0, 3));
+
+                // Find "Bánh ngọt" category or default to first category
+                const banhNgotCat = cats.find(c => {
+                    const name = (c.TENLOAI || c.tenLoai || '').toLowerCase();
+                    return name.includes('ngọt') || name.includes('ngot');
+                }) || cats[0];
+
+                if (banhNgotCat) {
+                    const catId = banhNgotCat.MALOAI || banhNgotCat.id || banhNgotCat.loaiId;
+                    setSelectedCategoryId(catId);
+                    try {
+                        const prods = await getProducts({ loaiId: catId });
+                        const pList = Array.isArray(prods) ? prods : (prods?.data || []);
+                        setCategoryProducts(pList);
+                    } catch (e) {}
+                }
             } catch (error) {
                 console.error("Lỗi khi tải dữ liệu trang chủ:", error);
             }
         };
         fetchData();
     }, []);
+
+    const handleSelectCategory = async (cat) => {
+        const catId = cat.MALOAI || cat.id || cat.loaiId;
+        setSelectedCategoryId(catId);
+        try {
+            const prods = await getProducts({ loaiId: catId });
+            const pList = Array.isArray(prods) ? prods : (prods?.data || []);
+            setCategoryProducts(pList);
+        } catch (e) {
+            console.error("Lỗi khi tải bánh theo danh mục:", e);
+        }
+    };
 
     // Helper: format image URL
     const formatImageUrl = (url) => {
@@ -270,8 +307,9 @@ const HomePage = () => {
     };
 
     // Split expensive products into two columns for the menu layout
-    const leftColumnProducts = expensiveProducts.slice(0, 4);
-    const rightColumnProducts = expensiveProducts.slice(4, 8);
+    const activeMenuProducts = categoryProducts.length > 0 ? categoryProducts : (Array.isArray(expensiveProducts) ? expensiveProducts : []);
+    const leftColumnProducts = activeMenuProducts.slice(0, 4);
+    const rightColumnProducts = activeMenuProducts.slice(4, 8);
 
     return (
         <>
@@ -492,7 +530,26 @@ const HomePage = () => {
                                             <li className="menuProduct-item-level1 col-lg-3 col-md-3 pd-10-md">
                                                 <ul className="menuProduct_category-list-level2">
                                                     {categories.length > 0 ? categories.map((cat, idx) => (
-                                                        <li key={idx} className="menuProduct_category-item-level2 ">{cat.TENLOAI || cat.tenLoai}</li>
+                                                        (() => {
+                                                            const catId = cat.MALOAI || cat.id || cat.loaiId;
+                                                            const isSelected = selectedCategoryId === catId;
+                                                            return (
+                                                                <li
+                                                                    key={idx}
+                                                                    className={`menuProduct_category-item-level2 ${isSelected ? 'active-cat' : ''}`}
+                                                                    style={{
+                                                                        cursor: 'pointer',
+                                                                        color: isSelected ? '#f7a840' : 'inherit',
+                                                                        fontWeight: isSelected ? '700' : 'normal',
+                                                                        borderLeft: isSelected ? '3px solid #f7a840' : 'none',
+                                                                        paddingLeft: isSelected ? '8px' : '0'
+                                                                    }}
+                                                                    onClick={() => handleSelectCategory(cat)}
+                                                                >
+                                                                    {cat.TENLOAI || cat.tenLoai}
+                                                                </li>
+                                                            );
+                                                        })()
                                                     )) : (
                                                         <>
                                                             <li className="menuProduct_category-item-level2 ">Bánh kem</li>
@@ -573,64 +630,40 @@ const HomePage = () => {
                                         </div>
                                     </li>
                                     <li className="product-post-item">
-                                        <div className="product-post-block col-lg-4 col-md-4 col-12">
-                                            <ul className="product-post-block-list">
-                                                <li className="product-post-block-item_img">
-                                                    <a href="" className="product-post-block-item_img-link">
-                                                        <img src="../../assets/IMG/post_img-1.webp" alt="" className="product-post_img" />
-                                                    </a>
-                                                </li>
-                                                <li className="product-post-block-item_info">
-                                                    <h3 className="product-post_title-h3">
-                                                        <a href="" className="product-post-title-link">
-                                                            Donut chỉ từ 8k tại Dola
-                                                        </a>
-                                                    </h3>
-                                                    <span className="product-post-block-item_des">
-                                                        Nhắc đến bánh Donut, dân sành thưởng thức hẳn không còn xa lạ gì với món ăn vặt rất phổ biến ở các nước phương Tây này. Dù có nguồn...
-                                                    </span>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                        <div className="product-post-block col-lg-4 col-md-4 col-12">
-                                            <ul className="product-post-block-list">
-                                                <li className="product-post-block-item_img">
-                                                    <a href="" className="product-post-block-item_img-link">
-                                                        <img src="../../assets/IMG/post_img-2.webp" alt="" className="product-post_img" />
-                                                    </a>
-                                                </li>
-                                                <li className="product-post-block-item_info">
-                                                    <h3 className="product-post_title-h3">
-                                                        <a href="" className="product-post-title-link">
-                                                            Croissant ngàn lớp - đa dạng cách thưởng thức
-                                                        </a>
-                                                    </h3>
-                                                    <span className="product-post-block-item_des">
-                                                        Những chiếc bánh sừng bò với hương bơ thơm béo đặc trưng lại còn đưa miệng với độ giòn xốp, dai dai từ "ngàn" lớp bánh. Nổi bật với hình...
-                                                    </span>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                        <div className="product-post-block col-lg-4 col-md-4 col-12">
-                                            <ul className="product-post-block-list">
-                                                <li className="product-post-block-item_img">
-                                                    <a href="" className="product-post-block-item_img-link">
-                                                        <img src="../../assets/IMG/post_img-3.webp" alt="" className="product-post_img" />
-                                                    </a>
-                                                </li>
-                                                <li className="product-post-block-item_info">
-                                                    <h3 className="product-post_title-h3">
-                                                        <a href="" className="product-post-title-link">
-                                                            Bánh Tart thơm ngậy không thể bỏ lỡ
-                                                        </a>
-                                                    </h3>
-                                                    <span className="product-post-block-item_des">
-                                                        Tart trứng là loại bánh đường phố nổi tiếng ở Hong Kong được rất nhiều người yêu thích. Không những thế, trong bảng xếp hạng 50 loại món ăn ngon...
-                                                    </span>
-                                                </li>
-                                            </ul>
-                                        </div>
-
+                                        {newsArticles.length > 0 ? (
+                                            newsArticles.map((article, index) => {
+                                                const title = article.TIEUDE || article.tieuDe || 'Tin tức Dola Bakery';
+                                                const rawSummary = article.TOMTAT || article.tomTat || (article.NOIDUNG || article.noiDung || '');
+                                                const summary = rawSummary.replace(/<[^>]*>?/gm, '').slice(0, 130) + '...';
+                                                const id = article.MABAIVIET || article.id;
+                                                const img = formatImageUrl(article.HINHANH || article.hinhAnh || (`../../assets/IMG/post_img-${(index % 3) + 1}.webp`));
+                                                return (
+                                                    <div key={index} className="product-post-block col-lg-4 col-md-4 col-12">
+                                                        <ul className="product-post-block-list">
+                                                            <li className="product-post-block-item_img">
+                                                                <a href={`/tin-tuc/${id}`} className="product-post-block-item_img-link">
+                                                                    <img src={img} alt={title} className="product-post_img" />
+                                                                </a>
+                                                            </li>
+                                                            <li className="product-post-block-item_info">
+                                                                <h3 className="product-post_title-h3">
+                                                                    <a href={`/tin-tuc/${id}`} className="product-post-title-link">
+                                                                        {title}
+                                                                    </a>
+                                                                </h3>
+                                                                <span className="product-post-block-item_des">
+                                                                    {summary}
+                                                                </span>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="col-12 text-center py-4">
+                                                <p style={{ color: '#777' }}>Đang đồng bộ bài viết tin tức mới nhất từ Dola Bakery...</p>
+                                            </div>
+                                        )}
                                     </li>
                                 </ul>
                             </div>

@@ -400,10 +400,15 @@
    ═══════════════════════════════════════════ */
 .admin-main {
   flex-grow: 1;
+  min-width: 0;
+  width: calc(100% - var(--sidebar-width));
+  max-width: calc(100vw - var(--sidebar-width));
   margin-left: var(--sidebar-width);
   padding: 2rem;
   min-height: 100vh;
   transition: margin-left 0.3s ease;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Typography Classes */
@@ -431,6 +436,10 @@
   padding: 24px;
   margin-bottom: 1.5rem;
   transition: box-shadow 0.3s ease;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .admin-card:hover {
@@ -441,6 +450,10 @@
 .admin-table-container {
   overflow-x: auto;
   margin-top: 1rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-table {
@@ -606,6 +619,99 @@
   z-index: 999;
 }
 
+/* ═══════════════════════════════════════════
+   ADMIN MODAL OVERLAY & DIALOG STYLES
+   ═══════════════════════════════════════════ */
+.admin-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.admin-modal {
+  background: #ffffff;
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: adminModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes adminModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.admin-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8fafc;
+}
+
+.admin-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.admin-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.admin-modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.admin-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.admin-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background-color: #f8fafc;
+}
+
+.adminScrollbarHide::webkit-scrollbar {
+  display: none;
+}
+
 @media (max-width: 1024px) {
   .admin-title {
     font-size: 32px;
@@ -684,4 +790,32 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+/* Scrollbar hiding utilities */
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Invoice modal styles */
+.invoice-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+.invoice-header img {
+  width: 60px !important;
+  height: 60px !important;
+  max-width: 60px !important;
+  max-height: 60px !important;
+  object-fit: contain !important;
+  border-radius: 8px !important;
+  flex-shrink: 0;
 }

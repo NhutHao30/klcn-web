@@ -16,6 +16,43 @@ const formatDateOnly = (dateStr) => {
   return cleanStr;
 };
 
+const renderSignaturePreview = (sigVal, label, signerName) => {
+  if (!sigVal) {
+    return <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>(Chưa ký)</span>;
+  }
+  if (String(sigVal).startsWith('data:image/') || String(sigVal).startsWith('http') || String(sigVal).startsWith('/')) {
+    return (
+      <img
+        src={sigVal}
+        alt={`Chữ ký ${label}`}
+        style={{ maxHeight: '75px', maxWidth: '88%', objectFit: 'contain', display: 'block', margin: '0 auto' }}
+      />
+    );
+  }
+  // Con dấu chữ ký số điện tử (hash SHA-256)
+  return (
+    <div style={{
+      border: '2px double #16a34a',
+      backgroundColor: '#f0fdf4',
+      color: '#15803d',
+      padding: '6px 10px',
+      borderRadius: '6px',
+      fontSize: '11px',
+      fontWeight: 'bold',
+      lineHeight: 1.35,
+      maxWidth: '92%'
+    }}>
+      <div>✓ ĐÃ KÝ SỐ ĐIỆN TỬ</div>
+      <div style={{ fontSize: '10px', color: '#166534', fontWeight: 'normal', marginTop: '2px' }}>
+        {signerName || label}
+      </div>
+      <div style={{ fontSize: '9px', color: '#64748b', fontFamily: 'monospace', marginTop: '2px' }}>
+        #{String(sigVal).slice(0, 12).toUpperCase()}
+      </div>
+    </div>
+  );
+};
+
 const AdminSignatureApprovalPage = () => {
   const toast = useToast();
   const [currentUser, setCurrentUser] = useState(null);
@@ -33,6 +70,8 @@ const AdminSignatureApprovalPage = () => {
   const [docType, setDocType] = useState('hdnhap'); // 'hdnhap' | 'bien_ban_huy'
   const [showModal, setShowModal] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const [drawnSignature, setDrawnSignature] = useState(null);
+  const [sigCanvasKey, setSigCanvasKey] = useState(1);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -62,58 +101,97 @@ const AdminSignatureApprovalPage = () => {
     }
   };
 
+  // Xác định vai trò tài khoản hiện tại theo đúng bảng vaiTro
+  const vtId = Number(currentUser?.vaiTroId ?? currentUser?.vai_tro_id ?? currentUser?.vaitro?.id ?? 0);
+  const maRole = Number(currentUser?.MAROLE ?? -1);
+  const usernameLower = String(currentUser?.username || currentUser?.USERNAME || '').toLowerCase();
+
+  // Admin (vaiTroId = 1) tuyệt đối không được tham gia ký duyệt
+  const isAdminUser = vtId === 1 || maRole === 0 || usernameLower === 'admin';
+  // Giám đốc (vaiTroId = 8) chỉ duyệt yêu cầu nhập hàng khi cần, không ký vào vị trí chi nhánh
+  const isDirectorUser = !isAdminUser && (vtId === 8 || maRole === 5);
+  // 3 vai trò được phép ký đúng vị trí của mình:
+  const isBranchManagerUser = !isAdminUser && !isDirectorUser && (vtId === 2 || maRole === 1);
+  const isWarehouseUser = !isAdminUser && !isDirectorUser && vtId === 4;
+  const isAccountantUser = !isAdminUser && !isDirectorUser && vtId === 7;
+
+  const getMyRoleSummary = () => {
+    if (isAdminUser) return { label: 'Quản trị viên (Admin)', canSign: false, note: 'Role Admin chỉ giám sát hệ thống, KHÔNG được phép tham gia vào việc ký duyệt chứng từ.' };
+    if (isDirectorUser) return { label: 'Ban Giám Đốc', canSign: false, note: 'Ban Giám Đốc chỉ duyệt đơn yêu cầu nhập hàng khi cần thiết, không ký trực tiếp đơn nhập/biên bản hủy của chi nhánh.' };
+    if (isBranchManagerUser) return { label: 'Quản lý chi nhánh', canSign: true, slotLabel: 'QUẢN LÝ CHI NHÁNH', note: 'Khi bạn ký duyệt, đơn nhập hàng / biên bản hủy sẽ hoàn tất ngay mà không cần các vai trò khác ký thêm.' };
+    if (isWarehouseUser) return { label: 'Nhân viên kho', canSign: true, slotLabel: 'NHÂN VIÊN KHO', note: 'Bạn chỉ được ký vào vị trí Nhân viên kho. Nếu chưa có chữ ký của Quản lý chi nhánh, cần thêm chữ ký của Nhân viên kế toán.' };
+    if (isAccountantUser) return { label: 'Nhân viên kế toán', canSign: true, slotLabel: 'NHÂN VIÊN KẾ TOÁN', note: 'Bạn chỉ được ký vào vị trí Nhân viên kế toán. Nếu chưa có chữ ký của Quản lý chi nhánh, cần thêm chữ ký của Nhân viên kho.' };
+    return { label: 'Nhân viên', canSign: false, note: 'Vai trò hiện tại không tham gia ký duyệt chứng từ kho/kế toán.' };
+  };
+
+  const roleSummary = getMyRoleSummary();
+
   const handleSign = async (vaitroKy) => {
     if (!selectedDoc) return;
+    if (isAdminUser) {
+      toast.error('Tài khoản Quản trị viên (Admin) không được phép tham gia vào việc ký duyệt!');
+      return;
+    }
     setIsSigning(true);
     try {
       const res = await axiosClient.post('/chu-ky/xac-nhan', {
         loai_phieu: docType,
         id: docType === 'hdnhap' ? selectedDoc.MAHDNHAP : selectedDoc.id,
-        vaitro_ky: vaitroKy
+        vaitro_ky: vaitroKy,
+        signature_data: drawnSignature || null,
       });
 
       if (res.data?.status) {
         toast.success(res.data.message || 'Đã ký duyệt thành công!');
         setShowModal(false);
+        setDrawnSignature(null);
         fetchPendingSignatures();
+      } else {
+        toast.error(res.data?.error || res.data?.message || 'Không thể ký duyệt');
       }
     } catch (e) {
-      toast.error('Lỗi khi ký: ' + (e.response?.data?.error || e.message));
+      toast.error(e.response?.data?.error || e.response?.data?.message || e.message);
     } finally {
       setIsSigning(false);
     }
   };
 
-  const getRoleLabel = (role) => {
-    const r = Number(role);
-    if (r === 0) return 'Giám đốc / Quản lý tổng';
-    if (r === 1) return 'Quản lý chi nhánh / Kế toán';
-    if (r === 2) return 'Thủ kho / Nhân viên';
-    return 'Nhân viên';
-  };
-
-  const getDocStatusBadge = (status) => {
+  const getDocStatusBadge = (item) => {
+    const status = item.TRANGTHAI_KY;
+    const hasQuanLy = !!(item.KY_QUAN_LY || item.KY_GIAM_DOC);
     if (status === 'hoan_tat_ky') {
-      return <span style={{ backgroundColor: '#22c55e', color: '#fff', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>✓ Đã Ký Đủ Các Bên</span>;
+      return (
+        <span style={{ backgroundColor: '#22c55e', color: '#fff', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', display: 'inline-block' }}>
+          ✓ {hasQuanLy ? 'QL Chi Nhánh Đã Duyệt' : 'Kho & Kế Toán Đã Ký Đủ'}
+        </span>
+      );
     } else if (status === 'da_ky_mot_phan') {
-      return <span style={{ backgroundColor: '#f59e0b', color: '#fff', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>⏳ Đã Ký Một Phần</span>;
+      return (
+        <span style={{ backgroundColor: '#f59e0b', color: '#fff', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', display: 'inline-block' }}>
+          ⏳ Đã Ký 1/2 (Chờ Bên Còn Lại)
+        </span>
+      );
     }
-    return <span style={{ backgroundColor: '#ef4444', color: '#fff', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>⚠️ Chờ Ký Duyệt</span>;
+    return (
+      <span style={{ backgroundColor: '#ef4444', color: '#fff', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', display: 'inline-block' }}>
+        ⚠️ Chờ Ký Duyệt
+      </span>
+    );
   };
 
-  const currentList = activeTab === 'hdnhap' 
+  const currentList = activeTab === 'hdnhap'
     ? (data.hd_nhap?.[filterType] || [])
     : (data.bien_ban_huy?.[filterType] || []);
 
   return (
     <AdminLayout>
-      <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
+      <div className="admin-flex-between" style={{ marginBottom: '1.2rem' }}>
         <div>
           <h1 className="admin-title" style={{ marginBottom: 0 }}>
-            Quản Lý Duyệt & Ký Số Nội Bộ
+            Duyệt & Ký Số Chứng Từ Chi Nhánh
           </h1>
           <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>
-            Theo dõi, phê duyệt và đóng dấu chữ ký số 4 bên (Thủ kho, NCC, Kế toán, Giám đốc)
+            Quản lý chi nhánh ký duyệt trực tiếp (không cần các vai trò khác ký thêm) — hoặc Nhân viên kho & Nhân viên kế toán cùng ký xác nhận
           </p>
         </div>
         <button className="admin-btn admin-btn-primary" onClick={fetchPendingSignatures}>
@@ -121,26 +199,44 @@ const AdminSignatureApprovalPage = () => {
         </button>
       </div>
 
+      {/* Banner Quy tắc phân quyền ký duyệt */}
+      <div style={{
+        backgroundColor: isAdminUser ? '#fef2f2' : '#eff6ff',
+        border: `1px solid ${isAdminUser ? '#fecaca' : '#bfdbfe'}`,
+        color: isAdminUser ? '#991b1b' : '#1e3a8a',
+        padding: '12px 16px',
+        borderRadius: '10px',
+        marginBottom: '18px',
+        fontSize: '13px',
+        lineHeight: 1.5
+      }}>
+        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+          <i className={`fa-solid ${isAdminUser ? 'fa-ban' : 'fa-shield-halved'}`} style={{ marginRight: '6px' }}></i>
+          Vai trò hiện tại của bạn: <span style={{ textDecoration: 'underline' }}>{roleSummary.label}</span>
+        </div>
+        <div>{roleSummary.note}</div>
+      </div>
+
       {/* Metrics Banner */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '15px', marginBottom: '20px' }}>
         <div className="admin-card" style={{ borderLeft: '4px solid #ef4444', padding: '16px' }}>
-          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>CẦN TÔI KÝ DUYỆT</div>
+          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>TỔNG CHỨNG TỪ CHỜ DUYỆT</div>
           <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#ef4444', marginTop: '4px' }}>
             {data.total_pending}
           </div>
-          <div style={{ fontSize: '11px', color: '#94a3b8' }}>Phiếu đang chờ chữ ký của bạn</div>
+          <div style={{ fontSize: '11px', color: '#94a3b8' }}>Chờ QL Chi nhánh hoặc (Kho + Kế toán) ký</div>
         </div>
 
         <div className="admin-card" style={{ borderLeft: '4px solid #3b82f6', padding: '16px' }}>
-          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>PHIẾU NHẬP KHO CHỜ KÝ</div>
+          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>ĐƠN NHẬP HÀNG CHỜ KÝ</div>
           <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#3b82f6', marginTop: '4px' }}>
             {data.hd_nhap?.pending?.length || 0}
           </div>
-          <div style={{ fontSize: '11px', color: '#94a3b8' }}>Duyệt hạch toán tiền hàng nhập</div>
+          <div style={{ fontSize: '11px', color: '#94a3b8' }}>Duyệt nhập kho chi nhánh</div>
         </div>
 
         <div className="admin-card" style={{ borderLeft: '4px solid #f59e0b', padding: '16px' }}>
-          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>BIÊN BẢN HỦY LÔ CHỜ KÝ</div>
+          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>BIÊN BẢN HỦY CHỜ KÝ</div>
           <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#f59e0b', marginTop: '4px' }}>
             {data.bien_ban_huy?.pending?.length || 0}
           </div>
@@ -150,15 +246,15 @@ const AdminSignatureApprovalPage = () => {
 
       {/* Main Tabs */}
       <div className="admin-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', paddingBottom: '10px' }}>
-          <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button
               className={`admin-btn ${activeTab === 'hdnhap' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
               onClick={() => setActiveTab('hdnhap')}
               style={{ position: 'relative' }}
             >
               <i className="fa-solid fa-file-invoice-dollar" style={{ marginRight: '6px' }}></i>
-              Phiếu Nhập Kho ({data.hd_nhap?.all?.length || 0})
+              Đơn Nhập Hàng ({data.hd_nhap?.all?.length || 0})
               {data.hd_nhap?.pending?.length > 0 && (
                 <span style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: '50%', padding: '2px 7px', fontSize: '11px', marginLeft: '6px' }}>
                   {data.hd_nhap.pending.length}
@@ -184,79 +280,115 @@ const AdminSignatureApprovalPage = () => {
           <div style={{ display: 'flex', gap: '8px' }}>
             <select
               className="admin-input"
-              style={{ marginBottom: 0, width: '180px' }}
+              style={{ marginBottom: 0, width: '190px' }}
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
             >
-              <option value="pending">⚠️ Cần Tôi Ký</option>
-              <option value="signed">✓ Đã Ký Xong</option>
-              <option value="all">Tất Cả Phiếu</option>
+              <option value="pending">⚠️ Đang Chờ Ký Duyệt</option>
+              <option value="signed">✓ Đã Duyệt Hoàn Tất</option>
+              <option value="all">Tất Cả Chứng Từ</option>
             </select>
           </div>
         </div>
 
         {/* Table List */}
         {isLoading ? (
-          <p style={{ textAlign: 'center', padding: '30px' }}>Đang tải danh sách cần ký...</p>
+          <p style={{ textAlign: 'center', padding: '30px' }}>Đang tải danh sách chứng từ...</p>
         ) : currentList.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
             <i className="fa-solid fa-folder-open" style={{ fontSize: '40px', marginBottom: '10px', color: '#cbd5e1' }}></i>
-            <p>Không có phiếu nào trong mục này</p>
+            <p>Không có chứng từ nào trong mục này</p>
           </div>
         ) : (
           <div className="admin-table-container">
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Mã Phiếu</th>
+                  <th>Mã Chứng Từ</th>
+                  <th>Chi Nhánh</th>
                   <th>Ngày Lập</th>
-                  <th>Người Lập (Thủ Kho)</th>
+                  <th>Người Lập</th>
                   {activeTab === 'hdnhap' ? <th>Nhà Cung Cấp</th> : <th>Mã Lô Hàng</th>}
                   {activeTab === 'hdnhap' ? <th style={{ textAlign: 'right' }}>Tổng Tiền</th> : <th style={{ textAlign: 'center' }}>SL Hủy</th>}
-                  <th style={{ textAlign: 'center' }}>Các Bên Đã Ký</th>
-                  <th style={{ textAlign: 'center' }}>Trạng Thái Ký</th>
+                  <th style={{ textAlign: 'center' }}>Chữ Ký Các Vai Trò</th>
+                  <th style={{ textAlign: 'center' }}>Trạng Thái Duyệt</th>
                   <th style={{ textAlign: 'center' }}>Thao Tác</th>
                 </tr>
               </thead>
               <tbody>
                 {currentList.map(item => {
-                  const id = activeTab === 'hdnhap' ? item.MAHDNHAP : item.id;
+                  const id = activeTab === 'hdnhap' ? item.MAHDNHAP : (item.MABB || `BBH-${item.id}`);
                   const dateStr = activeTab === 'hdnhap' ? item.NGAYLAP : item.NGAY_HUY;
-                  const creator = item.nhanvien?.HOTEN || item.USERNAME || 'Thủ kho';
+                  const creator = item.nhanvien?.HOTEN || item.USERNAME || 'Quản lý CN';
+                  const branchName = item.cuahang?.TENCUAHANG || `Chi nhánh #${item.cuaHangId || 1}`;
                   const nccOrLo = activeTab === 'hdnhap' ? (item.nhacungcap?.TENNCC || item.MANCC || '-') : item.MALOHAN;
 
+                  const hasQuanLy = !!(item.KY_QUAN_LY || item.KY_GIAM_DOC);
                   const hasThuKho = !!item.KY_THU_KHO;
-                  const hasNcc = activeTab === 'hdnhap' ? !!item.KY_NCC : true;
                   const hasKeToan = !!item.KY_KE_TOAN;
-                  const hasGiamDoc = !!item.KY_GIAM_DOC;
 
                   return (
                     <tr key={id}>
                       <td><b>{id}</b></td>
+                      <td><span style={{ color: '#0369a1', fontWeight: 600, fontSize: '12px' }}>{branchName}</span></td>
                       <td>{dateStr ? new Date(dateStr).toLocaleString('vi-VN') : '-'}</td>
                       <td>{creator}</td>
                       <td><b>{nccOrLo}</b></td>
                       {activeTab === 'hdnhap' ? (
                         <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#d82d8b' }}>
-                          {Number(item.TONGTIEN_NHAP || 0).toLocaleString('vi-VN')} ₫
+                          {Number(item.TONGTIEN_NHAP ?? item.TONGTIEN ?? 0).toLocaleString('vi-VN')} ₫
                         </td>
                       ) : (
                         <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#ef4444' }}>
-                          {item.SOLUONG_HUY} cái
+                          {item.SOLUONG_HUY ?? item.SO_LUONG_HUY ?? 0} cái
                         </td>
                       )}
                       <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                          <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', backgroundColor: hasThuKho ? '#dcfce7' : '#f1f5f9', color: hasThuKho ? '#15803d' : '#94a3b8' }}>Thủ kho</span>
-                          {activeTab === 'hdnhap' && (
-                            <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', backgroundColor: hasNcc ? '#dcfce7' : '#f1f5f9', color: hasNcc ? '#15803d' : '#94a3b8' }}>NCC</span>
-                          )}
-                          <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', backgroundColor: hasKeToan ? '#dcfce7' : '#f1f5f9', color: hasKeToan ? '#15803d' : '#94a3b8' }}>Kế toán</span>
-                          <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', backgroundColor: hasGiamDoc ? '#dcfce7' : '#f1f5f9', color: hasGiamDoc ? '#15803d' : '#94a3b8' }}>Giám đốc</span>
+                        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <span
+                            title="Quản lý chi nhánh ký duyệt sẽ hoàn tất ngay, không cần Kho & Kế toán ký"
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 7px',
+                              borderRadius: '4px',
+                              fontWeight: hasQuanLy ? 'bold' : 'normal',
+                              backgroundColor: hasQuanLy ? '#dcfce7' : '#f1f5f9',
+                              color: hasQuanLy ? '#15803d' : '#94a3b8',
+                              border: hasQuanLy ? '1px solid #86efac' : '1px solid #e2e8f0'
+                            }}
+                          >
+                            {hasQuanLy ? '✓ ' : ''}QL Chi nhánh
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 7px',
+                              borderRadius: '4px',
+                              fontWeight: hasThuKho ? 'bold' : 'normal',
+                              backgroundColor: hasThuKho ? '#dcfce7' : '#f1f5f9',
+                              color: hasThuKho ? '#15803d' : (hasQuanLy ? '#cbd5e1' : '#94a3b8'),
+                              textDecoration: (!hasThuKho && hasQuanLy) ? 'line-through' : 'none'
+                            }}
+                          >
+                            {hasThuKho ? '✓ ' : ''}NV Kho
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 7px',
+                              borderRadius: '4px',
+                              fontWeight: hasKeToan ? 'bold' : 'normal',
+                              backgroundColor: hasKeToan ? '#dcfce7' : '#f1f5f9',
+                              color: hasKeToan ? '#15803d' : (hasQuanLy ? '#cbd5e1' : '#94a3b8'),
+                              textDecoration: (!hasKeToan && hasQuanLy) ? 'line-through' : 'none'
+                            }}
+                          >
+                            {hasKeToan ? '✓ ' : ''}NV Kế toán
+                          </span>
                         </div>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        {getDocStatusBadge(item.TRANGTHAI_KY)}
+                        {getDocStatusBadge(item)}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <button
@@ -265,10 +397,13 @@ const AdminSignatureApprovalPage = () => {
                           onClick={() => {
                             setSelectedDoc(item);
                             setDocType(activeTab);
+                            setDrawnSignature(null);
+                            setSigCanvasKey(prev => prev + 1);
                             setShowModal(true);
                           }}
                         >
-                          <i className="fa-solid fa-signature" style={{ marginRight: '4px' }}></i> Xem & Ký Duyệt
+                          <i className="fa-solid fa-signature" style={{ marginRight: '4px' }}></i>
+                          {isAdminUser || isDirectorUser ? 'Xem Chi Tiết' : 'Xem & Ký Duyệt'}
                         </button>
                       </td>
                     </tr>
@@ -287,29 +422,40 @@ const AdminSignatureApprovalPage = () => {
           backgroundColor: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(3px)',
           zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
         }}>
-          <div className="admin-card" style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#fff', borderRadius: '12px' }}>
+          <div className="admin-card" style={{ maxWidth: '840px', width: '100%', maxHeight: '92vh', overflowY: 'auto', backgroundColor: '#fff', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '15px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.2rem' }}>
-                Chi Tiết & Xác Nhận Ký Duyệt ({docType === 'hdnhap' ? `Phiếu Nhập ${selectedDoc.MAHDNHAP}` : `Biên Bản Hủy ${selectedDoc.id}`})
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <img src="/assets/IMG/Logo.jpg" alt="Givral Bakery" style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '6px' }} />
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#5c3d2e' }}>GIVRAL BAKERY</h3>
+                  <h2 style={{ margin: 0, fontSize: '1.05rem', color: '#1e293b' }}>
+                    Chi Tiết & Xác Nhận Ký Duyệt ({docType === 'hdnhap' ? `Đơn Nhập ${selectedDoc.MAHDNHAP}` : `Biên Bản Hủy ${selectedDoc.MABB || selectedDoc.id}`})
+                  </h2>
+                </div>
+              </div>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
             </div>
 
             {/* General Info */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '15px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '15px', fontSize: '13px' }}>
               <div><b>Người Lập:</b> {selectedDoc.nhanvien?.HOTEN || selectedDoc.USERNAME}</div>
+              <div><b>Chi Nhánh:</b> {selectedDoc.cuahang?.TENCUAHANG || `Chi nhánh #${selectedDoc.cuaHangId || 1}`}</div>
               <div><b>Thời Gian:</b> {new Date(selectedDoc.created_at || selectedDoc.NGAYLAP || selectedDoc.NGAY_HUY).toLocaleString('vi-VN')}</div>
               {docType === 'hdnhap' ? (
                 <>
                   <div><b>Nhà Cung Cấp:</b> {selectedDoc.nhacungcap?.TENNCC || selectedDoc.MANCC}</div>
-                  <div><b>Tổng Tiền Nhập:</b> <b style={{ color: '#d82d8b' }}>{Number(selectedDoc.TONGTIEN_NHAP || 0).toLocaleString('vi-VN')} ₫</b></div>
+                  <div><b>Tổng Tiền Nhập:</b> <b style={{ color: '#d82d8b' }}>{Number(selectedDoc.TONGTIEN_NHAP ?? selectedDoc.TONGTIEN ?? 0).toLocaleString('vi-VN')} ₫</b></div>
                 </>
               ) : (
                 <>
                   <div><b>Mã Lô Hàng:</b> {selectedDoc.MALOHAN}</div>
-                  <div><b>Số Lượng Hủy:</b> <b style={{ color: '#ef4444' }}>{selectedDoc.SOLUONG_HUY} cái</b></div>
+                  <div><b>Số Lượng Hủy:</b> <b style={{ color: '#ef4444' }}>{selectedDoc.SOLUONG_HUY ?? selectedDoc.SO_LUONG_HUY ?? 0} cái</b></div>
                 </>
               )}
+              <div style={{ gridColumn: '1 / -1', color: '#0369a1', fontWeight: 600 }}>
+                <i className="fa-solid fa-circle-info" style={{ marginRight: '6px' }}></i>
+                Cơ chế duyệt: {selectedDoc.PHUONG_THUC_DUYET || 'Quản lý chi nhánh ký duyệt (1 chữ ký là hoàn tất) HOẶC Nhân viên kho + Nhân viên kế toán cùng ký.'}
+              </div>
             </div>
 
             {/* Product Items Table for HdNhap */}
@@ -332,12 +478,12 @@ const AdminSignatureApprovalPage = () => {
                     {selectedDoc.chitiets.map((ct, idx) => (
                       <tr key={idx}>
                         <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>{idx + 1}</td>
-                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>{ct.sanpham?.TENSP || ct.MASP}</td>
-                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>{ct.SOLUONGTCT}</td>
-                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 'bold' }}>{ct.SOLUONGTN}</td>
-                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'right' }}>{Number(ct.DONGIANHAP || 0).toLocaleString('vi-VN')} ₫</td>
-                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold', color: '#d82d8b' }}>{(ct.SOLUONGTN * ct.DONGIANHAP).toLocaleString('vi-VN')} ₫</td>
-                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>{formatDateOnly(ct.HSD_LO)}</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>{ct.sanpham?.TENSP || ct.TENSP || ct.MASP}</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>{ct.SOLUONGTCT ?? ct.SOLUONG}</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 'bold' }}>{ct.SOLUONGTN ?? ct.SOLUONG}</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'right' }}>{Number(ct.DONGIANHAP ?? ct.DONGIA ?? 0).toLocaleString('vi-VN')} ₫</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold', color: '#d82d8b' }}>{((ct.SOLUONGTN ?? ct.SOLUONG ?? 0) * (ct.DONGIANHAP ?? ct.DONGIA ?? 0)).toLocaleString('vi-VN')} ₫</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>{formatDateOnly(ct.HSD_LO || ct.HSD)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -345,132 +491,222 @@ const AdminSignatureApprovalPage = () => {
               </div>
             )}
 
-            {/* Signature Grid Display */}
-            <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: '15px 0 10px 0', color: '#1e293b' }}>
-              Bảng Đóng Dấu Chữ Ký Số Các Bên
-            </h3>
-
+            {/* Signature Pad cho đúng vai trò được phép ký */}
             {(() => {
-              const myUsername = currentUser?.USERNAME;
-              const chucVu = (currentUser?.nhanvien?.CHUCVU || '').toLowerCase();
-              const role = Number(currentUser?.MAROLE);
+              const hasQuanLy = !!(selectedDoc.KY_QUAN_LY || selectedDoc.KY_GIAM_DOC);
+              const hasThuKho = !!selectedDoc.KY_THU_KHO;
+              const hasKeToan = !!selectedDoc.KY_KE_TOAN;
+              const isCompleted = selectedDoc.TRANGTHAI_KY === 'hoan_tat_ky' || hasQuanLy || (hasThuKho && hasKeToan);
 
-              const isKeToanUser = chucVu.includes('kế toán') || chucVu.includes('ke toan');
-              const isGiamDocUser = chucVu.includes('giám đốc') || chucVu.includes('giam doc') || chucVu.includes('quản lý chi nhánh') || chucVu.includes('quan ly chi nhanh') || (role === 1 && !isKeToanUser) || (role === 0 && !isKeToanUser && !chucVu.includes('thủ kho'));
-              const isThuKhoUser = chucVu.includes('thủ kho') || chucVu.includes('thu kho') || chucVu.includes('người lập') || (role === 2 && !isKeToanUser);
-
-              const creatorUsername = selectedDoc.USERNAME || selectedDoc.nhanvien?.USERNAME;
-              const signedAsCreator = (creatorUsername === myUsername && !!selectedDoc.KY_THU_KHO);
-              const signedAsKeToan = (selectedDoc.NGUOI_KY_KE_TOAN === myUsername);
-              const signedAsGiamDoc = (selectedDoc.NGUOI_KY_GIAM_DOC === myUsername);
-              const hasSignedAnySlot = signedAsCreator || signedAsKeToan || signedAsGiamDoc;
+              const canCurrentUserSignThisDoc = !isCompleted && (
+                (isBranchManagerUser && !hasQuanLy) ||
+                (isWarehouseUser && !hasThuKho) ||
+                (isAccountantUser && !hasKeToan)
+              );
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: docType === 'hdnhap' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-                  
-                  {/* 1. Thủ Kho */}
-                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px', textAlign: 'center', backgroundColor: '#ffffff' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>THỦ KHO / NGƯỜI LẬP</div>
-                    <div style={{ height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', my: '6px' }}>
-                      {selectedDoc.KY_THU_KHO ? (
-                        <img src={selectedDoc.KY_THU_KHO} alt="Chữ ký thủ kho" style={{ maxHeight: '80px', objectFit: 'contain' }} />
-                      ) : (
-                        <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>(Chưa ký)</span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{selectedDoc.nhanvien?.HOTEN || selectedDoc.USERNAME}</div>
-                    {!selectedDoc.KY_THU_KHO && (
-                      isThuKhoUser && !hasSignedAnySlot ? (
-                        <button
-                          className="admin-btn admin-btn-primary"
-                          style={{ padding: '3px 8px', fontSize: '11px', marginTop: '6px', width: '100%' }}
-                          onClick={() => handleSign('thu_kho')}
-                          disabled={isSigning}
-                        >
-                          Ký Xác Nhận (Thủ Kho)
-                        </button>
-                      ) : (
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '6px' }}>
-                          {hasSignedAnySlot ? 'Đã ký vị trí khác' : 'Cần vai trò Thủ kho'}
-                        </div>
-                      )
-                    )}
-                  </div>
-
-                  {/* 2. Đại diện NCC (Chỉ với Phiếu Nhập) */}
-                  {docType === 'hdnhap' && (
-                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px', textAlign: 'center', backgroundColor: '#ffffff' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>ĐẠI DIỆN NCC</div>
-                      <div style={{ height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', my: '6px' }}>
-                        {selectedDoc.KY_NCC ? (
-                          <img src={selectedDoc.KY_NCC} alt="Chữ ký NCC" style={{ maxHeight: '80px', objectFit: 'contain' }} />
-                        ) : (
-                          <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>(Chưa ký live)</span>
-                        )}
+                <>
+                  {canCurrentUserSignThisDoc && (
+                    <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px', marginBottom: '15px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e293b', marginBottom: '6px' }}>
+                        <i className="fa-solid fa-pen-nib" style={{ marginRight: '6px', color: '#0284c7' }}></i>
+                        Vẽ chữ ký tay của bạn ({roleSummary.label}) trước khi bấm Ký Xác Nhận (Tùy chọn — nếu để trống hệ thống sẽ đóng dấu chữ ký số điện tử):
                       </div>
-                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{selectedDoc.nhacungcap?.TENNCC || 'Bên giao hàng'}</div>
+                      <SignatureCanvas
+                        key={sigCanvasKey}
+                        height={140}
+                        onSave={(img) => setDrawnSignature(img)}
+                        onClear={() => setDrawnSignature(null)}
+                      />
                     </div>
                   )}
 
-                  {/* 3. Kế Toán */}
-                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px', textAlign: 'center', backgroundColor: '#ffffff' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>KẾ TOÁN HẠCH TOÁN</div>
-                    <div style={{ height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', my: '6px' }}>
-                      {selectedDoc.KY_KE_TOAN ? (
-                        <img src={selectedDoc.KY_KE_TOAN} alt="Chữ ký Kế toán" style={{ maxHeight: '80px', objectFit: 'contain' }} />
-                      ) : (
-                        <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>(Chưa duyệt)</span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{selectedDoc.NGUOI_KY_KE_TOAN || 'Bộ phận Kế toán'}</div>
-                    {!selectedDoc.KY_KE_TOAN && (
-                      isKeToanUser && !hasSignedAnySlot ? (
-                        <button
-                          className="admin-btn admin-btn-success"
-                          style={{ padding: '3px 8px', fontSize: '11px', marginTop: '6px', width: '100%' }}
-                          onClick={() => handleSign('ke_toan')}
-                          disabled={isSigning}
-                        >
-                          Ký Xác Nhận (Kế Toán)
-                        </button>
-                      ) : (
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '6px' }}>
-                          {hasSignedAnySlot ? 'Đã ký vị trí khác' : 'Cần vai trò Kế toán'}
-                        </div>
-                      )
-                    )}
-                  </div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: '15px 0 10px 0', color: '#1e293b' }}>
+                    Bảng Đóng Dấu Chữ Ký Số Theo Vai Trò
+                  </h3>
 
-                  {/* 4. Giám Đốc Chi Nhánh */}
-                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px', textAlign: 'center', backgroundColor: '#ffffff' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>GIÁM ĐỐC CHI NHÁNH</div>
-                    <div style={{ height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', my: '6px' }}>
-                      {selectedDoc.KY_GIAM_DOC ? (
-                        <img src={selectedDoc.KY_GIAM_DOC} alt="Chữ ký Giám đốc" style={{ maxHeight: '80px', objectFit: 'contain' }} />
-                      ) : (
-                        <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>(Chưa phê duyệt)</span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{selectedDoc.NGUOI_KY_GIAM_DOC || 'Giám đốc chi nhánh'}</div>
-                    {!selectedDoc.KY_GIAM_DOC && (
-                      isGiamDocUser && !hasSignedAnySlot ? (
-                        <button
-                          className="admin-btn admin-btn-warning"
-                          style={{ padding: '3px 8px', fontSize: '11px', marginTop: '6px', width: '100%', color: '#000' }}
-                          onClick={() => handleSign('giam_doc')}
-                          disabled={isSigning}
-                        >
-                          Ký Phê Duyệt (Giám Đốc)
-                        </button>
-                      ) : (
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '6px' }}>
-                          {hasSignedAnySlot ? 'Đã ký vị trí khác' : 'Cần vai trò Giám đốc'}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '14px',
+                    marginBottom: '20px',
+                    alignItems: 'stretch'
+                  }}>
+                    {/* Ô 1: QUẢN LÝ CHI NHÁNH */}
+                    <div style={{
+                      border: isBranchManagerUser ? '2px solid #f59e0b' : '1px solid #cbd5e1',
+                      borderRadius: '10px',
+                      padding: '14px 12px',
+                      backgroundColor: hasQuanLy ? '#f0fdf4' : '#ffffff',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      minHeight: '240px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase' }}>
+                          QUẢN LÝ CHI NHÁNH
                         </div>
-                      )
-                    )}
-                  </div>
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                          (Nếu đã ký duyệt → Hoàn tất ngay, không cần Kho & Kế toán ký)
+                        </div>
+                      </div>
 
-                </div>
+                      <div style={{ height: '90px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px dashed #cbd5e1' }}>
+                        {renderSignaturePreview(selectedDoc.KY_QUAN_LY || selectedDoc.KY_GIAM_DOC, 'Quản lý chi nhánh', selectedDoc.NGUOI_KY_QUAN_LY || selectedDoc.NGUOI_KY_GIAM_DOC)}
+                      </div>
+
+                      <div style={{ fontSize: '12px', color: '#334155', fontWeight: '600' }}>
+                        {selectedDoc.NGUOI_KY_QUAN_LY || selectedDoc.NGUOI_KY_GIAM_DOC || 'Quản lý chi nhánh'}
+                      </div>
+
+                      <div style={{ width: '100%', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '8px' }}>
+                        {hasQuanLy ? (
+                          <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 'bold' }}>
+                            <i className="fa-solid fa-circle-check"></i> Đã ký phê duyệt (Hoàn tất)
+                          </span>
+                        ) : isCompleted ? (
+                          <span style={{ fontSize: '11px', color: '#16a34a', fontStyle: 'italic' }}>
+                            Kho & Kế toán đã ký đủ (Không cần ký thêm)
+                          </span>
+                        ) : isBranchManagerUser ? (
+                          <button
+                            className="admin-btn admin-btn-warning"
+                            style={{ padding: '6px 12px', fontSize: '12px', width: '100%', color: '#000', fontWeight: '700' }}
+                            onClick={() => handleSign('quan_ly')}
+                            disabled={isSigning}
+                          >
+                            <i className="fa-solid fa-stamp" style={{ marginRight: '4px' }}></i>
+                            Ký Duyệt (Quản Lý Chi Nhánh)
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+                            Chỉ dành cho Quản lý chi nhánh
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Ô 2: NHÂN VIÊN KHO */}
+                    <div style={{
+                      border: isWarehouseUser ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                      borderRadius: '10px',
+                      padding: '14px 12px',
+                      backgroundColor: hasThuKho ? '#f0fdf4' : '#ffffff',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      minHeight: '240px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#0369a1', textTransform: 'uppercase' }}>
+                          NHÂN VIÊN KHO
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                          (Ký cùng Kế toán nếu chưa có chữ ký Quản lý CN)
+                        </div>
+                      </div>
+
+                      <div style={{ height: '90px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px dashed #cbd5e1' }}>
+                        {renderSignaturePreview(selectedDoc.KY_THU_KHO, 'Nhân viên kho', selectedDoc.NGUOI_KY_THU_KHO)}
+                      </div>
+
+                      <div style={{ fontSize: '12px', color: '#334155', fontWeight: '600' }}>
+                        {selectedDoc.NGUOI_KY_THU_KHO || 'Nhân viên kho'}
+                      </div>
+
+                      <div style={{ width: '100%', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '8px' }}>
+                        {hasThuKho ? (
+                          <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 'bold' }}>
+                            <i className="fa-solid fa-circle-check"></i> Đã ký xác nhận
+                          </span>
+                        ) : hasQuanLy ? (
+                          <span style={{ fontSize: '11px', color: '#16a34a', fontStyle: 'italic' }}>
+                            QL Chi nhánh đã duyệt (Không cần ký thêm)
+                          </span>
+                        ) : isWarehouseUser ? (
+                          <button
+                            className="admin-btn admin-btn-primary"
+                            style={{ padding: '6px 12px', fontSize: '12px', width: '100%', fontWeight: '700' }}
+                            onClick={() => handleSign('thu_kho')}
+                            disabled={isSigning}
+                          >
+                            <i className="fa-solid fa-signature" style={{ marginRight: '4px' }}></i>
+                            Ký Xác Nhận (Nhân Viên Kho)
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+                            Chỉ dành cho Nhân viên kho
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Ô 3: NHÂN VIÊN KẾ TOÁN */}
+                    <div style={{
+                      border: isAccountantUser ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                      borderRadius: '10px',
+                      padding: '14px 12px',
+                      backgroundColor: hasKeToan ? '#f0fdf4' : '#ffffff',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      minHeight: '240px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#15803d', textTransform: 'uppercase' }}>
+                          NHÂN VIÊN KẾ TOÁN
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                          (Ký cùng Nhân viên kho nếu chưa có chữ ký Quản lý CN)
+                        </div>
+                      </div>
+
+                      <div style={{ height: '90px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px dashed #cbd5e1' }}>
+                        {renderSignaturePreview(selectedDoc.KY_KE_TOAN, 'Nhân viên kế toán', selectedDoc.NGUOI_KY_KE_TOAN)}
+                      </div>
+
+                      <div style={{ fontSize: '12px', color: '#334155', fontWeight: '600' }}>
+                        {selectedDoc.NGUOI_KY_KE_TOAN || 'Nhân viên kế toán'}
+                      </div>
+
+                      <div style={{ width: '100%', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '8px' }}>
+                        {hasKeToan ? (
+                          <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 'bold' }}>
+                            <i className="fa-solid fa-circle-check"></i> Đã ký hạch toán
+                          </span>
+                        ) : hasQuanLy ? (
+                          <span style={{ fontSize: '11px', color: '#16a34a', fontStyle: 'italic' }}>
+                            QL Chi nhánh đã duyệt (Không cần ký thêm)
+                          </span>
+                        ) : isAccountantUser ? (
+                          <button
+                            className="admin-btn admin-btn-success"
+                            style={{ padding: '6px 12px', fontSize: '12px', width: '100%', fontWeight: '700' }}
+                            onClick={() => handleSign('ke_toan')}
+                            disabled={isSigning}
+                          >
+                            <i className="fa-solid fa-signature" style={{ marginRight: '4px' }}></i>
+                            Ký Xác Nhận (Nhân Viên Kế Toán)
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+                            Chỉ dành cho Nhân viên kế toán
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
               );
             })()}
 
@@ -483,7 +719,7 @@ const AdminSignatureApprovalPage = () => {
                 onClick={() => window.print()}
               >
                 <i className="fa-solid fa-print" style={{ marginRight: '6px' }}></i>
-                In {docType === 'hdnhap' ? 'Phiếu Nhập Kho' : 'Biên Bản Hủy'} (PDF/Khổ A4)
+                In {docType === 'hdnhap' ? 'Đơn Nhập Hàng' : 'Biên Bản Hủy'} (PDF/Khổ A4)
               </button>
             </div>
           </div>

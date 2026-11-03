@@ -227,7 +227,7 @@ const Modal = () => {
                                 availableStores.forEach(tk => {
                                     const option = document.createElement('option');
                                     option.value = tk.SOLUONG_TON;
-                                    const shortName = tk.TENCUAHANG.replace('Dola Bakery - ', '');
+                                    const shortName = tk.TENCUAHANG.replace('Dola Bakery - ', '').replace('Givral Bakery - ', '');
                                     option.textContent = `${shortName} (Còn ${tk.SOLUONG_TON})`;
                                     select.appendChild(option);
                                 });
@@ -386,22 +386,26 @@ const Modal = () => {
             }
         };
 
-        // Initialize header counters
-        import('../services/wishlistService.js').then(async m => {
-            try {
-                const wl = await m.getWishlist();
-                const countEls = document.querySelectorAll('#wishlist-count');
-                countEls.forEach(el => el.textContent = wl.length);
-            } catch(e) {}
-        });
+        // Initialize header counters (only if logged in)
+        if (localStorage.getItem('access_token')) {
+            import('../services/wishlistService.js').then(async m => {
+                try {
+                    const wl = await m.getWishlist();
+                    const countEls = document.querySelectorAll('#wishlist-count');
+                    const items = Array.isArray(wl) ? wl : (wl?.items || []);
+                    countEls.forEach(el => el.textContent = items.length);
+                } catch(e) {}
+            });
 
-        import('../services/cartService.js').then(async m => {
-            try {
-                const cart = await m.getCart();
-                const cartCountEls = document.querySelectorAll('#cart-count');
-                cartCountEls.forEach(el => el.textContent = cart.length);
-            } catch(e) {}
-        });
+            import('../services/cartService.js').then(async m => {
+                try {
+                    const cart = await m.getCart();
+                    const cartCountEls = document.querySelectorAll('#cart-count');
+                    const items = Array.isArray(cart) ? cart : (cart?.items || []);
+                    cartCountEls.forEach(el => el.textContent = items.length);
+                } catch(e) {}
+            });
+        }
 
         document.addEventListener('click', handleClick);
         return () => {

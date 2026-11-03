@@ -54,7 +54,7 @@ const AdminVoucherPage = () => {
   const [prodSearchTerm, setProdSearchTerm] = useState('');
 
   // Tab 3 Form: Category Discount
-  const [selectedCatId, setSelectedCatId] = useState('');
+  const [selectedCatIds, setSelectedCatIds] = useState([]);
   const [catDiscountPercent, setCatDiscountPercent] = useState(15);
   const [isApplyingCatDiscount, setIsApplyingCatDiscount] = useState(false);
 
@@ -311,18 +311,103 @@ const AdminVoucherPage = () => {
   };
 
   // --- TAB 3 HANDLERS: Category Discount ---
-  const handleApplyCategoryDiscount = async () => {
-    if (!selectedCatId) {
-      toast.warning('Vui lòng chọn loại sản phẩm!');
+  const getCatProdCount = (c) => {
+    if (!c) return 0;
+    if (c.san_phams_count !== undefined && c.san_phams_count !== null) return c.san_phams_count;
+    if (c.soLuongSanPham !== undefined && c.soLuongSanPham !== null) return c.soLuongSanPham;
+    if (c.SO_LUONG_SP !== undefined && c.SO_LUONG_SP !== null) return c.SO_LUONG_SP;
+    const catId = c.MALOAI || c.id;
+    return (products || []).filter(p => {
+      const pCatId = p.loaiId ?? p.loai_id ?? p.MALOAI ?? p.LOAISP;
+      return String(pCatId) === String(catId);
+    }).length;
+  };
+
+  const toggleSelectCat = (catId) => {
+    const strId = String(catId);
+    setSelectedCatIds(prev => 
+      prev.includes(strId) ? prev.filter(id => id !== strId) : [...prev, strId]
+    );
+  };
+
+  const handleSelectAllCats = () => {
+    const allIds = categories.map(c => String(c.MALOAI || c.id));
+    setSelectedCatIds(allIds);
+  };
+
+  const handleDeselectAllCats = () => {
+    setSelectedCatIds([]);
+  };
+
+  // Batch Apply Discount to Multiple Selected Categories
+  const handleApplyBatchCategoryDiscount = async (customPct = null) => {
+    if (selectedCatIds.length === 0) {
+      toast.warning('Vui lòng chọn ít nhất 1 loại sản phẩm bánh để áp dụng!');
       return;
     }
-    const pct = Number(catDiscountPercent);
+    const pct = customPct !== null ? Number(customPct) : Number(catDiscountPercent);
     if (isNaN(pct) || pct < 0 || pct > 100) {
       toast.warning('% Giảm giá phải từ 0 đến 100%!');
       return;
     }
 
-    const catProds = products.filter(p => String(p.MALOAI) === String(selectedCatId));
+    const targetProds = (products || []).filter(p => {
+      const pCatId = p.loaiId ?? p.loai_id ?? p.MALOAI ?? p.LOAISP;
+      return selectedCatIds.some(catId => String(pCatId) === String(catId));
+    });
+
+    if (targetProds.length === 0) {
+      toast.warning('Các loại bánh đã chọn hiện chưa có sản phẩm nào!');
+      return;
+    }
+
+    setIsApplyingCatDiscount(true);
+    let successCount = 0;
+    try {
+      for (const p of targetProds) {
+        const masp = p.MASP || p.id;
+        const fd = new FormData();
+        fd.append('TENSP', p.TENSP || p.tenSanPham);
+        fd.append('GIABAN', p.GIABAN || p.giaBan);
+        fd.append('MALOAI', p.MALOAI || p.loaiId);
+        fd.append('PHAN_TRAM_GIAM', pct);
+
+        try {
+          await updateProduct(masp, fd);
+          successCount++;
+        } catch (err) {
+          await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: pct }).catch(() => {});
+          successCount++;
+        }
+      }
+
+      if (pct > 0) {
+        toast.success(`🎉 Đã áp dụng giảm giá ${pct}% cho ${successCount} sản phẩm thuộc ${selectedCatIds.length} loại bánh!`);
+      } else {
+        toast.success(`Đã hủy giảm giá cho ${successCount} sản phẩm thuộc ${selectedCatIds.length} loại bánh!`);
+      }
+      fetchProductsAndCategories();
+    } catch (e) {
+      toast.error('Lỗi khi cập nhật giảm giá danh mục');
+    } finally {
+      setIsApplyingCatDiscount(false);
+    }
+  };
+
+  // Single Category Apply/Remove Discount
+  const handleApplyCategoryDiscount = async (targetCatId, customPct = null) => {
+    if (!targetCatId) return;
+    const pct = customPct !== null ? Number(customPct) : Number(catDiscountPercent);
+    if (isNaN(pct) || pct < 0 || pct > 100) {
+      toast.warning('% Giảm giá phải từ 0 đến 100%!');
+      return;
+    }
+
+    const catProds = products.filter(p => {
+      const pCatId = p.loaiId ?? p.loai_id ?? p.MALOAI ?? p.LOAISP;
+      return String(pCatId) === String(targetCatId);
+    });
+
     if (catProds.length === 0) {
       toast.warning('Danh mục này hiện chưa có sản phẩm nào!');
       return;
@@ -332,22 +417,28 @@ const AdminVoucherPage = () => {
     let successCount = 0;
     try {
       for (const p of catProds) {
+        const masp = p.MASP || p.id;
         const fd = new FormData();
-        fd.append('TENSP', p.TENSP);
-        fd.append('GIABAN', p.GIABAN);
-        fd.append('MALOAI', p.MALOAI);
+        fd.append('TENSP', p.TENSP || p.tenSanPham);
+        fd.append('GIABAN', p.GIABAN || p.giaBan);
+        fd.append('MALOAI', p.MALOAI || p.loaiId);
         fd.append('PHAN_TRAM_GIAM', pct);
 
         try {
-          await updateProduct(p.MASP, fd);
+          await updateProduct(masp, fd);
           successCount++;
         } catch (err) {
-          await axiosClient.put(`/admin/products/${p.MASP}`, { PHAN_TRAM_GIAM: pct }).catch(() => {});
+          await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: pct }).catch(() => {});
           successCount++;
         }
       }
-      const catObj = categories.find(c => String(c.MALOAI || c.id) === String(selectedCatId));
-      toast.success(`🎉 Đã tự động cập nhật giảm giá ${pct}% cho tất cả ${successCount} sản phẩm thuộc loại "${catObj?.TENLOAI || catObj?.name}"!`);
+      const catObj = categories.find(c => String(c.MALOAI || c.id) === String(targetCatId));
+      const catName = catObj?.TENLOAI || catObj?.name || catObj?.tenLoai || 'Loại sản phẩm';
+      if (pct > 0) {
+        toast.success(`🎉 Đã cập nhật giảm giá ${pct}% cho tất cả ${successCount} bánh thuộc loại "${catName}"!`);
+      } else {
+        toast.success(`Đã hủy giảm giá cho tất cả ${successCount} bánh thuộc loại "${catName}"`);
+      }
       fetchProductsAndCategories();
     } catch (e) {
       toast.error('Lỗi khi cập nhật giảm giá danh mục');
@@ -362,7 +453,7 @@ const AdminVoucherPage = () => {
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản Lý Khuyến Mãi & Giảm Giá Bánh</h1>
+          <h1 className="admin-title" style={{ marginBottom: 0 }}>Khuyến mãi sản phẩm</h1>
           <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>Tạo voucher toàn sàn hoặc thiết lập chương trình giảm giá theo từng sản phẩm/loại bánh</p>
         </div>
         {activeTab === 'voucher' && (
@@ -379,7 +470,7 @@ const AdminVoucherPage = () => {
           style={{ backgroundColor: activeTab !== 'voucher' ? '#f8f9fa' : '', color: activeTab !== 'voucher' ? '#333' : '', border: '1px solid #ddd' }}
           onClick={() => setActiveTab('voucher')}
         >
-          🎟️ Voucher & Mã Giảm Giá
+          🎟️ Voucher và Mã Giảm Giá
         </button>
         <button
           className={`admin-btn ${activeTab === 'product_discount' ? 'admin-btn-primary' : ''}`}
@@ -667,73 +758,276 @@ const AdminVoucherPage = () => {
 
       {/* TAB 3: GIẢM GIÁ THEO LOẠI SẢN PHẨM (CATEGORY) */}
       {activeTab === 'category_discount' && (
-        <div className="admin-card" style={{ maxWidth: '750px', margin: '0 auto' }}>
-          <h2 className="admin-card-title">Thiết Lập Giảm Giá Hàng Loạt Cho Loại Sản Phẩm Bánh</h2>
-          <p style={{ color: '#64748b', fontSize: '13px', marginTop: '-8px', marginBottom: '1.5rem' }}>
-            Khi chọn 1 loại bánh (VD: Bánh Kem Sinh Nhật) và mức giảm %, toàn bộ các sản phẩm thuộc danh mục đó sẽ được tự động cập nhật giảm giá ngay lập tức.
-          </p>
+        <div className="admin-card">
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h2 className="admin-card-title" style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+              🏷️ Thiết Lập Giảm Giá Hàng Loạt Cho Nhiều Loại Bánh
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
+              Tích chọn 2 hoặc nhiều loại bánh bên dưới để áp dụng % giảm giá hàng loạt cho toàn bộ sản phẩm thuộc các danh mục đó chỉ với 1 click.
+            </p>
+          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div className="admin-form-group" style={{ margin: 0 }}>
-              <label className="admin-label">Chọn Danh Mục Loại Sản Phẩm Bánh <span style={{ color: 'red' }}>*</span></label>
-              <select
-                className="admin-select"
-                value={selectedCatId}
-                onChange={(e) => setSelectedCatId(e.target.value)}
-              >
-                <option value="">-- Chọn Loại Sản Phẩm --</option>
-                {categories.map(c => {
-                  const catId = c.MALOAI || c.id;
-                  const catName = c.TENLOAI || c.name;
-                  const count = products.filter(p => String(p.MALOAI) === String(catId)).length;
-                  return (
-                    <option key={catId} value={catId}>
-                      {catName} ({count} sản phẩm)
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+          {/* Quick Multi-Category Selection & Batch Controls */}
+          <div style={{ backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0', marginBottom: '1.8rem' }}>
+            
+            {/* Header & Select All / Deselect All */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <label style={{ fontWeight: 700, color: '#334155', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <i className="fa-solid fa-layer-group" style={{ color: 'var(--admin-primary)' }}></i>
+                Bước 1: Chọn các loại bánh cần áp dụng ({selectedCatIds.length}/{categories.length} loại đã chọn)
+              </label>
 
-            <div className="admin-form-group" style={{ margin: 0 }}>
-              <label className="admin-label">Mức Giảm Giá Cho Toàn Bộ Loại Bánh (%) <span style={{ color: 'red' }}>*</span></label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="number"
-                  className="admin-input"
-                  min="0"
-                  max="100"
-                  value={catDiscountPercent}
-                  onChange={(e) => setCatDiscountPercent(e.target.value)}
-                />
-                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>%</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="admin-btn"
+                  style={{ padding: '4px 10px', fontSize: '12px', backgroundColor: '#e2e8f0', color: '#334155', fontWeight: 600 }}
+                  onClick={handleSelectAllCats}
+                >
+                  <i className="fa-solid fa-check-double" style={{ marginRight: '4px' }}></i> Chọn tất cả
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn"
+                  style={{ padding: '4px 10px', fontSize: '12px', backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: 600 }}
+                  onClick={handleDeselectAllCats}
+                >
+                  <i className="fa-solid fa-xmark" style={{ marginRight: '4px' }}></i> Bỏ chọn
+                </button>
               </div>
             </div>
 
-            {selectedCatId && (
-              <div style={{ backgroundColor: '#eff6ff', padding: '12px', borderRadius: '6px', border: '1px solid #bfdbfe', fontSize: '13px', color: '#1e40af' }}>
-                <i className="fa-solid fa-circle-info" style={{ marginRight: '6px' }}></i>
-                Sẽ có <b>{products.filter(p => String(p.MALOAI) === String(selectedCatId)).length} sản phẩm bánh</b> thuộc loại này được tự động cập nhật giảm <b>{catDiscountPercent}%</b>.
-              </div>
-            )}
+            {/* Category Chips Multi-Select Grid */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
+              {categories.map(c => {
+                const catId = String(c.MALOAI || c.id);
+                const catName = c.TENLOAI || c.name || c.tenLoai;
+                const count = getCatProdCount(c);
+                const isSelected = selectedCatIds.includes(catId);
 
-            <button
-              type="button"
-              className="admin-btn admin-btn-success"
-              style={{ padding: '12px', fontSize: '15px', marginTop: '6px' }}
-              onClick={handleApplyCategoryDiscount}
-              disabled={isApplyingCatDiscount}
-            >
-              {isApplyingCatDiscount ? (
-                <>
-                  <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '8px' }}></i> Đang tự động cập nhật giá...
-                </>
-              ) : (
-                <>
-                  <i className="fa-solid fa-wand-magic-sparkles" style={{ marginRight: '8px' }}></i> Áp Dụng Giảm Giá Cho Toàn Bộ Danh Mục
-                </>
-              )}
-            </button>
+                const getCategoryIcon = (name) => {
+                  const n = (name || '').toLowerCase();
+                  if (n.includes('kem')) return '🍰';
+                  if (n.includes('ngọt')) return '🎂';
+                  if (n.includes('mì')) return '🥐';
+                  if (n.includes('khô')) return '🍪';
+                  if (n.includes('tráng miệng') || n.includes('chè')) return '🍮';
+                  if (n.includes('mùa') || n.includes('trung thu')) return '🥮';
+                  return '🧁';
+                };
+
+                return (
+                  <div
+                    key={catId}
+                    onClick={() => toggleSelectCat(catId)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
+                      border: isSelected ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 8px rgba(37, 99, 235, 0.15)' : 'none'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}} // Handled by div onClick
+                      style={{ cursor: 'pointer', accentColor: '#2563eb' }}
+                    />
+                    <span style={{ fontSize: '18px' }}>{getCategoryIcon(catName)}</span>
+                    <span style={{ fontWeight: isSelected ? 700 : 600, color: isSelected ? '#1e40af' : '#1e293b', fontSize: '14px' }}>
+                      {catName}
+                    </span>
+                    <span style={{ fontSize: '12px', backgroundColor: isSelected ? '#dbeafe' : '#f1f5f9', color: isSelected ? '#1e40af' : '#64748b', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                      {count} SP
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Step 2: Batch Discount Control Bar */}
+            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 220px 220px', gap: '1rem', alignItems: 'end' }}>
+              <div>
+                <label style={{ fontWeight: 700, color: '#334155', fontSize: '13px', display: 'block', marginBottom: '4px' }}>
+                  Mức Giảm Giá Hàng Loạt (%)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="number"
+                    className="admin-input"
+                    min="0"
+                    max="100"
+                    style={{ marginBottom: 0, fontWeight: 700, borderRadius: '8px', padding: '9px 12px' }}
+                    value={catDiscountPercent}
+                    onChange={(e) => setCatDiscountPercent(e.target.value)}
+                  />
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>%</span>
+                </div>
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-success"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 700, fontSize: '14px', boxShadow: '0 4px 12px rgba(22, 163, 74, 0.25)' }}
+                  onClick={() => handleApplyBatchCategoryDiscount(null)}
+                  disabled={isApplyingCatDiscount || selectedCatIds.length === 0}
+                >
+                  {isApplyingCatDiscount ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '6px' }}></i> Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-bolt" style={{ marginRight: '6px' }}></i> Áp Dụng Cho ({selectedCatIds.length}) Loại
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  className="admin-btn"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 700, fontSize: '14px', backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' }}
+                  onClick={() => handleApplyBatchCategoryDiscount(0)}
+                  disabled={isApplyingCatDiscount || selectedCatIds.length === 0}
+                >
+                  <i className="fa-solid fa-ban" style={{ marginRight: '6px' }}></i> Hủy KM Cho ({selectedCatIds.length}) Loại
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Cards Grid */}
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🧁 Danh sách từng loại sản phẩm bánh ({categories.length})</span>
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+            {categories.map(c => {
+              const catId = c.MALOAI || c.id;
+              const catName = c.TENLOAI || c.name || c.tenLoai;
+              const prodCount = getCatProdCount(c);
+              
+              // Count discounted products in this category
+              const catProds = (products || []).filter(p => String(p.loaiId ?? p.loai_id ?? p.MALOAI ?? p.LOAISP) === String(catId));
+              const discountedProds = catProds.filter(p => Number(p.PHAN_TRAM_GIAM || p.phanTramGiam || 0) > 0);
+              const maxDiscount = catProds.reduce((max, p) => Math.max(max, Number(p.PHAN_TRAM_GIAM || p.phanTramGiam || 0)), 0);
+
+              const getCategoryIcon = (name) => {
+                const n = (name || '').toLowerCase();
+                if (n.includes('kem')) return '🍰';
+                if (n.includes('ngọt')) return '🎂';
+                if (n.includes('mì')) return '🥐';
+                if (n.includes('khô')) return '🍪';
+                if (n.includes('tráng miệng') || n.includes('chè')) return '🍮';
+                if (n.includes('mùa') || n.includes('trung thu')) return '🥮';
+                return '🧁';
+              };
+
+              return (
+                <div 
+                  key={catId} 
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '12px',
+                    padding: '18px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justify: 'space-between',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '10px', backgroundColor: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', border: '1px solid #ffedd5' }}>
+                          {getCategoryIcon(catName)}
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>{catName}</h4>
+                          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Mã loại: #{catId}</span>
+                        </div>
+                      </div>
+
+                      <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
+                        {prodCount} sản phẩm
+                      </span>
+                    </div>
+
+                    <div style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      {discountedProds.length > 0 ? (
+                        <span style={{ backgroundColor: '#fce7f3', color: '#be185d', padding: '3px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, border: '1px solid #fbcfe8' }}>
+                          🏷️ {discountedProds.length}/{prodCount} SP đang giảm ({maxDiscount}%)
+                        </span>
+                      ) : (
+                        <span style={{ backgroundColor: '#f8fafc', color: '#94a3b8', padding: '3px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, border: '1px solid #e2e8f0' }}>
+                          Chưa có sản phẩm giảm giá
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Actions */}
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <input 
+                          type="number" 
+                          id={`cat_input_${catId}`}
+                          min="0" 
+                          max="100" 
+                          defaultValue={maxDiscount > 0 ? maxDiscount : 15}
+                          className="admin-input" 
+                          style={{ marginBottom: 0, fontSize: '13px', fontWeight: 700, padding: '6px 28px 6px 10px', borderRadius: '6px' }}
+                          placeholder="Mức %..."
+                        />
+                        <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '12px', color: '#64748b' }}>%</span>
+                      </div>
+
+                      <button 
+                        type="button" 
+                        className="admin-btn admin-btn-primary" 
+                        style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '6px', fontWeight: 700 }}
+                        onClick={() => {
+                          const inputEl = document.getElementById(`cat_input_${catId}`);
+                          const val = inputEl ? inputEl.value : 15;
+                          handleApplyCategoryDiscount(catId, val);
+                        }}
+                        disabled={isApplyingCatDiscount || prodCount === 0}
+                      >
+                        ⚡ Áp dụng
+                      </button>
+
+                      {discountedProds.length > 0 && (
+                        <button 
+                          type="button" 
+                          className="admin-btn" 
+                          style={{ padding: '6px 10px', fontSize: '13px', borderRadius: '6px', backgroundColor: '#fee2e2', color: '#b91c1c', border: 'none', fontWeight: 600 }}
+                          onClick={() => handleApplyCategoryDiscount(catId, 0)}
+                          disabled={isApplyingCatDiscount}
+                          title="Hủy giảm giá cho tất cả bánh thuộc loại này"
+                        >
+                          🚫 Hủy
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

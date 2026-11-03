@@ -62,10 +62,17 @@ const [employees, setEmployees] = useState([]);
     fetchEmployees();
     const fetchStores = async () => {
       try {
-        const data = await getStores();
-        setStores(data);
+        const res = await getStores();
+        const list = Array.isArray(res) ? res : (res?.data || []);
+        const normalized = list.map(st => ({
+          ...st,
+          id: st.id || st.MACUAHANG,
+          name: st.name || st.ten_cuahang || st.TENCUAHANG || `Chi nhánh #${st.id}`
+        }));
+        setStores(normalized);
       } catch (error) {
         console.error("Error fetching stores", error);
+        setStores([]);
       }
     };
     fetchStores();
@@ -102,12 +109,22 @@ const [employees, setEmployees] = useState([]);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === 'chucVu') {
-      let role = 2; // Nhân viên
-      if (value === 'Quản lý chi nhánh') role = 1;
-      else if (value === 'Quản lý tổng') role = 0;
-      else if (value === 'Nhân viên chăm sóc khách hàng') role = 4;
+      let role = 3; // Nhân viên bán hàng
+      if (value === 'Quản lý chi nhánh') role = 2;
+      else if (value === 'Quản trị viên' || value === 'Quản lý tổng') role = 1;
+      else if (value === 'Nhân viên kho') role = 4;
+      else if (value === 'Nhân viên chăm sóc khách hàng') role = 5;
+      else if (value === 'Nhân viên kế toán') role = 7;
+      else if (value === 'Giám đốc') role = 8;
       
       setFormData({ ...formData, [name]: value, maRole: role });
+    } else if (name === 'cccd') {
+      setFormData(prev => ({
+        ...prev,
+        cccd: value,
+        userName: prev.userName || value,
+        password: prev.password || value
+      }));
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -119,27 +136,25 @@ const [employees, setEmployees] = useState([]);
   };
 
   const openAddModal = () => {
-    const autoUsername = 'nv' + Math.floor(100000 + Math.random() * 900000);
-    const autoPassword = Math.random().toString(36).slice(-6);
     setEditingEmployee(null);
     setFormData({
-      userName: autoUsername,
-      password: autoPassword,
+      userName: '',
+      password: '',
       email: '',
       hoTen: '',
       sdt: '',
       ngaySinh: '',
       gioiTinh: '',
       diaChi: '',
-      chucVu: 'Nhân viên',
+      chucVu: 'Nhân viên bán hàng',
       caLamViec: 'Ca Sáng',
       luong: '',
       trangThai: 'Đang làm việc',
-      maRole: 2,
+      maRole: 3,
       cccd: '',
       cccdTruoc: null,
       cccdSau: null,
-      macuahang: stores.length > 0 ? stores[0].id : 1
+      macuahang: (Array.isArray(stores) && stores.length > 0) ? stores[0].id : 1
     });
     setIsModalOpen(true);
   };
@@ -155,11 +170,11 @@ const [employees, setEmployees] = useState([]);
       ngaySinh: employee.ngaySinh || '',
       gioiTinh: employee.gioiTinh || '',
       diaChi: employee.diaChi || '',
-      chucVu: employee.chucVu || 'Nhân viên',
+      chucVu: employee.chucVu || 'Nhân viên bán hàng',
       caLamViec: employee.caLamViec || 'Ca Sáng',
       luong: employee.luong || '',
       trangThai: employee.trangThai || 'Đang làm việc',
-      maRole: employee.maRole !== undefined ? employee.maRole : 2,
+      maRole: employee.maRole !== undefined ? employee.maRole : 3,
       cccd: employee.cccd || '',
       cccdTruoc: null,
       cccdSau: null,
@@ -258,19 +273,27 @@ const [employees, setEmployees] = useState([]);
       const response = await scanCccd(file);
       if (response.success && response.parsed_data) {
         const data = response.parsed_data;
+        const cccdVal = data.cccd || '';
+        const hoTenVal = data.hoTen || '';
+        const ngaySinhVal = data.ngaySinh || '';
+        const gioiTinhVal = data.gioiTinh || 'Nam';
+        const diaChiVal = data.diaChi || '';
+
         setFormData(prev => ({
           ...prev,
-          userName: data.cccd || prev.userName,
-          cccd: data.cccd || prev.cccd,
-          hoTen: data.hoTen || prev.hoTen,
-          ngaySinh: data.ngaySinh || prev.ngaySinh,
-          gioiTinh: data.gioiTinh || prev.gioiTinh,
-          diaChi: data.diaChi || prev.diaChi,
+          userName: cccdVal || prev.userName || ('NV' + Math.floor(100000 + Math.random() * 900000)),
+          password: cccdVal || prev.password || cccdVal,
+          cccd: cccdVal || prev.cccd,
+          hoTen: hoTenVal || prev.hoTen,
+          ngaySinh: ngaySinhVal || prev.ngaySinh,
+          gioiTinh: gioiTinhVal || prev.gioiTinh,
+          diaChi: diaChiVal || prev.diaChi,
+          email: prev.email || (cccdVal ? `${cccdVal}@dolabakery.com` : prev.email),
           cccdTruoc: file
         }));
-        toast.success('Đã quét và tự động điền thông tin thành công!');
+        toast.success(`Đã quét CCCD [${cccdVal || 'Số CCCD'}] và tự động điền thông tin thành công!`);
       } else {
-        toast.error('Không thể nhận diện thông tin từ ảnh này. Vui lòng thử lại ảnh rõ nét hơn!');
+        toast.error('Không thể nhận diện thông tin từ ảnh này. Vui lòng thử lại với ảnh rõ nét hơn!');
       }
     } catch (error) {
       console.error("Lỗi khi scan CCCD:", error);
@@ -278,8 +301,7 @@ const [employees, setEmployees] = useState([]);
       toast.error('Lỗi quét CCCD: ' + errMsg);
     } finally {
       setIsScanning(false);
-      // Reset input value so the same file can be selected again
-      e.target.value = '';
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -528,7 +550,7 @@ const [employees, setEmployees] = useState([]);
               <div className="admin-form-group">
                 <label>Nơi làm việc</label>
                 <select name="macuahang" value={formData.macuahang} onChange={handleInputChange} className="admin-input">
-                  {stores.map(store => (
+                  {(Array.isArray(stores) ? stores : []).map(store => (
                     <option key={store.id} value={store.id}>{store.name}</option>
                   ))}
                 </select>
@@ -538,13 +560,15 @@ const [employees, setEmployees] = useState([]);
                 <div className="admin-form-group">
                   <label>Chức vụ *</label>
                   <select name="chucVu" value={formData.chucVu} onChange={handleInputChange} className="admin-input" required>
-                    <option value="Nhân viên">Nhân viên (Bán hàng)</option>
-                    <option value="Nhân viên chăm sóc khách hàng">Nhân viên chăm sóc khách hàng</option>
-                    <option value="Thợ làm bánh">Thợ làm bánh</option>
+                    <option value="Nhân viên bán hàng">Nhân viên bán hàng (POS / Đơn hàng)</option>
+                    <option value="Nhân viên kho">Nhân viên kho (Lô hàng / NCC)</option>
+                    <option value="Nhân viên kế toán">Nhân viên kế toán (Báo cáo / Khuyến mãi)</option>
+                    <option value="Nhân viên chăm sóc khách hàng">Nhân viên CSKH (Chat / Hỗ trợ)</option>
                     <option value="Quản lý chi nhánh">Quản lý chi nhánh</option>
-                    <option value="Quản lý tổng">Quản lý tổng (Quản trị viên)</option>
+                    <option value="Giám đốc">Giám đốc (Xem báo cáo toàn hệ thống)</option>
+                    <option value="Quản trị viên">Quản trị viên (Admin hệ thống)</option>
                   </select>
-                  {!editingEmployee && <small style={{color: '#666', marginTop: '0.5rem', display: 'block'}}>Tài khoản tự động được tạo với mật khẩu khởi tạo ngẫu nhiên, quyền được cấp theo chức vụ.</small>}
+                  {!editingEmployee && <small style={{color: '#666', marginTop: '0.5rem', display: 'block'}}>Tài khoản nhân viên được khởi tạo mặc định bằng Số CCCD (cả tên đăng nhập và mật khẩu).</small>}
                 </div>
                 <div className="admin-form-group">
                   <label>Ca làm việc</label>

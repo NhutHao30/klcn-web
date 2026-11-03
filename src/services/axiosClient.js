@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getVisitId } from '../utils/visitSession';
 
 // Dùng relative URL - Vite proxy sẽ tự forward /api/* tới backend
 export const BASE_URL = '';
@@ -20,6 +21,16 @@ axiosClient.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
+        // Auto remove static application/json header for FormData to allow browser boundary calculation
+        if (config.data instanceof FormData) {
+            if (typeof config.headers.delete === 'function') {
+                config.headers.delete('Content-Type');
+                config.headers.delete('content-type');
+            }
+            delete config.headers['Content-Type'];
+            delete config.headers['content-type'];
+        }
+
         // Tự động tạo Request ID cho mọi request
         const generateUUID = () => {
             if (self.crypto && self.crypto.randomUUID) {
@@ -33,6 +44,11 @@ axiosClient.interceptors.request.use(
 
         const uuid = generateUUID();
         config.headers['X-Request-ID'] = uuid;
+	
+	// thêm vào để thực hiện đề tài Bigdata
+	
+	
+	config.headers['X-Visit-ID'] = getVisitId();
 
         // Tự động gắn Idempotency-Key cho các request nhạy cảm (checkout)
         if (config.method !== 'get' && (config.url.includes('/checkout') || config.url.includes('/pos/checkout'))) {
@@ -48,21 +64,42 @@ axiosClient.interceptors.request.use(
     }
 );
 
-// Xử lý lỗi chung (Ví dụ: token hết hạn)
+// Xử lý lỗi chung (Ví dụ: token hết hạn, khóa bảo trì chức năng)
 axiosClient.interceptors.response.use(
     (response) => {
         return response;
     },
     (error) => {
-        if (error.response && error.response.status === 401) {
-            // Không hiển thị alert nếu đang gọi API logout hoặc vừa mới đăng xuất xong
-            if (localStorage.getItem('access_token') && !error.config.url.includes('/logout') && !localStorage.getItem('is_logging_out')) {
-                alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
-                localStorage.removeItem('access_token');
-                window.location.href = '/dang-nhap';
-            } else if (error.config.url.includes('/logout') || localStorage.getItem('is_logging_out')) {
-                localStorage.removeItem('access_token');
-                window.location.href = '/dang-nhap';
+        if (error.response && error.response.status === 423) {
+            const msg = error.response.data?.message || 'Chức năng này hiện đang được tạm khóa để bảo trì!';
+            alert('🔒 TẠM KHÓA BẢO TRÌ HỆ THỐNG:\n\n' + msg);
+        } else if (error.response && error.response.status === 401) {
+            // Xoa sach trang thai dang nhap de tranh lap loi
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('is_logging_out');
+            try {
+                sessionStorage.removeItem('current_user');
+            } catch (e) {}
+
+            const currentPath = window.location.pathname;
+            const requestUrl = error.config?.url || '';
+
+            // Khong bao gio redirect neu dang o /dang-nhap (chan triet de reload loop)
+            // Khong redirect doi voi request logout hoac tren public route
+            if (currentPath !== '/dang-nhap' && !requestUrl.includes('/logout')) {
+                const isProtectedRoute = currentPath.startsWith('/admin') ||
+                                         currentPath === '/gio-hang' ||
+                                         currentPath === '/yeu-thich' ||
+                                         currentPath === '/thong-tin-ca-nhan' ||
+                                         currentPath === '/my-orders';
+
+                if (isProtectedRoute) {
+                    if (!window._isRedirectingToLogin) {
+                        window._isRedirectingToLogin = true;
+                        setTimeout(() => { window._isRedirectingToLogin = false; }, 3000);
+                        window.location.href = '/dang-nhap';
+                    }
+                }
             }
         }
         return Promise.reject(error);

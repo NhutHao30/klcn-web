@@ -191,21 +191,7 @@ function scrollSubnav() {
 }
 
 function scrollNav() {
-    
-    window.addEventListener('scroll', () => {
-    const navigation = document.querySelector('.navigation-js')
-    const scrollPosition = window.scrollY
-    const heightNavigation = navigation.clientHeight
-    if (scrollPosition > heightNavigation) {
-        navigation.classList.add('navigation-croll');
-        navigation.style.animation= 'navigationA 0.6s linear';
-        navigation.style.backgroundColor= 'rgba(0, 0, 0, 0.6)';
-    } else {
-        navigation.classList.remove('navigation-croll');
-        navigation.style.backgroundColor= 'transparent';
-        navigation.style.animation= '';
-        }
-    })
+    // Da duoc quan ly toi uu truc tiep bang React state trong Header.jsx
 }
 
 function addFavoriteProducts() {

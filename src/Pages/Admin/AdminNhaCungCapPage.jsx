@@ -95,7 +95,7 @@ const AdminNhaCungCapPage = () => {
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản Lý Nhà Cung Cấp</h1>
+          <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản lý nhà cung cấp</h1>
           <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>Quản lý thông tin chi tiết các nhà cung cấp nguyên liệu, vỏ hộp và sản phẩm bánh</p>
         </div>
         <button className="admin-btn admin-btn-success" onClick={() => handleOpenNccModal()}>

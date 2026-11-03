@@ -30,11 +30,13 @@ const [stores, setStores] = useState([]);
         return {
           ...st,
           id: st.id || st.MACUAHANG,
-          name: st.name || st.ten_cuahang || st.TENCUAHANG || `Chi nhánh #${st.id}`,
-          address: st.address || st.dia_chi_chi_tiet || st.DIACHI || 'Chưa cập nhật địa chỉ',
-          phone: st.phone || st.so_dien_thoai || st.SDT || '-',
-          status: st.status || (st.trang_thai === 1 ? 'Đang hoạt động' : 'Tạm đóng cửa'),
-          GHN_SHOP_ID: st.GHN_SHOP_ID || st.ghn_shop_id || '',
+          name: st.tenCuaHang || st.name || st.ten_cuahang || st.TENCUAHANG || `Chi nhánh #${st.id}`,
+          address: st.diaChiChiTiet || st.address || st.dia_chi_chi_tiet || st.DIACHI || 'Chưa cập nhật địa chỉ',
+          phone: st.soDienThoai || st.phone || st.so_dien_thoai || st.SDT || '-',
+          status: (st.trangThai === 1 || st.trang_thai === 1) ? 'Đang hoạt động' : 'Tạm đóng cửa',
+          GHN_SHOP_ID: st.ghnShopId || st.GHN_SHOP_ID || st.ghn_shop_id || '',
+          importedBatchesCount: st.importedBatchesCount || 0,
+          canceledBatchesCount: st.canceledBatchesCount || 0,
           employees: emps,
           customerCount: st.customerCount || 0,
           revenue: st.revenue || 0,
@@ -90,12 +92,16 @@ const [stores, setStores] = useState([]);
 
   const handleAddStore = async (e) => {
     e.preventDefault();
+    if (!newStore.name || !newStore.address) {
+      toast.info('Vui lòng nhập tên chi nhánh và địa chỉ!');
+      return;
+    }
     try {
       await createStore({
-        TENCUAHANG: newStore.name,
-        DIACHI: newStore.address,
-        SDT: newStore.phone,
-        GHN_SHOP_ID: newStore.ghnShopId
+        tenCuaHang: newStore.name,
+        diaChiChiTiet: newStore.address,
+        soDienThoai: newStore.phone,
+        ghnShopId: newStore.ghnShopId
       });
       toast.success('Tạo chi nhánh mới thành công!');
       setIsAddStoreModalOpen(false);
@@ -103,7 +109,7 @@ const [stores, setStores] = useState([]);
       fetchStores();
     } catch (error) {
       console.error('Error creating store', error);
-      const errorMsg = error.response?.data?.errors?.GHN_SHOP_ID?.[0] || 'Lỗi tạo chi nhánh mới, vui lòng thử lại';
+      const errorMsg = error.response?.data?.message || error.response?.data?.errors?.GHN_SHOP_ID?.[0] || 'Lỗi tạo chi nhánh mới, vui lòng thử lại';
       toast.error(errorMsg);
     }
   };
@@ -111,13 +117,18 @@ const [stores, setStores] = useState([]);
   const handleUpdateGhn = async (e) => {
     e.preventDefault();
     try {
-      await updateStore(editingStore.id, { GHN_SHOP_ID: ghnShopId });
-      toast.success('Cập nhật mã GHN Shop ID thành công!');
+      await updateStore(editingStore.id, {
+        tenCuaHang: newStore.name,
+        diaChiChiTiet: newStore.address,
+        soDienThoai: newStore.phone,
+        ghnShopId: ghnShopId
+      });
+      toast.success('Cập nhật thông tin chi nhánh thành công!');
       setIsEditGhnModalOpen(false);
       fetchStores();
     } catch (error) {
       console.error('Error updating store', error);
-      const errorMsg = error.response?.data?.errors?.GHN_SHOP_ID?.[0] || 'Lỗi cập nhật mã GHN';
+      const errorMsg = error.response?.data?.message || 'Lỗi cập nhật chi nhánh';
       toast.error(errorMsg);
     }
   };
@@ -125,7 +136,7 @@ const [stores, setStores] = useState([]);
   return (
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
-        <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản lý Chuỗi Cửa hàng</h1>
+        <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản lý chi nhánh</h1>
         <button className="admin-btn admin-btn-primary" onClick={() => setIsAddStoreModalOpen(true)}>
           + Thêm chi nhánh mới
         </button>
@@ -145,19 +156,21 @@ const [stores, setStores] = useState([]);
               </div>
               <p style={{ margin: 0, color: 'var(--admin-text-muted)', fontSize: '1.2rem' }}>📍 {store.address}</p>
               <p style={{ margin: 0, color: 'var(--admin-text-muted)', fontSize: '1.2rem' }}>📞 {store.phone}</p>
-              {store.GHN_SHOP_ID ? (
-                <p style={{ margin: 0, color: 'var(--admin-info)', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => {
-                  setEditingStore(store); setGhnShopId(store.GHN_SHOP_ID); setIsEditGhnModalOpen(true);
-                }}>
-                  <i className="fa-solid fa-truck-fast"></i> GHN Shop ID: {store.GHN_SHOP_ID} <i className="fa-solid fa-pen ms-2"></i>
-                </p>
-              ) : (
-                <p style={{ margin: 0, color: 'var(--admin-warning)', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => {
-                  setEditingStore(store); setGhnShopId(''); setIsEditGhnModalOpen(true);
-                }}>
-                  <i className="fa-solid fa-triangle-exclamation"></i> Bấm để cấu hình GHN Shop ID <i className="fa-solid fa-pen ms-2"></i>
-                </p>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Mã GHN: {store.GHN_SHOP_ID || 'Chưa cấu hình'}</span>
+                <button 
+                  className="admin-btn admin-btn-secondary" 
+                  style={{ padding: '4px 10px', fontSize: '1.1rem' }} 
+                  onClick={() => {
+                    setEditingStore(store);
+                    setGhnShopId(store.GHN_SHOP_ID);
+                    setNewStore({ name: store.name, address: store.address, phone: store.phone, ghnShopId: store.GHN_SHOP_ID });
+                    setIsEditGhnModalOpen(true);
+                  }}
+                >
+                  <i className="fa-solid fa-pen" /> Sửa thông tin
+                </button>
+              </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem', backgroundColor: 'var(--admin-tertiary)', padding: '1.2rem', borderRadius: '8px' }}>
                 <div>
@@ -214,12 +227,12 @@ const [stores, setStores] = useState([]);
                 <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-text)' }}>{selectedStore.newCustomers || 0}</p>
               </div>
               <div style={{ padding: '1.2rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Số ngày công (Tháng này)</p>
-                <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-success)' }}>{selectedStore.totalDaysWorked || 0} ngày</p>
+                <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Số lô hàng đã nhập</p>
+                <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-success)' }}>{selectedStore.importedBatchesCount || 0} lô</p>
               </div>
               <div style={{ padding: '1.2rem', backgroundColor: 'var(--admin-tertiary)', borderRadius: '8px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Số ngày nghỉ (Tháng này)</p>
-                <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-warning)' }}>{selectedStore.totalDaysOff || 0} ngày</p>
+                <p style={{ margin: 0, fontSize: '1.2rem', color: 'var(--admin-text-muted)' }}>Số lô hàng đã hủy</p>
+                <p style={{ margin: '0.5rem 0 0', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--admin-danger)' }}>{selectedStore.canceledBatchesCount || 0} lô</p>
               </div>
             </div>
 
@@ -395,31 +408,57 @@ const [stores, setStores] = useState([]);
 
       {isEditGhnModalOpen && (
         <div className="admin-modal-overlay" style={modalOverlayStyle}>
-          <div className="admin-modal" style={{ ...modalStyle, maxWidth: '500px' }}>
+          <div className="admin-modal" style={{ ...modalStyle, maxWidth: '550px' }}>
             <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
-              <h2 className="admin-card-title" style={{ marginBottom: 0 }}>Cấu hình Giao Hàng Nhanh</h2>
+              <h2 className="admin-card-title" style={{ marginBottom: 0 }}>Chỉnh sửa thông tin chi nhánh</h2>
               <button type="button" onClick={() => setIsEditGhnModalOpen(false)} style={closeBtnStyle}>&times;</button>
             </div>
             
             <form onSubmit={handleUpdateGhn}>
-              <div className="alert alert-info">
-                Cập nhật mã Shop ID từ hệ thống Giao Hàng Nhanh cho chi nhánh <strong>{editingStore?.name}</strong>.
+              <div className="admin-form-group">
+                <label>Tên cửa hàng *</label>
+                <input 
+                  type="text" 
+                  value={newStore.name} 
+                  onChange={(e) => setNewStore({...newStore, name: e.target.value})} 
+                  className="admin-input" 
+                  required 
+                />
               </div>
               <div className="admin-form-group">
-                <label>Mã Shop ID *</label>
+                <label>Số điện thoại *</label>
+                <input 
+                  type="text" 
+                  value={newStore.phone} 
+                  onChange={(e) => setNewStore({...newStore, phone: e.target.value})} 
+                  className="admin-input" 
+                  required 
+                />
+              </div>
+              <div className="admin-form-group">
+                <label>Địa chỉ *</label>
+                <textarea 
+                  value={newStore.address} 
+                  onChange={(e) => setNewStore({...newStore, address: e.target.value})} 
+                  className="admin-input" 
+                  rows="3"
+                  required 
+                />
+              </div>
+              <div className="admin-form-group">
+                <label>Mã Shop Giao Hàng Nhanh (GHN Shop ID)</label>
                 <input 
                   type="text" 
                   value={ghnShopId} 
                   onChange={(e) => setGhnShopId(e.target.value)} 
                   className="admin-input" 
                   placeholder="Ví dụ: 6561493"
-                  required 
                 />
               </div>
               
               <div className="admin-flex-between" style={{ justifyContent: 'flex-end', gap: '1.2rem', marginTop: '1.5rem' }}>
                 <button type="button" className="admin-btn admin-btn-secondary" onClick={() => setIsEditGhnModalOpen(false)}>Hủy</button>
-                <button type="submit" className="admin-btn admin-btn-primary">Lưu cấu hình</button>
+                <button type="submit" className="admin-btn admin-btn-primary">Cập nhật chi nhánh</button>
               </div>
             </form>
           </div>

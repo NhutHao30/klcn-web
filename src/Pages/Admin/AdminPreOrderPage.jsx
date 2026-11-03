@@ -4,6 +4,7 @@ import {
     getPreOrders,
     getPreOrderById,
     createPreOrder,
+    updatePreOrder,
     updatePreOrderStatus,
     completePreOrderPayment,
 } from '../../services/preOrderService';
@@ -199,7 +200,6 @@ const emptyForm = () => ({
     sdt_kh:          '',
     makh:            '',
     ngay_hen_lay:    '',
-    ly_do_dat_truoc: 'hen_ngay',
     hinh_thuc_nhan:  'tai_cua_hang',
     dia_chi_giao:    '',
     phi_giao_hang:   '',
@@ -461,26 +461,94 @@ const AdminPreOrderPage = () => {
     const [showDetail, setShowDetail]         = useState(false);
     const [detailLoading, setDetailLoading]   = useState(false);
 
+    // Trạng thái sửa đơn
+    const [editingMaDHT, setEditingMaDHT]     = useState(null);
+
     // Modal thu tiền còn lại
     const [showPayment, setShowPayment]       = useState(false);
     const [paymentMethod, setPaymentMethod]   = useState('Tiền mặt');
     const [paying, setPaying]                 = useState(false);
 
-    // ── Fetch list ──────────────────────────────────────────
+    // ── Mở modal tạo mới ────────────────────────────────────
+    const openCreateModal = () => {
+        setEditingMaDHT(null);
+        setForm(emptyForm());
+        setFormErrors({});
+        setShowCreate(true);
+    };
+
+    // ── Mở modal sửa ────────────────────────────────────────
+    const openEditModal = async (orderOrMaDHT) => {
+        let orderObj = typeof orderOrMaDHT === 'object' ? orderOrMaDHT : null;
+        if (!orderObj || !orderObj.chiTiets) {
+            const ma = typeof orderOrMaDHT === 'string' ? orderOrMaDHT : orderOrMaDHT?.maDHT;
+            try {
+                const res = await getPreOrderById(ma);
+                orderObj = res?.data || res;
+            } catch {
+                toast.error('Không thể lấy thông tin chi tiết đơn để sửa.');
+                return;
+            }
+        }
+        setEditingMaDHT(orderObj.maDHT || orderObj.id);
+
+        let ngayHenVal = orderObj.ngayHenLay || '';
+        if (ngayHenVal && !ngayHenVal.includes('T')) {
+            ngayHenVal = ngayHenVal.replace(' ', 'T').substring(0, 16);
+        }
+
+        setForm({
+            hoten_kh: orderObj.hoTenKH || '',
+            sdt_kh: orderObj.sdtKH || '',
+            makh: orderObj.maKH || '',
+            ngay_hen_lay: ngayHenVal,
+            hinh_thuc_nhan: orderObj.hinhThucNhan || 'tai_cua_hang',
+            dia_chi_giao: orderObj.diaChiGiao || '',
+            phi_giao_hang: orderObj.phiGiaoHang || 0,
+            ghi_chu: orderObj.ghiChu || '',
+            tien_coc: orderObj.tienCoc || 0,
+            phuong_thuc_coc: orderObj.phuongThucCoc || 'Tiền mặt',
+            chu_ky: orderObj.chuKy || '',
+            chi_tiet: (orderObj.chiTiets && orderObj.chiTiets.length > 0)
+                ? orderObj.chiTiets.map(ct => ({
+                    ten_sp: ct.tenSP || '',
+                    masp: ct.maSP || '',
+                    so_luong: ct.soLuong || 1,
+                    don_gia: ct.donGia || 0,
+                    ghi_chu_sp: ct.ghiChuSP || ''
+                }))
+                : [{ ten_sp: '', masp: '', so_luong: 1, don_gia: '', ghi_chu_sp: '' }]
+        });
+        setFormErrors({});
+        setShowCreate(true);
+    };
+
+    // ── Fetch list (Lấy danh sách master của tất cả đơn đặt trước) ────
     const fetchOrders = useCallback(async () => {
         setIsLoading(true);
         try {
-            const data = await getPreOrders({ search: searchQuery, trangThai: filterStatus, size: 100 });
-            setOrders(data.content || []);
+            const res = await getPreOrders({ size: 500 });
+            const list = Array.isArray(res) ? res : (res.data || res.content || []);
+            setOrders(list);
         } catch {
             toast.error('Không thể tải danh sách đơn đặt trước.');
         } finally {
             setIsLoading(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchQuery, filterStatus]);
+    }, []);
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+    // ── Lọc danh sách hiển thị theo Tab & Ô tìm kiếm ─────────
+    const filteredOrders = orders.filter(o => {
+        const matchStatus = !filterStatus || o.trangThai === filterStatus;
+        const q = searchQuery.trim().toLowerCase();
+        const matchSearch = !q ||
+            (o.maDHT && o.maDHT.toLowerCase().includes(q)) ||
+            (o.hoTenKH && o.hoTenKH.toLowerCase().includes(q)) ||
+            (o.sdtKH && o.sdtKH.toLowerCase().includes(q));
+        return matchStatus && matchSearch;
+    });
 
     // ── Tính tổng tiền form ──────────────────────────────────
     const phiGiaoForm = form.hinh_thuc_nhan === 'giao_tan_noi' ? parseInt(form.phi_giao_hang || 0) : 0;
@@ -510,8 +578,6 @@ const AdminPreOrderPage = () => {
         if (!form.hoten_kh.trim()) errs.hoten_kh = 'Vui lòng nhập tên khách hàng.';
         if (!form.sdt_kh.trim())   errs.sdt_kh   = 'Vui lòng nhập số điện thoại.';
         if (!form.ngay_hen_lay)    errs.ngay_hen_lay = 'Vui lòng chọn ngày hẹn lấy.';
-        else if (new Date(form.ngay_hen_lay) <= new Date())
-            errs.ngay_hen_lay = 'Ngày hẹn phải sau thời điểm hiện tại.';
 
         if (form.hinh_thuc_nhan === 'giao_tan_noi') {
             if (!form.dia_chi_giao.trim()) errs.dia_chi_giao = 'Vui lòng nhập địa chỉ giao hàng.';
@@ -523,15 +589,14 @@ const AdminPreOrderPage = () => {
             if (!r.don_gia || r.don_gia <= 0) errs[`sp_gia_${i}`] = 'Đơn giá phải > 0.';
         });
 
-        if (canRequireDeposit) {
-            const coc = parseInt(form.tien_coc || 0);
-            if (coc < 50000) errs.tien_coc = 'Đơn > 200,000đ phải cọc tối thiểu 50,000đ.';
-            if (coc >= tongTienForm) errs.tien_coc = 'Tiền cọc phải nhỏ hơn tổng tiền.';
+        const coc = parseInt(form.tien_coc || 0);
+        if (coc > 0 && tongTienForm > 0 && coc >= tongTienForm) {
+            errs.tien_coc = 'Tiền cọc phải nhỏ hơn tổng tiền đơn hàng.';
         }
         return errs;
     };
 
-    // ── Submit tạo đơn ───────────────────────────────────────
+    // ── Submit tạo/sửa đơn ──────────────────────────────────
     const handleCreate = async (e) => {
         e.preventDefault();
         const errs = validate();
@@ -539,19 +604,17 @@ const AdminPreOrderPage = () => {
         setFormErrors({});
         setCreating(true);
         try {
-            await createPreOrder({
+            const payload = {
                 hoten_kh:        form.hoten_kh,
                 sdt_kh:          form.sdt_kh,
                 makh:            form.makh || undefined,
                 ngay_hen_lay:    form.ngay_hen_lay,
-                ly_do_dat_truoc: form.ly_do_dat_truoc,
                 hinh_thuc_nhan:  form.hinh_thuc_nhan,
                 dia_chi_giao:    form.hinh_thuc_nhan === 'giao_tan_noi' ? form.dia_chi_giao : undefined,
                 phi_giao_hang:   form.hinh_thuc_nhan === 'giao_tan_noi' ? parseInt(form.phi_giao_hang || 0) : 0,
                 ghi_chu:         form.ghi_chu,
-                tien_coc:        canRequireDeposit ? parseInt(form.tien_coc || 0) : 0,
-                phuong_thuc_coc: canRequireDeposit && parseInt(form.tien_coc || 0) > 0
-                    ? form.phuong_thuc_coc : undefined,
+                tien_coc:        parseInt(form.tien_coc || 0),
+                phuong_thuc_coc: parseInt(form.tien_coc || 0) > 0 ? form.phuong_thuc_coc : 'Tiền mặt',
                 chu_ky:          form.chu_ky || undefined,
                 chi_tiet: form.chi_tiet.map(r => ({
                     ten_sp:     r.ten_sp,
@@ -560,14 +623,26 @@ const AdminPreOrderPage = () => {
                     don_gia:    parseInt(r.don_gia),
                     ghi_chu_sp: r.ghi_chu_sp || undefined,
                 })),
-            });
-            toast.success('Tạo đơn đặt trước thành công!');
+            };
+
+            if (editingMaDHT) {
+                await updatePreOrder(editingMaDHT, payload);
+                toast.success('Cập nhật đơn đặt bánh trước thành công!');
+            } else {
+                await createPreOrder(payload);
+                toast.success('Tạo đơn đặt trước thành công!');
+            }
+
             setShowCreate(false);
+            setEditingMaDHT(null);
             setForm(emptyForm());
             fetchOrders();
+            if (showDetail && detail?.maDHT) {
+                openDetail(detail.maDHT);
+            }
         } catch (err) {
             const resData = err?.response?.data;
-            let msg = resData?.message || resData?.error || 'Có lỗi xảy ra khi tạo đơn.';
+            let msg = resData?.message || resData?.error || 'Có lỗi xảy ra khi lưu đơn.';
             if (resData?.errors && typeof resData.errors === 'object') {
                 const firstField = Object.keys(resData.errors)[0];
                 if (firstField && resData.errors[firstField]?.[0]) {
@@ -586,7 +661,7 @@ const AdminPreOrderPage = () => {
         setDetailLoading(true);
         try {
             const data = await getPreOrderById(maDHT);
-            setDetail(data);
+            setDetail(data?.data || data);
         } catch { toast.error('Không thể tải chi tiết đơn.'); }
         finally { setDetailLoading(false); }
     };
@@ -641,89 +716,196 @@ const AdminPreOrderPage = () => {
         setTimeout(() => { win.print(); win.close(); }, 300);
     };
 
+    // Tính toán thống kê KPI nhanh
+    const stats = {
+        total: orders.length,
+        pending: orders.filter(o => ['cho_xac_nhan', 'da_coc'].includes(o.trangThai)).length,
+        ready: orders.filter(o => o.trangThai === 'san_sang').length,
+        totalDeposit: orders.reduce((s, o) => s + (Number(o.tienCoc) || 0), 0)
+    };
+
     // ─────────────────────────────────────────────────────────
     // RENDER
     // ─────────────────────────────────────────────────────────
     return (
         <AdminLayout>
-            {/* Header */}
-            <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
-                <h1 className="admin-title" style={{ marginBottom: 0, fontSize: '22px' }}>
-                    📋 Đặt Hàng Trước
-                </h1>
-                <button className="admin-btn admin-btn-primary" style={{ fontSize: '15px' }}
-                    onClick={() => { setShowCreate(true); setForm(emptyForm()); setFormErrors({}); }}>
-                    + Tạo đơn mới
+            {/* Page Header */}
+            <div className="admin-flex-between" style={{ marginBottom: '1.5rem', alignItems: 'flex-start' }}>
+                <div>
+                    <h1 className="admin-title" style={{ marginBottom: '4px', fontSize: '26px', fontWeight: 800, color: '#0f172a' }}>
+                        🎂 Quản lý đơn đặt bánh trước
+                    </h1>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
+                        Theo dõi lịch hẹn lấy bánh, đặt cọc và xử lý phiếu giao nhận hàng hàng ngày
+                    </p>
+                </div>
+                <button className="admin-btn admin-btn-primary" 
+                    style={{ fontSize: '15px', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)' }}
+                    onClick={openCreateModal}>
+                    ✨ + Tạo đơn đặt bánh mới
                 </button>
             </div>
 
-            {/* Filter bar */}
-            <div className="admin-card">
-                <div className="admin-flex-gap" style={{ marginBottom: '1rem', flexWrap: 'wrap' }}>
-                    <input
-                        type="text" className="admin-input"
-                        placeholder="Tìm mã DHT, tên KH, SĐT..."
-                        style={{ width: '260px', marginBottom: 0, fontSize: '15px' }}
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                    />
-                    <select
-                        className="admin-input"
-                        style={{ width: '200px', marginBottom: 0, fontSize: '15px' }}
-                        value={filterStatus}
-                        onChange={e => setFilterStatus(e.target.value)}
-                    >
-                        {TRANG_THAI_OPTIONS.map(o => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                    </select>
+            {/* KPI Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '1.5rem' }}>
+                <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#eff6ff', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
+                        📋
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Tổng đơn đặt</div>
+                        <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a' }}>{stats.total} <span style={{ fontSize: '14px', fontWeight: 500, color: '#94a3b8' }}>đơn</span></div>
+                    </div>
                 </div>
 
-                {/* Table */}
+                <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#fffbe6', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
+                        ⏳
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Đang chờ / Đã cọc</div>
+                        <div style={{ fontSize: '22px', fontWeight: 800, color: '#b45309' }}>{stats.pending} <span style={{ fontSize: '14px', fontWeight: 500, color: '#94a3b8' }}>đơn</span></div>
+                    </div>
+                </div>
+
+                <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
+                        🎂
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Sẵn sàng giao</div>
+                        <div style={{ fontSize: '22px', fontWeight: 800, color: '#15803d' }}>{stats.ready} <span style={{ fontSize: '14px', fontWeight: 500, color: '#94a3b8' }}>đơn</span></div>
+                    </div>
+                </div>
+
+                <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#fdf2f8', color: '#db2777', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
+                        💰
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Tổng cọc đã thu</div>
+                        <div style={{ fontSize: '20px', fontWeight: 800, color: '#be185d' }}>{fmt(stats.totalDeposit)}</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter & Data Card */}
+            <div className="admin-card" style={{ padding: '20px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                {/* Status Tabs & Search Input */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', gap: '16px', flexWrap: 'wrap' }}>
+                    {/* Status Filter Tabs */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {TRANG_THAI_OPTIONS.map(opt => {
+                            const isSelected = filterStatus === opt.value;
+                            let count = 0;
+                            if (!opt.value) count = orders.length;
+                            else count = orders.filter(o => o.trangThai === opt.value).length;
+
+                            return (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => setFilterStatus(opt.value)}
+                                    style={{
+                                        padding: '7px 14px',
+                                        borderRadius: '20px',
+                                        fontSize: '13px',
+                                        fontWeight: isSelected ? 700 : 500,
+                                        border: isSelected ? '1px solid #0284c7' : '1px solid #e2e8f0',
+                                        backgroundColor: isSelected ? '#0284c7' : '#ffffff',
+                                        color: isSelected ? '#ffffff' : '#475569',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    <span>{opt.label}</span>
+                                    <span style={{
+                                        backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
+                                        color: isSelected ? '#ffffff' : '#64748b',
+                                        padding: '1px 7px',
+                                        borderRadius: '10px',
+                                        fontSize: '12px',
+                                        fontWeight: 700
+                                    }}>
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Search Field */}
+                    <div style={{ position: 'relative', width: '280px' }}>
+                        <input
+                            type="text"
+                            className="admin-input"
+                            placeholder="🔍 Tìm mã DHT, tên KH, SĐT..."
+                            style={{ width: '100%', marginBottom: 0, fontSize: '14px', paddingLeft: '12px', borderRadius: '8px' }}
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {/* Orders Table */}
                 <div className="admin-table-container">
                     <table className="admin-table">
                         <thead>
                             <tr>
-                                <th style={{ fontSize: '14px' }}>Mã DHT</th>
-                                <th style={{ fontSize: '14px' }}>Khách hàng</th>
-                                <th style={{ fontSize: '14px' }}>SĐT</th>
-                                <th style={{ fontSize: '14px' }}>Ngày đặt</th>
-                                <th style={{ fontSize: '14px' }}>Ngày hẹn lấy</th>
-                                <th style={{ fontSize: '14px' }}>Tổng tiền</th>
-                                <th style={{ fontSize: '14px' }}>Đã cọc</th>
-                                <th style={{ fontSize: '14px' }}>Lý do</th>
-                                <th style={{ fontSize: '14px' }}>Trạng thái</th>
-                                <th style={{ fontSize: '14px' }}>Thao tác</th>
+                                <th style={{ fontSize: '13px', textTransform: 'uppercase', color: '#475569', padding: '12px 14px' }}>Mã DHT</th>
+                                <th style={{ fontSize: '13px', textTransform: 'uppercase', color: '#475569', padding: '12px 14px' }}>Khách hàng</th>
+                                <th style={{ fontSize: '13px', textTransform: 'uppercase', color: '#475569', padding: '12px 14px' }}>SĐT liên hệ</th>
+                                <th style={{ fontSize: '13px', textTransform: 'uppercase', color: '#475569', padding: '12px 14px' }}>Thời gian đặt</th>
+                                <th style={{ fontSize: '13px', textTransform: 'uppercase', color: '#475569', padding: '12px 14px' }}>Hẹn lấy bánh</th>
+                                <th style={{ fontSize: '13px', textTransform: 'uppercase', color: '#475569', padding: '12px 14px' }}>Tổng tiền</th>
+                                <th style={{ fontSize: '13px', textTransform: 'uppercase', color: '#475569', padding: '12px 14px' }}>Đã đặt cọc</th>
+                                <th style={{ fontSize: '13px', textTransform: 'uppercase', color: '#475569', padding: '12px 14px' }}>Trạng thái</th>
+                                <th style={{ fontSize: '13px', textTransform: 'uppercase', color: '#475569', padding: '12px 14px', textAlign: 'center' }}>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
-                                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '24px', fontSize: '15px' }}>Đang tải...</td></tr>
-                            ) : orders.length === 0 ? (
-                                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '24px', fontSize: '15px', color: '#888' }}>Không có đơn đặt trước nào</td></tr>
-                            ) : orders.map(o => {
+                                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '36px', fontSize: '15px', color: '#64748b' }}>⏳ Đang tải danh sách đơn đặt trước...</td></tr>
+                            ) : filteredOrders.length === 0 ? (
+                                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '36px', fontSize: '15px', color: '#94a3b8' }}>Không tìm thấy đơn đặt hàng trước nào</td></tr>
+                            ) : filteredOrders.map(o => {
                                 const badge = BADGE_MAP[o.trangThai] || { cls: 'admin-badge-secondary', label: o.trangThai };
                                 return (
-                                    <tr key={o.maDHT}>
-                                        <td style={{ fontSize: '14px', fontWeight: 700 }}>{o.maDHT}</td>
-                                        <td style={{ fontSize: '14px' }}>{o.hoTenKH}</td>
-                                        <td style={{ fontSize: '14px' }}>{o.sdtKH}</td>
-                                        <td style={{ fontSize: '14px' }}>{o.ngayDat ? new Date(o.ngayDat).toLocaleString('vi-VN') : '-'}</td>
-                                        <td style={{ fontSize: '14px', fontWeight: 600, color: '#d97706' }}>
-                                            {o.ngayHenLay ? new Date(o.ngayHenLay).toLocaleString('vi-VN') : '-'}
+                                    <tr key={o.maDHT} style={{ transition: 'background-color 0.15s ease' }}>
+                                        <td style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{o.maDHT}</td>
+                                        <td style={{ fontSize: '14px', fontWeight: 600 }}>{o.hoTenKH}</td>
+                                        <td style={{ fontSize: '14px', color: '#0284c7' }}>📞 {o.sdtKH}</td>
+                                        <td style={{ fontSize: '13px', color: '#64748b' }}>{o.ngayDat ? new Date(o.ngayDat).toLocaleString('vi-VN') : '-'}</td>
+                                        <td style={{ fontSize: '14px' }}>
+                                            <div style={{ backgroundColor: '#fffbe6', border: '1px solid #ffe58f', padding: '4px 8px', borderRadius: '6px', color: '#b45309', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                📅 {o.ngayHenLay ? new Date(o.ngayHenLay).toLocaleString('vi-VN') : '-'}
+                                            </div>
                                         </td>
-                                        <td style={{ fontSize: '14px', fontWeight: 600, color: 'var(--admin-primary)' }}>{fmt(o.tongTien)}</td>
-                                        <td style={{ fontSize: '14px', color: '#059669' }}>{fmt(o.tienCoc)}</td>
-                                        <td style={{ fontSize: '14px' }}>{LY_DO_LABEL[o.lyDo] || o.lyDo}</td>
+                                        <td style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{fmt(o.tongTien)}</td>
+                                        <td style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a' }}>{fmt(o.tienCoc)}</td>
                                         <td>
-                                            <span className={`admin-badge ${badge.cls}`} style={{ fontSize: '13px' }}>{badge.label}</span>
+                                            <span className={`admin-badge ${badge.cls}`} style={{ fontSize: '13px', padding: '4px 12px', borderRadius: '12px' }}>
+                                                {badge.label}
+                                            </span>
                                         </td>
                                         <td>
-                                            <button className="admin-btn admin-btn-info"
-                                                style={{ padding: '4px 12px', fontSize: '14px' }}
-                                                onClick={() => openDetail(o.maDHT)}>
-                                                Chi tiết
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                                <button className="admin-btn"
+                                                    style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '6px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', fontWeight: 600 }}
+                                                    onClick={() => openDetail(o.maDHT)}>
+                                                    👁️ Chi tiết
+                                                </button>
+                                                {!['da_giao', 'da_huy'].includes(o.trangThai) && (
+                                                    <button className="admin-btn"
+                                                        style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '6px', backgroundColor: '#fef3c7', color: '#b45309', border: 'none', fontWeight: 600 }}
+                                                        onClick={() => openEditModal(o)}>
+                                                        ✏️ Sửa
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 );
@@ -733,286 +915,191 @@ const AdminPreOrderPage = () => {
                 </div>
             </div>
 
-            {/* ══════ MODAL TẠO ĐƠN ══════ */}
+            {/* ══════ MODAL TẠO / SỬA ĐƠN ══════ */}
             {showCreate && (
                 <div style={styles.overlay}>
-                    <div style={{ ...styles.modal, maxWidth: '760px' }}>
-                        <div className="admin-flex-between" style={{ marginBottom: '1.2rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '20px' }}>Tạo đơn đặt bánh trước</h2>
+                    <div style={{ ...styles.modalContainer, maxWidth: '840px' }}>
+                        <div style={styles.modalHeader}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={styles.iconCircle}>{editingMaDHT ? '✏️' : '🍰'}</div>
+                                <h2 style={styles.modalHeaderTitle}>
+                                    {editingMaDHT ? `Chỉnh sửa đơn đặt bánh trước (${editingMaDHT})` : 'Tạo đơn đặt bánh trước mới'}
+                                </h2>
+                            </div>
                             <button style={styles.closeBtn} onClick={() => setShowCreate(false)}>✕</button>
                         </div>
 
-                        <form onSubmit={handleCreate}>
-                            {/* Thông tin khách */}
-                            <SectionTitle>👤 Thông tin khách hàng</SectionTitle>
-                            <div style={styles.grid2}>
-                                <Field label="Số điện thoại *" error={formErrors.sdt_kh}>
-                                    <input className="admin-input" style={styles.inp} value={form.sdt_kh}
-                                        onChange={e => setForm(f => ({ ...f, sdt_kh: e.target.value }))}
-                                        placeholder="09xxxxxxxx" />
-                                </Field>
-                                <Field label="Tên khách hàng *" error={formErrors.hoten_kh}>
-                                    <input className="admin-input" style={styles.inp} value={form.hoten_kh}
-                                        onChange={e => setForm(f => ({ ...f, hoten_kh: e.target.value }))}
-                                        placeholder="Nguyễn Văn A" />
-                                </Field>
-                            </div>
-
-                            {/* Thông báo kết quả tra cứu thành viên */}
-                            {customerLookupStatus.loading && (
-                                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '12px', padding: '6px 12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
-                                    🔍 Đang kiểm tra thành viên theo SĐT...
+                        <div style={styles.modalBody}>
+                            <form id="preOrderForm" onSubmit={handleCreate}>
+                                {/* Thông tin khách */}
+                                <SectionTitle>👤 Thông tin khách hàng</SectionTitle>
+                                <div style={styles.grid2}>
+                                    <Field label="Số điện thoại *" error={formErrors.sdt_kh}>
+                                        <input className="admin-input" style={styles.inp} value={form.sdt_kh}
+                                            onChange={e => setForm(f => ({ ...f, sdt_kh: e.target.value }))}
+                                            placeholder="09xxxxxxxx" />
+                                        {customerLookupStatus.loading && <span style={{ fontSize: '12px', color: '#0284c7' }}>🔍 Đang tìm khách hàng...</span>}
+                                        {customerLookupStatus.found && <span style={{ fontSize: '12px', color: '#16a34a' }}>✅ Khách thân thiết (Mã: {customerLookupStatus.data?.maKH})</span>}
+                                    </Field>
+                                    <Field label="Tên khách hàng *" error={formErrors.hoten_kh}>
+                                        <input className="admin-input" style={styles.inp} value={form.hoten_kh}
+                                            onChange={e => setForm(f => ({ ...f, hoten_kh: e.target.value }))}
+                                            placeholder="Nguyễn Văn A" />
+                                    </Field>
                                 </div>
-                            )}
-                            {customerLookupStatus.found === true && (
-                                <div style={{ fontSize: '14px', color: '#047857', backgroundColor: '#d1fae5', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontWeight: '500' }}>
-                                    👑 Khách thành viên: <strong>{customerLookupStatus.data.hoTen}</strong> (Mã KH: {customerLookupStatus.data.maKH}) — Tích lũy: <strong>{customerLookupStatus.data.diemTichLuy} điểm</strong>. (Sẽ tự động cộng điểm khi hoàn tất đơn!)
+
+                                {/* Thời gian & Hình thức nhận */}
+                                <SectionTitle>📅 Thời gian & Hình thức nhận bánh</SectionTitle>
+                                <div style={styles.grid2}>
+                                    <Field label="Ngày & Giờ hẹn lấy *" error={formErrors.ngay_hen_lay}>
+                                        <input type="datetime-local" className="admin-input" style={styles.inp}
+                                            min={minPickupDatetime()}
+                                            value={form.ngay_hen_lay}
+                                            onChange={e => setForm(f => ({ ...f, ngay_hen_lay: e.target.value }))} />
+                                    </Field>
+
+                                    <Field label="Hình thức nhận bánh">
+                                        <select className="admin-input" style={styles.inp} value={form.hinh_thuc_nhan}
+                                            onChange={e => setForm(f => ({ ...f, hinh_thuc_nhan: e.target.value }))}>
+                                            <option value="tai_cua_hang">🏢 Nhận tại cửa hàng</option>
+                                            <option value="giao_tan_noi">🚚 Giao tận nơi (GHN)</option>
+                                        </select>
+                                    </Field>
                                 </div>
-                            )}
-                            {customerLookupStatus.found === false && form.sdt_kh.trim().length >= 9 && (
-                                <div style={{ fontSize: '14px', color: '#4b5563', backgroundColor: '#f3f4f6', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px' }}>
-                                    👤 Khách vãng lai (SĐT chưa đăng ký tài khoản thành viên — không tích điểm).
-                                </div>
-                            )}
 
-                            <Field label="Lý do đặt trước *">
-                                <select className="admin-input" style={styles.inp} value={form.ly_do_dat_truoc}
-                                    onChange={e => setForm(f => ({ ...f, ly_do_dat_truoc: e.target.value }))}>
-                                    <option value="hen_ngay">📅 Khách hẹn ngày lấy</option>
-                                    <option value="het_hang">🚫 Bánh đã hết hàng</option>
-                                </select>
-                            </Field>
+                                {form.hinh_thuc_nhan === 'giao_tan_noi' && (
+                                    <GhnDeliverySelector form={form} setForm={setForm} formErrors={formErrors} />
+                                )}
 
-                            {/* Ngày hẹn */}
-                            <Field label="Ngày & giờ hẹn lấy bánh *" error={formErrors.ngay_hen_lay}>
-                                <input type="datetime-local" className="admin-input"
-                                    style={{ ...styles.inp, width: '280px' }}
-                                    min={minPickupDatetime()}
-                                    value={form.ngay_hen_lay}
-                                    onChange={e => setForm(f => ({ ...f, ngay_hen_lay: e.target.value }))} />
-                            </Field>
+                                {/* Chi tiết sản phẩm đặt bánh */}
+                                <SectionTitle>🎂 Danh sách sản phẩm đặt bánh</SectionTitle>
+                                {formErrors.chi_tiet && <ErrMsg msg={formErrors.chi_tiet} />}
 
-                            {/* Hình thức nhận bánh */}
-                            <SectionTitle>🚚 Hình thức nhận bánh</SectionTitle>
-                            <div style={{ display: 'flex', gap: '20px', marginBottom: '12px' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: 600 }}>
-                                    <input
-                                        type="radio"
-                                        name="hinh_thuc_nhan"
-                                        value="tai_cua_hang"
-                                        checked={form.hinh_thuc_nhan === 'tai_cua_hang'}
-                                        onChange={e => setForm(f => ({ ...f, hinh_thuc_nhan: e.target.value }))}
-                                    />
-                                    🏢 Nhận tại cửa hàng
-                                </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: 600 }}>
-                                    <input
-                                        type="radio"
-                                        name="hinh_thuc_nhan"
-                                        value="giao_tan_noi"
-                                        checked={form.hinh_thuc_nhan === 'giao_tan_noi'}
-                                        onChange={e => setForm(f => ({ ...f, hinh_thuc_nhan: e.target.value }))}
-                                    />
-                                    🚚 Giao hàng tận nơi
-                                </label>
-                            </div>
+                                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', marginBottom: '12px' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f1f5f9' }}>
+                                                <th style={{ ...styles.th, width: '40%' }}>Tên bánh / Sản phẩm *</th>
+                                                <th style={{ ...styles.th, width: '12%', textAlign: 'center' }}>Số lượng</th>
+                                                <th style={{ ...styles.th, width: '22%', textAlign: 'right' }}>Đơn giá (đ) *</th>
+                                                <th style={{ ...styles.th, width: '22%', textAlign: 'right' }}>Thành tiền</th>
+                                                <th style={{ ...styles.th, width: '4%' }}></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {form.chi_tiet.map((row, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td style={{ padding: '8px', position: 'relative' }}>
+                                                        <input className="admin-input" style={{ ...styles.inp, fontSize: '14px' }}
+                                                            placeholder="Nhập tên bánh..."
+                                                            value={row.ten_sp}
+                                                            onFocus={() => setActiveSuggestIdx(idx)}
+                                                            onChange={e => {
+                                                                setRow(idx, 'ten_sp', e.target.value);
+                                                                setRow(idx, 'masp', '');
+                                                                setActiveSuggestIdx(idx);
+                                                            }} />
+                                                        {formErrors[`sp_ten_${idx}`] && <ErrMsg msg={formErrors[`sp_ten_${idx}`]} />}
 
-                            {form.hinh_thuc_nhan === 'giao_tan_noi' && (
-                                <GhnDeliverySelector form={form} setForm={setForm} formErrors={formErrors} />
-                            )}
-
-                            {/* Sản phẩm */}
-                            <SectionTitle>🎂 Danh sách sản phẩm</SectionTitle>
-                            {formErrors.chi_tiet && <ErrMsg msg={formErrors.chi_tiet} />}
-                            {form.chi_tiet.map((row, idx) => (
-                                <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                                    <div style={{ flex: '2', minWidth: '240px', position: 'relative' }}>
-                                        <label style={styles.label}>Tên sản phẩm *</label>
-                                        <div style={{ position: 'relative' }}>
-                                            <input
-                                                className="admin-input"
-                                                style={{ ...styles.inp, paddingRight: '28px' }}
-                                                placeholder="🔍 Nhập từ khóa (bánh, kem, chocolate...)..."
-                                                value={row.ten_sp}
-                                                onFocus={() => setActiveSuggestIdx(idx)}
-                                                onChange={e => {
-                                                    setRow(idx, 'ten_sp', e.target.value);
-                                                    setRow(idx, 'masp', '');
-                                                    setActiveSuggestIdx(idx);
-                                                }}
-                                            />
-                                            {row.ten_sp ? (
-                                                <button
-                                                    type="button"
-                                                    style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '14px' }}
-                                                    onClick={() => {
-                                                        setRow(idx, 'ten_sp', '');
-                                                        setRow(idx, 'masp', '');
-                                                        setRow(idx, 'don_gia', '');
-                                                    }}
-                                                >✕</button>
-                                            ) : null}
-                                        </div>
-
-                                        {/* Dropdown gợi ý thời gian thực */}
-                                        {activeSuggestIdx === idx && (
-                                            <div style={{
-                                                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-                                                backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px',
-                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                                                maxHeight: '220px', overflowY: 'auto', marginTop: '4px'
-                                            }}>
-                                                <div style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#6b7280', backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span>💡 {row.ten_sp ? `Gợi ý theo "${row.ten_sp}"` : 'Sản phẩm hệ thống'} ({filterProducts(row.ten_sp).length})</span>
-                                                    <button type="button" onClick={() => setActiveSuggestIdx(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '12px' }}>Đóng ✕</button>
-                                                </div>
-                                                {filterProducts(row.ten_sp).length === 0 ? (
-                                                    <div style={{ padding: '12px', fontSize: '13px', color: '#6b7280', textAlign: 'center' }}>
-                                                        Không tìm thấy bánh khớp với "{row.ten_sp}" (sẽ đặt làm bánh riêng)
-                                                    </div>
-                                                ) : (
-                                                    filterProducts(row.ten_sp).map(p => {
-                                                        const ton = Math.max(0, p.TONKHO_THUCTE !== undefined ? p.TONKHO_THUCTE : (p.SOLUONG ?? 0));
-                                                        return (
-                                                            <div
-                                                                key={p.MASP}
-                                                                style={{
-                                                                    padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
-                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                                    backgroundColor: String(row.masp) === String(p.MASP) ? '#eff6ff' : '#ffffff'
-                                                                }}
-                                                                onMouseDown={(e) => {
-                                                                    e.preventDefault();
-                                                                    setRow(idx, 'ten_sp', p.TENSP);
-                                                                    setRow(idx, 'masp', p.MASP);
-                                                                    setRow(idx, 'don_gia', p.GIABAN);
-                                                                    setActiveSuggestIdx(null);
-                                                                }}
-                                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = String(row.masp) === String(p.MASP) ? '#eff6ff' : '#ffffff'}
-                                                            >
-                                                                <div>
-                                                                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{p.TENSP}</div>
-                                                                    <div style={{ fontSize: '12px', color: '#6b7280' }}>Mã: {p.MASP}</div>
-                                                                </div>
-                                                                <div style={{ textAlign: 'right' }}>
-                                                                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--admin-primary)' }}>
-                                                                        {Number(p.GIABAN || 0).toLocaleString('vi-VN')} ₫
+                                                        {activeSuggestIdx === idx && (
+                                                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, backgroundColor: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', maxHeight: '180px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                                                                {filterProducts(row.ten_sp).map((p, pi) => (
+                                                                    <div key={pi} style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}
+                                                                        onMouseDown={() => {
+                                                                            setRow(idx, 'ten_sp', p.TENSP || p.tenSanPham);
+                                                                            setRow(idx, 'masp', p.MASP || p.id);
+                                                                            setRow(idx, 'don_gia', p.GIABAN || p.giaBan || 0);
+                                                                            setActiveSuggestIdx(null);
+                                                                        }}>
+                                                                        <strong>{p.TENSP || p.tenSanPham}</strong>
+                                                                        <span style={{ float: 'right', color: '#0284c7', fontWeight: 600 }}>{fmt(p.GIABAN || p.giaBan)}</span>
                                                                     </div>
-                                                                    <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '4px', backgroundColor: ton > 0 ? '#d1fae5' : '#fef3c7', color: ton > 0 ? '#047857' : '#b45309', fontWeight: 600 }}>
-                                                                        Tồn: {ton}
-                                                                    </span>
-                                                                </div>
+                                                                ))}
                                                             </div>
-                                                        );
-                                                    })
-                                                )}
-                                            </div>
-                                        )}
-                                        {formErrors[`sp_ten_${idx}`] && <ErrMsg msg={formErrors[`sp_ten_${idx}`]} />}
-                                    </div>
-                                    <div style={{ width: '80px' }}>
-                                        <label style={styles.label}>SL *</label>
-                                        <input type="number" className="admin-input" style={styles.inp} min={1}
-                                            value={row.so_luong}
-                                            onChange={e => setRow(idx, 'so_luong', e.target.value)} />
-                                    </div>
-                                    <div style={{ width: '130px' }}>
-                                        <label style={styles.label}>Đơn giá *</label>
-                                        <input type="number" className="admin-input" style={styles.inp} min={0}
-                                            value={row.don_gia}
-                                            onChange={e => setRow(idx, 'don_gia', e.target.value)} />
-                                        {formErrors[`sp_gia_${idx}`] && <ErrMsg msg={formErrors[`sp_gia_${idx}`]} />}
-                                    </div>
-                                    <div style={{ flex: '1', minWidth: '140px' }}>
-                                        <label style={styles.label}>Ghi chú SP</label>
-                                        <input className="admin-input" style={styles.inp} placeholder="kem dâu, chữ vàng"
-                                            value={row.ghi_chu_sp}
-                                            onChange={e => setRow(idx, 'ghi_chu_sp', e.target.value)} />
-                                    </div>
-                                    {form.chi_tiet.length > 1 && (
-                                        <button type="button" style={{ marginTop: '22px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ef4444' }}
-                                            onClick={() => removeRow(idx)}>✕</button>
-                                    )}
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                        <input type="number" min="1" className="admin-input"
+                                                            style={{ ...styles.inp, textAlign: 'center', padding: '4px 6px' }}
+                                                            value={row.so_luong}
+                                                            onChange={e => setRow(idx, 'so_luong', e.target.value)} />
+                                                    </td>
+                                                    <td style={{ padding: '8px', textAlign: 'right' }}>
+                                                        <input type="number" min="0" className="admin-input"
+                                                            style={{ ...styles.inp, textAlign: 'right', padding: '4px 6px' }}
+                                                            value={row.don_gia}
+                                                            onChange={e => setRow(idx, 'don_gia', e.target.value)} />
+                                                        {formErrors[`sp_gia_${idx}`] && <ErrMsg msg={formErrors[`sp_gia_${idx}`]} />}
+                                                    </td>
+                                                    <td style={{ padding: '8px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                                                        {fmt((parseInt(row.so_luong || 0) * parseInt(row.don_gia || 0)))}
+                                                    </td>
+                                                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                        {form.chi_tiet.length > 1 && (
+                                                            <button type="button" onClick={() => removeRow(idx)}
+                                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
-                            ))}
-                            <button type="button" className="admin-btn admin-btn-secondary"
-                                style={{ fontSize: '14px', marginBottom: '12px' }} onClick={addRow}>
-                                + Thêm sản phẩm
+                                <button type="button" className="admin-btn admin-btn-secondary"
+                                    style={{ fontSize: '13px', padding: '4px 12px', marginBottom: '14px' }}
+                                    onClick={addRow}>+ Thêm bánh mới</button>
+
+                                {/* Tính tiền & Tiền cọc */}
+                                <SectionTitle>💳 Tính tiền & Đặt cọc</SectionTitle>
+                                <div style={{ backgroundColor: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '15px' }}>
+                                        <span>Tổng tiền đơn bánh:</span>
+                                        <strong style={{ fontSize: '17px', color: '#0f172a' }}>{fmt(tongTienForm)}</strong>
+                                    </div>
+                                    <div style={styles.grid2}>
+                                        <Field label="Số tiền đặt cọc (đ)" error={formErrors.tien_coc}>
+                                            <input type="number" min="0" className="admin-input" style={styles.inp}
+                                                placeholder="VD: 100000" value={form.tien_coc}
+                                                onChange={e => setForm(f => ({ ...f, tien_coc: e.target.value }))} />
+                                        </Field>
+                                        <Field label="Phương thức cọc">
+                                            <select className="admin-input" style={styles.inp} value={form.phuong_thuc_coc}
+                                                onChange={e => setForm(f => ({ ...f, phuong_thuc_coc: e.target.value }))}>
+                                                <option>Tiền mặt</option>
+                                                <option>Chuyển khoản</option>
+                                            </select>
+                                        </Field>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0', fontSize: '15px', color: '#dc2626', fontWeight: 700 }}>
+                                        <span>Số tiền còn lại cần thanh toán:</span>
+                                        <span>{fmt(Math.max(0, tongTienForm - parseInt(form.tien_coc || 0)))}</span>
+                                    </div>
+                                </div>
+
+                                {/* Ghi chú */}
+                                <Field label="Ghi chú đơn hàng">
+                                    <textarea className="admin-input" style={{ ...styles.inp, height: '70px', resize: 'vertical' }}
+                                        placeholder="Yêu cầu đặc biệt..."
+                                        value={form.ghi_chu}
+                                        onChange={e => setForm(f => ({ ...f, ghi_chu: e.target.value }))} />
+                                </Field>
+
+                                {/* Chữ ký điện tử */}
+                                <SignatureCanvas
+                                    value={form.chu_ky}
+                                    onChange={v => setForm(f => ({ ...f, chu_ky: v }))}
+                                />
+                            </form>
+                        </div>
+
+                        <div style={styles.modalFooter}>
+                            <button type="button" className="admin-btn" style={styles.btnClose}
+                                onClick={() => setShowCreate(false)}>Hủy</button>
+                            <button type="submit" form="preOrderForm" className="admin-btn" style={styles.btnSuccess}
+                                disabled={creating}>
+                                {creating ? '⏳ Đang lưu...' : (editingMaDHT ? '💾 Lưu thay đổi' : '✅ Tạo đơn')}
                             </button>
-
-                            {/* Tổng tiền & Cọc */}
-                            {(() => {
-                                const tongBanh = form.chi_tiet.reduce((s, r) => s + (parseInt(r.so_luong || 0) * parseInt(r.don_gia || 0)), 0);
-                                const minCocBanh = tongBanh > 200000 ? 50000 : 0;
-                                const phiShip = form.hinh_thuc_nhan === 'giao_tan_noi' ? parseInt(form.phi_giao_hang || 0) : 0;
-                                const minTotalCoc = form.hinh_thuc_nhan === 'giao_tan_noi' ? (minCocBanh + phiShip) : minCocBanh;
-                                const needDeposit = minTotalCoc > 0 || tongTienForm > 200000;
-
-                                return (
-                                    <>
-                                        <div style={{ background: 'var(--admin-tertiary)', borderRadius: '8px', padding: '10px 16px', marginBottom: '12px' }}>
-                                            <span style={{ fontSize: '16px', fontWeight: 600 }}>Tổng tiền đơn hàng: </span>
-                                            <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--admin-primary)' }}>{fmt(tongTienForm)}</span>
-                                            {phiShip > 0 && <span style={{ fontSize: '13px', color: '#0284c7', marginLeft: '8px' }}>(đã gồm {fmt(phiShip)} phí ship GHN)</span>}
-                                            {minTotalCoc > 0 && (
-                                                <div style={{ fontSize: '14px', color: '#d97706', marginTop: '4px', fontWeight: 600 }}>
-                                                    ⚠️ Đặt cọc tối thiểu bắt buộc: {fmt(minTotalCoc)}
-                                                    {form.hinh_thuc_nhan === 'giao_tan_noi' && (
-                                                        <span style={{ fontWeight: 400, fontSize: '13px', marginLeft: '6px' }}>
-                                                            ({minCocBanh > 0 ? `${fmt(minCocBanh)} cọc bánh + ` : ''}{fmt(phiShip)} cọc phí ship GHN)
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Đặt cọc */}
-                                        {needDeposit && (
-                                            <div style={styles.grid2}>
-                                                <Field label={`Tiền đặt cọc (Tối thiểu ${fmt(minTotalCoc)}) *`} error={formErrors.tien_coc}>
-                                                    <input type="number" className="admin-input" style={styles.inp} min={minTotalCoc}
-                                                        value={form.tien_coc}
-                                                        onChange={e => setForm(f => ({ ...f, tien_coc: e.target.value }))}
-                                                        placeholder={`Nhập từ ${fmt(minTotalCoc)}...`} />
-                                                </Field>
-                                                <Field label="Hình thức cọc">
-                                                    <select className="admin-input" style={styles.inp} value={form.phuong_thuc_coc}
-                                                        onChange={e => setForm(f => ({ ...f, phuong_thuc_coc: e.target.value }))}>
-                                                        <option>Tiền mặt</option>
-                                                        <option>Chuyển khoản</option>
-                                                    </select>
-                                                </Field>
-                                            </div>
-                                        )}
-                                    </>
-                                );
-                            })()}
-
-                            {/* Ghi chú */}
-                            <Field label="Ghi chú đơn hàng">
-                                <textarea className="admin-input" style={{ ...styles.inp, height: '70px', resize: 'vertical' }}
-                                    placeholder="Yêu cầu đặc biệt..."
-                                    value={form.ghi_chu}
-                                    onChange={e => setForm(f => ({ ...f, ghi_chu: e.target.value }))} />
-                            </Field>
-
-                            {/* Chữ ký điện tử */}
-                            <SignatureCanvas
-                                value={form.chu_ky}
-                                onChange={v => setForm(f => ({ ...f, chu_ky: v }))}
-                            />
-
-                            {/* Buttons */}
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-                                <button type="button" className="admin-btn admin-btn-secondary" style={{ fontSize: '15px' }}
-                                    onClick={() => setShowCreate(false)}>Hủy</button>
-                                <button type="submit" className="admin-btn admin-btn-primary" style={{ fontSize: '15px' }}
-                                    disabled={creating}>
-                                    {creating ? 'Đang tạo...' : '✅ Tạo đơn'}
-                                </button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1020,137 +1107,213 @@ const AdminPreOrderPage = () => {
             {/* ══════ MODAL CHI TIẾT ══════ */}
             {showDetail && (
                 <div style={styles.overlay}>
-                    <div style={{ ...styles.modal, maxWidth: '820px' }}>
-                        <div className="admin-flex-between" style={{ marginBottom: '1.2rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '20px' }}>Chi tiết đơn đặt trước</h2>
-                            <button style={styles.closeBtn} onClick={() => setShowDetail(false)}>✕</button>
+                    <div style={styles.modalContainer}>
+                        {/* Header (Sticky / Fixed) */}
+                        <div style={styles.modalHeader}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={styles.iconCircle}>📋</div>
+                                <div>
+                                    <h2 style={styles.modalHeaderTitle}>Chi tiết đơn đặt trước</h2>
+                                    <span style={{ fontSize: '13px', color: '#64748b' }}>Mã phiếu: <strong>{detail?.maDHT}</strong></span>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                {detail && (
+                                    <span className={`admin-badge ${(BADGE_MAP[detail.trangThai] || {}).cls}`}
+                                        style={{ fontSize: '14px', padding: '6px 14px', borderRadius: '20px' }}>
+                                        {(BADGE_MAP[detail.trangThai] || {}).label || detail.trangThai}
+                                    </span>
+                                )}
+                                <button style={styles.closeBtn} onClick={() => setShowDetail(false)}>✕</button>
+                            </div>
                         </div>
 
-                        {detailLoading ? (
-                            <p style={{ textAlign: 'center', fontSize: '15px' }}>Đang tải chi tiết...</p>
-                        ) : detail && (
-                            <>
-                                {/* Nội dung in phiếu */}
+                        {/* Scrollable Body */}
+                        <div style={styles.modalBody}>
+                            {detailLoading ? (
+                                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
+                                    <p style={{ fontSize: '16px', margin: 0 }}>Đang tải chi tiết đơn hàng...</p>
+                                </div>
+                            ) : detail && (
                                 <div ref={printRef}>
-                                    {/* Header phiếu */}
-                                    <div style={{ textAlign: 'center', borderBottom: '2px solid #333', paddingBottom: '10px', marginBottom: '14px' }}>
-                                        <h2 style={{ margin: '0 0 4px', fontSize: '20px' }}>🍰 Dola Bakery — Phiếu Đặt Bánh Trước</h2>
-                                        <p style={{ margin: 0, fontSize: '15px' }}>
-                                            Mã đặt hàng: <strong style={{ fontSize: '16px' }}>{detail.maDHT}</strong>
-                                            &nbsp;|&nbsp;
+                                    {/* Printable Header Banner */}
+                                    <div style={styles.receiptBanner}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '8px' }}>
+                                            <img src="/assets/IMG/Logo.jpg" alt="Givral Bakery" style={{ width: '56px', height: '56px', objectFit: 'contain', borderRadius: '6px' }} />
+                                            <div>
+                                                <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: '#1e293b' }}>
+                                                    🍰 Givral Bakery — Phiếu Đặt Bánh Trước
+                                                </h2>
+                                                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
+                                                    Chuyên bánh ngọt tươi & bánh kem nghệ thuật cao cấp
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '14px', color: '#475569' }}>
+                                            Mã đặt hàng: <strong style={{ fontSize: '16px', color: '#0f172a' }}>{detail.maDHT}</strong>
+                                            &nbsp;•&nbsp;
                                             Ngày đặt: {detail.ngayDat ? new Date(detail.ngayDat).toLocaleString('vi-VN') : '-'}
                                         </p>
                                     </div>
 
-                                    {/* Thông tin KH + Cửa hàng */}
-                                    <div style={{ display: 'flex', gap: '24px', marginBottom: '14px', flexWrap: 'wrap' }}>
-                                        <div style={{ flex: 1 }}>
-                                            <p style={{ fontSize: '15px', margin: '4px 0' }}><strong>Khách hàng:</strong> {detail.hoTenKH}</p>
-                                            <p style={{ fontSize: '15px', margin: '4px 0' }}><strong>SĐT:</strong> {detail.sdtKH}</p>
-                                            <p style={{ fontSize: '15px', margin: '4px 0' }}><strong>Ghi chú:</strong> {detail.ghiChu || '—'}</p>
+                                    {/* Customer & Pickup Info Grid */}
+                                    <div style={styles.gridCards}>
+                                        {/* Card Khách hàng */}
+                                        <div style={styles.infoCard}>
+                                            <div style={styles.cardHeaderTitle}>👤 Thông tin khách hàng</div>
+                                            <div style={styles.infoRow}>
+                                                <span style={styles.infoLabel}>Khách hàng:</span>
+                                                <strong style={styles.infoValue}>{detail.hoTenKH}</strong>
+                                            </div>
+                                            <div style={styles.infoRow}>
+                                                <span style={styles.infoLabel}>Số điện thoại:</span>
+                                                <span style={styles.infoValue}>
+                                                    <a href={`tel:${detail.sdtKH}`} style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 600 }}>
+                                                        📞 {detail.sdtKH}
+                                                    </a>
+                                                </span>
+                                            </div>
+                                            <div style={styles.infoRow}>
+                                                <span style={styles.infoLabel}>Ghi chú đơn:</span>
+                                                <span style={styles.infoValue}>{detail.ghiChu || '—'}</span>
+                                            </div>
                                         </div>
-                                        <div style={{ flex: 1, textAlign: 'right' }}>
-                                            <p style={{ fontSize: '15px', margin: '4px 0' }}><strong>Cửa hàng:</strong> {detail.cuaHang?.tenCuaHang || '—'}</p>
-                                            <p style={{ fontSize: '15px', margin: '4px 0' }}><strong>Lý do:</strong> {LY_DO_LABEL[detail.lyDo] || detail.lyDo}</p>
-                                            <p style={{ fontSize: '16px', margin: '4px 0', color: '#d97706', fontWeight: 700 }}>
-                                                📅 Hẹn lấy: {detail.ngayHenLay ? new Date(detail.ngayHenLay).toLocaleString('vi-VN') : '-'}
-                                            </p>
+
+                                        {/* Card Giao nhận & Cửa hàng */}
+                                        <div style={styles.infoCard}>
+                                            <div style={styles.cardHeaderTitle}>🏪 Thông tin giao nhận</div>
+                                            <div style={styles.infoRow}>
+                                                <span style={styles.infoLabel}>Chi nhánh:</span>
+                                                <span style={styles.infoValue}>{detail.cuaHang?.tenCuaHang || '—'}</span>
+                                            </div>
+                                            <div style={styles.henLayBox}>
+                                                <span style={{ fontSize: '22px' }}>⏰</span>
+                                                <div>
+                                                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#b45309', textTransform: 'uppercase' }}>Lịch hẹn lấy bánh</div>
+                                                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#92400e' }}>
+                                                        {detail.ngayHenLay ? new Date(detail.ngayHenLay).toLocaleString('vi-VN') : '—'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div style={styles.infoRow}>
+                                                <span style={styles.infoLabel}>Hình thức:</span>
+                                                <span style={styles.infoValue}>
+                                                    {detail.hinhThucNhan === 'giao_tan_noi' ? '🚚 Giao tận nơi' : '🏢 Nhận tại tiệm'}
+                                                </span>
+                                            </div>
+                                            {detail.hinhThucNhan === 'giao_tan_noi' && (
+                                                <>
+                                                    <div style={styles.infoRow}>
+                                                        <span style={styles.infoLabel}>Địa chỉ giao:</span>
+                                                        <span style={styles.infoValue}>{detail.diaChiGiao || '—'}</span>
+                                                    </div>
+                                                    <div style={styles.infoRow}>
+                                                        <span style={styles.infoLabel}>Phí vận chuyển:</span>
+                                                        <span style={styles.infoValue}>{fmt(detail.phiGiaoHang)}</span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Bảng sản phẩm */}
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '14px', fontSize: '14px' }}>
-                                        <thead>
-                                            <tr style={{ background: '#f5f5f5' }}>
-                                                <th style={styles.th}>Sản phẩm</th>
-                                                <th style={{ ...styles.th, textAlign: 'center' }}>SL</th>
-                                                <th style={{ ...styles.th, textAlign: 'right' }}>Đơn giá</th>
-                                                <th style={{ ...styles.th, textAlign: 'right' }}>Thành tiền</th>
-                                                <th style={styles.th}>Ghi chú SP</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {(detail.chiTiets || []).map((ct, i) => (
-                                                <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
-                                                    <td style={{ padding: '8px', fontSize: '15px' }}>{ct.tenSP}</td>
-                                                    <td style={{ padding: '8px', textAlign: 'center', fontSize: '15px' }}>{ct.soLuong}</td>
-                                                    <td style={{ padding: '8px', textAlign: 'right', fontSize: '15px' }}>{fmt(ct.donGia)}</td>
-                                                    <td style={{ padding: '8px', textAlign: 'right', fontSize: '15px', fontWeight: 600 }}>{fmt(ct.thanhTien)}</td>
-                                                    <td style={{ padding: '8px', fontSize: '14px', color: '#666' }}>{ct.ghiChuSP || '—'}</td>
+                                    {/* Ordered Products Table Card */}
+                                    <div style={styles.tableCard}>
+                                        <div style={{ ...styles.cardHeaderTitle, marginBottom: '12px' }}>🎂 Danh sách sản phẩm đặt bánh</div>
+                                        <table style={styles.detailTable}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={{ ...styles.thCell, width: '45px', textAlign: 'center' }}>STT</th>
+                                                    <th style={styles.thCell}>Sản phẩm</th>
+                                                    <th style={{ ...styles.thCell, textAlign: 'center', width: '70px' }}>SL</th>
+                                                    <th style={{ ...styles.thCell, textAlign: 'right', width: '120px' }}>Đơn giá</th>
+                                                    <th style={{ ...styles.thCell, textAlign: 'right', width: '130px' }}>Thành tiền</th>
+                                                    <th style={styles.thCell}>Ghi chú SP</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-
-                                    {/* Tổng kết tiền */}
-                                    <div style={{ borderTop: '2px solid #eee', paddingTop: '12px', textAlign: 'right' }}>
-                                        <p style={{ fontSize: '15px', margin: '4px 0' }}>Tổng tiền: <strong>{fmt(detail.tongTien)}</strong></p>
-                                        <p style={{ fontSize: '15px', margin: '4px 0', color: '#059669' }}>
-                                            Đã cọc ({detail.phuongThucCoc || '—'}): <strong>{fmt(detail.tienCoc)}</strong>
-                                        </p>
-                                        <p style={{ fontSize: '18px', margin: '8px 0 0', fontWeight: 700, color: '#dc2626' }}>
-                                            Còn lại: {fmt(detail.tienConLai)}
-                                        </p>
+                                            </thead>
+                                            <tbody>
+                                                {(detail.chiTiets || []).map((ct, i) => (
+                                                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ ...styles.tdCell, textAlign: 'center', color: '#64748b' }}>{i + 1}</td>
+                                                        <td style={{ ...styles.tdCell, fontWeight: 600, color: '#1e293b' }}>{ct.tenSP}</td>
+                                                        <td style={{ ...styles.tdCell, textAlign: 'center' }}>
+                                                            <span style={styles.qtyBadge}>{ct.soLuong}</span>
+                                                        </td>
+                                                        <td style={{ ...styles.tdCell, textAlign: 'right', color: '#475569' }}>{fmt(ct.donGia)}</td>
+                                                        <td style={{ ...styles.tdCell, textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>{fmt(ct.thanhTien)}</td>
+                                                        <td style={{ ...styles.tdCell, color: '#64748b', fontSize: '13px' }}>{ct.ghiChuSP || '—'}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
 
-                                    {/* Trạng thái */}
-                                    <div style={{ marginTop: '12px', textAlign: 'center' }}>
-                                        <span className={`admin-badge ${(BADGE_MAP[detail.trangThai] || {}).cls}`}
-                                            style={{ fontSize: '14px', padding: '6px 16px' }}>
-                                            {(BADGE_MAP[detail.trangThai] || {}).label || detail.trangThai}
-                                        </span>
-                                    </div>
-
-                                    {/* Chữ ký xác nhận khách hàng */}
-                                    {detail.chuKy && (
-                                        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px dashed #cbd5e1', paddingTop: '12px' }}>
-                                            <div style={{ fontSize: '13px', color: '#64748b' }}>
-                                                <div>Mã phiếu: <strong>{detail.maDHT}</strong></div>
-                                                <div>Nhân viên lập: <strong>{detail.usernameNV || 'Hệ thống'}</strong></div>
+                                    {/* Summary & Signature */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px', marginTop: '16px' }}>
+                                        {/* Chữ ký */}
+                                        {detail.chuKy ? (
+                                            <div style={styles.signatureBox}>
+                                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>
+                                                    ✍️ Chữ ký xác nhận của khách hàng:
+                                                </div>
+                                                <img src={detail.chuKy} alt="Chữ ký" style={{ height: '70px', maxWidth: '240px', objectFit: 'contain' }} />
+                                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginTop: '6px' }}>{detail.hoTenKH}</div>
                                             </div>
-                                            <div style={{ textAlign: 'center' }}>
-                                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>✍️ Chữ ký khách hàng:</div>
-                                                <img src={detail.chuKy} alt="Chữ ký khách hàng" style={{ height: '55px', maxWidth: '180px', objectFit: 'contain', borderBottom: '1px solid #94a3b8' }} />
-                                                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginTop: '2px' }}>{detail.hoTenKH}</div>
+                                        ) : <div />}
+
+                                        {/* Tổng tiền */}
+                                        <div style={styles.summaryCard}>
+                                            <div style={styles.summaryRow}>
+                                                <span>Tổng giá trị đơn:</span>
+                                                <strong style={{ fontSize: '16px', color: '#1e293b' }}>{fmt(detail.tongTien)}</strong>
+                                            </div>
+                                            <div style={styles.summaryRow}>
+                                                <span>Tiền đã cọc ({detail.phuongThucCoc || 'Tiền mặt'}):</span>
+                                                <strong style={{ fontSize: '16px', color: '#16a34a' }}>{fmt(detail.tienCoc)}</strong>
+                                            </div>
+                                            <div style={{ ...styles.summaryRow, borderTop: '2px dashed #cbd5e1', paddingTop: '10px', marginTop: '8px' }}>
+                                                <span style={{ fontSize: '16px', fontWeight: 700, color: '#dc2626' }}>Số tiền còn lại cần thu:</span>
+                                                <strong style={{ fontSize: '20px', fontWeight: 800, color: '#dc2626' }}>{fmt(detail.tienConLai)}</strong>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Sticky Footer Action Bar */}
+                        {detail && (
+                            <div style={styles.modalFooter}>
+                                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    {detail.trangThai === 'da_coc' && (
+                                        <button className="admin-btn" style={styles.btnInfo} onClick={() => handleUpdateStatus(detail.maDHT, 'san_sang')}>
+                                            ✅ Đánh dấu Sẵn sàng
+                                        </button>
+                                    )}
+                                    {['cho_xac_nhan', 'da_coc', 'san_sang'].includes(detail.trangThai) && (
+                                        <button className="admin-btn" style={styles.btnSuccess} onClick={() => { setPaymentMethod('Tiền mặt'); setShowPayment(true); }}>
+                                            💰 Thu tiền còn lại ({fmt(detail.tienConLai)})
+                                        </button>
+                                    )}
+                                    {!['da_giao', 'da_huy'].includes(detail.trangThai) && (
+                                        <button className="admin-btn" style={styles.btnDanger} onClick={() => {
+                                            if (window.confirm(`Bạn có chắc chắn muốn hủy đơn đặt hàng ${detail.maDHT}?`)) {
+                                                handleUpdateStatus(detail.maDHT, 'da_huy');
+                                            }
+                                        }}>
+                                            🚫 Hủy đơn
+                                        </button>
                                     )}
                                 </div>
-
-                                {/* Action buttons */}
-                                <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                        {/* Cập nhật sẵn sàng */}
-                                        {detail.trangThai === 'da_coc' && (
-                                            <button className="admin-btn admin-btn-info" style={{ fontSize: '15px' }}
-                                                onClick={() => handleUpdateStatus(detail.maDHT, 'san_sang')}>
-                                                ✅ Đánh dấu Sẵn sàng
-                                            </button>
-                                        )}
-                                        {/* Thu tiền còn lại */}
-                                        {['cho_xac_nhan', 'da_coc', 'san_sang'].includes(detail.trangThai) && (
-                                            <button className="admin-btn admin-btn-success" style={{ fontSize: '15px' }}
-                                                onClick={() => { setPaymentMethod('Tiền mặt'); setShowPayment(true); }}>
-                                                💰 Thu tiền còn lại
-                                            </button>
-                                        )}
-                                        {/* Hủy đơn */}
-                                        {!['da_giao', 'da_huy'].includes(detail.trangThai) && (
-                                            <button className="admin-btn admin-btn-danger" style={{ fontSize: '15px' }}
-                                                onClick={() => handleUpdateStatus(detail.maDHT, 'da_huy')}>
-                                                🚫 Hủy đơn
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                        <button className="admin-btn admin-btn-success" style={{ fontSize: '15px' }} onClick={handlePrint}>
-                                            🖨 In phiếu
-                                        </button>
-                                        <button className="admin-btn admin-btn-secondary" style={{ fontSize: '15px' }}
-                                            onClick={() => setShowDetail(false)}>Đóng</button>
-                                    </div>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <button className="admin-btn" style={styles.btnPrint} onClick={handlePrint}>
+                                        🖨 In phiếu
+                                    </button>
+                                    <button className="admin-btn" style={styles.btnClose} onClick={() => setShowDetail(false)}>
+                                        Đóng
+                                    </button>
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -1159,30 +1322,47 @@ const AdminPreOrderPage = () => {
             {/* ══════ MODAL THU TIỀN CÒN LẠI ══════ */}
             {showPayment && detail && (
                 <div style={{ ...styles.overlay, zIndex: 1100 }}>
-                    <div style={{ ...styles.modal, maxWidth: '420px' }}>
-                        <h2 style={{ margin: '0 0 16px', fontSize: '19px' }}>💰 Thu tiền còn lại</h2>
-                        <p style={{ fontSize: '16px', marginBottom: '6px' }}>
-                            Đơn: <strong>{detail.maDHT}</strong> — {detail.hoTenKH}
-                        </p>
-                        <p style={{ fontSize: '16px', marginBottom: '4px' }}>Tổng tiền: <strong>{fmt(detail.tongTien)}</strong></p>
-                        <p style={{ fontSize: '16px', marginBottom: '4px', color: '#059669' }}>Đã cọc: <strong>{fmt(detail.tienCoc)}</strong></p>
-                        <p style={{ fontSize: '18px', fontWeight: 700, color: '#dc2626', marginBottom: '16px' }}>
-                            Còn lại cần thu: {fmt(detail.tienConLai)}
-                        </p>
-                        <Field label="Hình thức thanh toán">
-                            <select className="admin-input" style={styles.inp} value={paymentMethod}
-                                onChange={e => setPaymentMethod(e.target.value)}>
-                                <option>Tiền mặt</option>
-                                <option>Chuyển khoản</option>
-                                <option>Ví Momo P2P</option>
-                            </select>
-                        </Field>
-                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                            <button className="admin-btn admin-btn-secondary" style={{ fontSize: '15px' }}
+                    <div style={{ ...styles.modalContainer, maxWidth: '440px' }}>
+                        <div style={styles.modalHeader}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '20px' }}>💰</span>
+                                <h2 style={styles.modalHeaderTitle}>Thu tiền còn lại</h2>
+                            </div>
+                            <button style={styles.closeBtn} onClick={() => setShowPayment(false)}>✕</button>
+                        </div>
+                        <div style={styles.modalBody}>
+                            <p style={{ fontSize: '15px', marginBottom: '8px', color: '#475569' }}>
+                                Đơn hàng: <strong style={{ color: '#0f172a' }}>{detail.maDHT}</strong> — {detail.hoTenKH}
+                            </p>
+                            <div style={{ backgroundColor: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '14px' }}>
+                                    <span>Tổng tiền đơn bánh:</span>
+                                    <strong>{fmt(detail.tongTien)}</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '14px', color: '#16a34a' }}>
+                                    <span>Đã cọc trước:</span>
+                                    <strong>{fmt(detail.tienCoc)}</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', fontSize: '16px', fontWeight: 800, color: '#dc2626' }}>
+                                    <span>Còn lại phải thu:</span>
+                                    <span>{fmt(detail.tienConLai)}</span>
+                                </div>
+                            </div>
+                            <Field label="Hình thức thanh toán nhận tiền">
+                                <select className="admin-input" style={styles.inp} value={paymentMethod}
+                                    onChange={e => setPaymentMethod(e.target.value)}>
+                                    <option>Tiền mặt</option>
+                                    <option>Chuyển khoản</option>
+                                    <option>Ví Momo P2P</option>
+                                </select>
+                            </Field>
+                        </div>
+                        <div style={styles.modalFooter}>
+                            <button className="admin-btn" style={styles.btnClose}
                                 onClick={() => setShowPayment(false)}>Hủy</button>
-                            <button className="admin-btn admin-btn-primary" style={{ fontSize: '15px' }}
+                            <button className="admin-btn" style={styles.btnSuccess}
                                 disabled={paying} onClick={handleCompletePayment}>
-                                {paying ? 'Đang xử lý...' : '✅ Xác nhận thu tiền'}
+                                {paying ? '⏳ Đang xử lý...' : '✅ Xác nhận thu tiền'}
                             </button>
                         </div>
                     </div>
@@ -1194,14 +1374,14 @@ const AdminPreOrderPage = () => {
 
 // ── Sub-components ───────────────────────────────────────────
 const SectionTitle = ({ children }) => (
-    <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '10px', marginTop: '16px',
-        borderLeft: '4px solid var(--admin-primary)', paddingLeft: '10px' }}>
+    <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', marginBottom: '10px', marginTop: '16px',
+        borderLeft: '4px solid #0284c7', paddingLeft: '10px' }}>
         {children}
     </h3>
 );
 
 const Field = ({ label, error, children }) => (
-    <div style={{ marginBottom: '10px' }}>
+    <div style={{ marginBottom: '12px' }}>
         <label style={styles.label}>{label}</label>
         {children}
         {error && <ErrMsg msg={error} />}
@@ -1209,30 +1389,259 @@ const Field = ({ label, error, children }) => (
 );
 
 const ErrMsg = ({ msg }) => (
-    <span style={{ color: '#ef4444', fontSize: '13px', display: 'block', marginTop: '2px' }}>{msg}</span>
+    <span style={{ color: '#ef4444', fontSize: '13px', display: 'block', marginTop: '3px' }}>{msg}</span>
 );
 
 // ── Styles ───────────────────────────────────────────────────
 const styles = {
     overlay: {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        backgroundColor: 'rgba(15, 23, 42, 0.65)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000, padding: '16px',
     },
-    modal: {
-        backgroundColor: '#fff', padding: '2rem', borderRadius: '10px',
-        width: '95%', boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-        maxHeight: '90vh', overflowY: 'auto',
+    modalContainer: {
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        width: '100%',
+        maxWidth: '880px',
+        maxHeight: '90vh',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        overflow: 'hidden',
+        border: '1px solid #e2e8f0',
+    },
+    modalHeader: {
+        padding: '16px 24px',
+        borderBottom: '1px solid #e2e8f0',
+        backgroundColor: '#ffffff',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexShrink: 0,
+    },
+    modalHeaderTitle: {
+        margin: 0,
+        fontSize: '20px',
+        fontWeight: 700,
+        color: '#0f172a',
+    },
+    modalBody: {
+        padding: '24px',
+        overflowY: 'auto',
+        flex: 1,
+        backgroundColor: '#f8fafc',
+    },
+    modalFooter: {
+        padding: '14px 24px',
+        borderTop: '1px solid #e2e8f0',
+        backgroundColor: '#ffffff',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '12px',
+        flexWrap: 'wrap',
+        flexShrink: 0,
     },
     closeBtn: {
-        background: 'none', border: 'none', fontSize: '20px',
-        cursor: 'pointer', color: '#666', lineHeight: 1,
+        background: '#f1f5f9',
+        border: 'none',
+        width: '32px',
+        height: '32px',
+        borderRadius: '50%',
+        fontSize: '18px',
+        cursor: 'pointer',
+        color: '#64748b',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.2s ease',
+    },
+    receiptBanner: {
+        textAlign: 'center',
+        padding: '16px',
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        border: '1px solid #e2e8f0',
+        marginBottom: '16px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    },
+    gridCards: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+        gap: '16px',
+        marginBottom: '16px',
+    },
+    infoCard: {
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        padding: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    },
+    cardHeaderTitle: {
+        fontSize: '15px',
+        fontWeight: 700,
+        color: '#1e293b',
+        marginBottom: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+    },
+    infoRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        padding: '6px 0',
+        fontSize: '14px',
+        borderBottom: '1px dashed #f1f5f9',
+    },
+    infoLabel: {
+        color: '#64748b',
+        fontWeight: 500,
+    },
+    infoValue: {
+        color: '#0f172a',
+        fontWeight: 600,
+        textAlign: 'right',
+    },
+    henLayBox: {
+        backgroundColor: '#fffbe6',
+        border: '1px solid #ffe58f',
+        borderRadius: '10px',
+        padding: '10px 14px',
+        margin: '10px 0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+    },
+    tableCard: {
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        padding: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        marginBottom: '16px',
+    },
+    detailTable: {
+        width: '100%',
+        borderCollapse: 'collapse',
+        fontSize: '14px',
+    },
+    thCell: {
+        padding: '10px 12px',
+        textAlign: 'left',
+        fontWeight: 600,
+        color: '#475569',
+        backgroundColor: '#f1f5f9',
+        borderBottom: '1px solid #e2e8f0',
+    },
+    tdCell: {
+        padding: '10px 12px',
+        color: '#1e293b',
+    },
+    qtyBadge: {
+        display: 'inline-block',
+        backgroundColor: '#e2e8f0',
+        color: '#0f172a',
+        fontWeight: 700,
+        padding: '2px 8px',
+        borderRadius: '12px',
+        fontSize: '13px',
+    },
+    signatureBox: {
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        padding: '16px',
+        border: '1px solid #e2e8f0',
+        textAlign: 'center',
+    },
+    summaryCard: {
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        padding: '16px',
+        border: '1px solid #e2e8f0',
+    },
+    summaryRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '6px 0',
+        fontSize: '14px',
+        color: '#475569',
+    },
+    btnEdit: {
+        backgroundColor: '#f59e0b',
+        color: '#ffffff',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: 600,
+        border: 'none',
+        cursor: 'pointer',
+    },
+    btnInfo: {
+        backgroundColor: '#0284c7',
+        color: '#ffffff',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: 600,
+        border: 'none',
+        cursor: 'pointer',
+    },
+    btnSuccess: {
+        backgroundColor: '#16a34a',
+        color: '#ffffff',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: 600,
+        border: 'none',
+        cursor: 'pointer',
+    },
+    btnDanger: {
+        backgroundColor: '#dc2626',
+        color: '#ffffff',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: 600,
+        border: 'none',
+        cursor: 'pointer',
+    },
+    btnPrint: {
+        backgroundColor: '#475569',
+        color: '#ffffff',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: 600,
+        border: 'none',
+        cursor: 'pointer',
+    },
+    btnClose: {
+        backgroundColor: '#e2e8f0',
+        color: '#334155',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: 600,
+        border: 'none',
+        cursor: 'pointer',
+    },
+    iconCircle: {
+        width: '40px', height: '40px', borderRadius: '10px',
+        backgroundColor: '#eff6ff', color: '#0284c7',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '20px',
     },
     grid2: {
         display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px',
     },
-    inp: { marginBottom: 0, fontSize: '15px', width: '100%' },
-    label: { fontSize: '14px', fontWeight: 600, display: 'block', marginBottom: '4px', color: '#374151' },
+    inp: { marginBottom: 0, fontSize: '14px', width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' },
+    label: { fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '4px', color: '#374151' },
     th: { padding: '8px 10px', textAlign: 'left', fontWeight: 600, borderBottom: '2px solid #ddd' },
 };
 

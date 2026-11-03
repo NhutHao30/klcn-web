@@ -73,3 +73,29 @@ export const getThongKeNhapHang = async (params = {}) => {
   const response = await axiosClient.get('/admin/thong-ke/nhap-hang', { params });
   return response.data;
 };
+
+// Hóa Đơn Nhập & Đồng Kiểm Chi Nhánh
+export const getHoaDonNhaps = async (params = {}) => {
+  const response = await axiosClient.get('/hoadon-nhap', { params });
+  return response.data;
+};
+
+export const getHoaDonNhapDetail = async (id) => {
+  const response = await axiosClient.get(`/hoadon-nhap/${id}`);
+  return response.data;
+};
+
+export const xacNhanNhapKho = async (id, data) => {
+  const response = await axiosClient.post(`/hoadon-nhap/${id}/xac-nhan-nhap-kho`, data);
+  return response.data;
+};
+
+export const getBranchRequests = async () => {
+  const response = await axiosClient.get('/admin/transfers/requests');
+  return response.data;
+};
+
+export const duyetYeuCauNhapHang = async (id, data = {}) => {
+  const response = await axiosClient.post(`/hoadon-nhap/duyet-yeu-cau/${id}`, data);
+  return response.data;
+};

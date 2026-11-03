@@ -18,6 +18,29 @@ const Breadcrumb = () => {
         "/my-orders": " Đơn hàng của tôi"
     };
 
+    // Handle product detail pages dynamic path (/san-pham/:id or /san_pham/:id)
+    const isProductDetail = location.pathname.startsWith('/san-pham/') || location.pathname.startsWith('/san_pham/');
+    if (isProductDetail) {
+        return (
+            <div className="header-gioiThieu-block">
+                <h3>Chi Tiết Sản Phẩm</h3>
+                <ul>
+                    <li>
+                        <Link to="/">Trang chủ</Link>
+                    </li>
+                    <li>
+                        <i className="fa-solid fa-angle-right"></i>
+                        <Link to="/san-pham">Tất Cả Sản Phẩm</Link>
+                    </li>
+                    <li>
+                        <i className="fa-solid fa-angle-right"></i>
+                        <span>Chi Tiết</span>
+                    </li>
+                </ul>
+            </div>
+        );
+    }
+
     // Lấy tiêu đề từ map, nếu không có thì để trống
     const title = breadcrumbMap[location.pathname] || "";
 

@@ -1,90 +1,141 @@
+import React from "react";
+import { Link } from "react-router-dom";
+
 const Footer = () => {
     return (
         <footer>
-            <div class="footer mt-30">
-                <div class="container-fluid pd0">
-                    <div class="footer-background">
-                        <div class="footer-content">
-                            <div class="container">
-                                <ul class="footer-content-list">
-                                    <li class="footer-content-item col-lg-4 col-md-4 col-12 mt-20">
-                                        <div class="footer-content-item__img">
-                                            <img src="../../assets/IMG/logo-ft.webp" alt="" class="logoft" />
+            <div className="footer mt-30">
+                <div className="container-fluid pd0">
+                    <div className="footer-background">
+                        <div className="footer-content">
+                            <div className="container">
+                                <ul className="footer-content-list row">
+                                    {/* CỘT 1: LOGO & THANH TOÁN */}
+                                    <li className="footer-content-item col-lg-3 col-md-6 col-12 mt-20">
+                                        <div className="footer-content-item__img">
+                                            <Link to="/">
+                                                <img src="/assets/IMG/Logo.png" alt="Givral Bakery" className="logoft" style={{ objectFit: "contain", borderRadius: "8px" }} />
+                                            </Link>
                                         </div>
-                                        <div class="footer-content-item_text fw-600" style={{ width: "80%", fontSize: "1.2rem" }}>
-                                            <p >
-                                                Hãy đến với Dola Bakery và hãy để những món bánh tuyệt vời của chúng tôi làm cho cuộc sống bạn thêm ngọt ngào
+                                        <div className="footer-content-item_text fw-600" style={{ width: "95%", fontSize: "1.2rem", lineHeight: "1.6" }}>
+                                            <p>
+                                                Hãy đến với Givral Bakery và hãy để những món bánh tuyệt vời của chúng tôi làm cho cuộc sống bạn thêm ngọt ngào
                                             </p>
                                         </div>
-                                        <div class="footer-content-item__pay">
-                                            <p class="fs-2rem">Hình Thức Thanh Toán</p>
+                                        <div className="footer-content-item__pay">
+                                            <p className="fs-2rem" style={{ margin: "10px 0 6px 0", fontWeight: 700 }}>HÌNH THỨC THANH TOÁN</p>
                                         </div>
-                                        <div class="footer-content-item__pay-img">
-                                            <img src="../../assets/IMG/payimg-1.webp" alt="" class="payImg" />
-                                            <img src="../../assets/IMG/payimg-2.webp" alt="" class="payImg" />
-                                            <img src="../../assets/IMG/payimg-3.webp" alt="" class="payImg" />
+                                        <div className="footer-content-item__pay-img">
+                                            <img src="/assets/IMG/payimg-1.webp" alt="Tiền mặt" className="payImg" />
+                                            <img src="/assets/IMG/payimg-2.webp" alt="Chuyển khoản" className="payImg" />
+                                            <img src="/assets/IMG/payimg-3.webp" alt="Thẻ tín dụng" className="payImg" />
                                         </div>
                                     </li>
-                                    <li class="footer-content-item col-lg-2 col-md-2 fw-600 col-12 mt-20">
-                                        <h3 class="fs-2rem">Chính Sách</h3>
-                                        <p class="fs-16rem">Trang chủ</p>
-                                        <p class="fs-16rem">Sản phẩm</p>
-                                        <p class="fs-16rem">liên hệ</p>
-                                        <p class="fs-16rem">Tin tức</p>
-                                        <p class="fs-16rem">Giỏ hàng</p>
+
+                                    {/* CỘT 2: CHÍNH SÁCH */}
+                                    <li className="footer-content-item col-lg-2 col-md-6 fw-600 col-12 mt-20">
+                                        <h3 className="fs-2rem" style={{ fontWeight: 700 }}>CHÍNH SÁCH</h3>
+                                        <p className="fs-16rem"><Link to="/cau-hoi-thuong-gap" style={{ color: "inherit", textDecoration: "none" }}>Chính sách thành viên</Link></p>
+                                        <p className="fs-16rem"><Link to="/cau-hoi-thuong-gap" style={{ color: "inherit", textDecoration: "none" }}>Chính sách thanh toán</Link></p>
+                                        <p className="fs-16rem"><Link to="/cau-hoi-thuong-gap" style={{ color: "inherit", textDecoration: "none" }}>Hướng dẫn mua hàng</Link></p>
+                                        <p className="fs-16rem"><Link to="/cau-hoi-thuong-gap" style={{ color: "inherit", textDecoration: "none" }}>Quà tặng tri ân</Link></p>
+                                        <p className="fs-16rem"><Link to="/cau-hoi-thuong-gap" style={{ color: "inherit", textDecoration: "none" }}>Bảo mật thông tin cá nhân</Link></p>
                                     </li>
-                                    <li class="footer-content-item col col-ld-3 col-md-3 fw-600 col-12 mt-20">
-                                        <h3 class="fs-2rem">Thông tin chung</h3>
-                                        <p class="fs-16rem"><span class="fs-16rem">Địa chỉ: </span>70 Lữ Gia, Phường 15, Quận 11, TP.HCM</p>
-                                        <p class="fs-16rem"><span class="fs-16rem">Điện thoại: </span>1900 6750</p>
-                                        <p class="fs-16rem"><span class="fs-16rem">Email: </span>support@sapo.vn</p>
-                                        <h4 class="fs-16rem">Liên kết sàn</h4>
-                                        <ul class="img-pay-list">
-                                            <li class="img-pay-item">
-                                                <img src="../../assets/IMG/shopee.webp" alt="" class="img-pay-item-shopee" />
+
+                                    {/* CỘT 3: THÔNG TIN CHUNG */}
+                                    <li className="footer-content-item col-lg-3 col-md-6 fw-600 col-12 mt-20">
+                                        <h3 className="fs-2rem" style={{ fontWeight: 700 }}>THÔNG TIN CHUNG</h3>
+                                        <p className="fs-16rem"><span className="fs-16rem" style={{ fontWeight: 600 }}>Địa chỉ: </span>70 Lữ Gia, Phường 15, Quận 11, TP.HCM</p>
+                                        <p className="fs-16rem"><span className="fs-16rem" style={{ fontWeight: 600 }}>Điện thoại: </span>1900 6750</p>
+                                        <p className="fs-16rem"><span className="fs-16rem" style={{ fontWeight: 600 }}>Email: </span>support@sapo.vn</p>
+                                        <h4 className="fs-16rem" style={{ marginTop: "14px", fontWeight: 700, textTransform: "uppercase", color: "var(--primary-color)" }}>LIÊN KẾT SÀN</h4>
+                                        <ul className="img-pay-list" style={{ display: "flex", gap: "10px", listStyle: "none", padding: 0 }}>
+                                            <li className="img-pay-item">
+                                                <a href="https://shopee.vn" target="_blank" rel="noreferrer">
+                                                    <img src="/assets/IMG/shopee.webp" alt="Shopee" className="img-pay-item-shopee" />
+                                                </a>
                                             </li>
-                                            <li class="img-pay-item">
-                                                <img src="../../assets/IMG/lazada.webp" alt="" class="img-pay-item-lazada" />
+                                            <li className="img-pay-item">
+                                                <a href="https://lazada.vn" target="_blank" rel="noreferrer">
+                                                    <img src="/assets/IMG/lazada.webp" alt="Lazada" className="img-pay-item-lazada" />
+                                                </a>
                                             </li>
-                                            <li class="img-pay-item">
-                                                <img src="../../assets/IMG/tiki.webp" alt="" class="img-pay-item-tiki" />
+                                            <li className="img-pay-item">
+                                                <a href="https://tiki.vn" target="_blank" rel="noreferrer">
+                                                    <img src="/assets/IMG/tiki.webp" alt="Tiki" className="img-pay-item-tiki" />
+                                                </a>
                                             </li>
-                                            <li class="img-pay-item">
-                                                <img src="../../assets/IMG/sendo.webp" alt="" class="img-pay-item-sendo" />
+                                            <li className="img-pay-item">
+                                                <a href="https://sendo.vn" target="_blank" rel="noreferrer">
+                                                    <img src="/assets/IMG/sendo.webp" alt="Sendo" className="img-pay-item-sendo" />
+                                                </a>
                                             </li>
                                         </ul>
                                     </li>
-                                    <li class="footer-content-item col col-ld-3 col-md-3 col-12 mt-20">
-                                        <h3 class="fs-2rem">Hỗ trợ</h3>
-                                        <span class="fw-600 fs-16rem">MUA ONLINE (08:00 - 21:00 mỗi ngày)</span>
-                                        <h5><a href="intel:19006750">19006750</a></h5>
-                                        <p class="fw-600 fs-16rem">Tất cả các ngày trong tuần (Trừ tết Âm Lịch)</p>
-                                        <span class="fw-600 fs-16rem">GÓP Ý & KHIẾU NẠI (08:30 - 20:30)</span>
 
-                                        <h4>Mạng xã hội</h4>
-                                        <ul class="img-socials-list">
-                                            <li class="img-socials-item">
-                                                <img src="../../assets/IMG/zalo.webp" alt="" class="img-socials-item-zalo" />
+                                    {/* CỘT 4: HỖ TRỢ & MẠNG XÃ HỘI */}
+                                    <li className="footer-content-item col-lg-4 col-md-6 fw-600 col-12 mt-20">
+                                        <h3 className="fs-2rem" style={{ fontWeight: 700 }}>HỖ TRỢ</h3>
+                                        <div style={{ marginBottom: "10px" }}>
+                                            <p className="fs-16rem" style={{ margin: "0 0 2px 0", fontWeight: 600, color: "#333" }}>
+                                                MUA ONLINE (08:00 - 21:00 mỗi ngày)
+                                            </p>
+                                            <p style={{ margin: "0", fontSize: "1.6rem", fontWeight: 700, color: "var(--primary-color)" }}>
+                                                1900 6750
+                                            </p>
+                                            <p style={{ margin: "2px 0 0 0", fontSize: "1.2rem", color: "#666", fontWeight: 400 }}>
+                                                Tất cả các ngày trong tuần (Trừ tết Âm Lịch)
+                                            </p>
+                                        </div>
+
+                                        <div style={{ marginBottom: "14px" }}>
+                                            <p className="fs-16rem" style={{ margin: "0 0 2px 0", fontWeight: 600, color: "#333" }}>
+                                                GÓP Ý & KHIẾU NẠI (08:30 - 20:30)
+                                            </p>
+                                            <p style={{ margin: "0", fontSize: "1.6rem", fontWeight: 700, color: "var(--primary-color)" }}>
+                                                1900 6750
+                                            </p>
+                                            <p style={{ margin: "2px 0 0 0", fontSize: "1.2rem", color: "#666", fontWeight: 400 }}>
+                                                Tất cả các ngày trong tuần (Trừ tết Âm Lịch)
+                                            </p>
+                                        </div>
+
+                                        <h4 className="fs-16rem" style={{ margin: "0 0 8px 0", fontWeight: 700, textTransform: "uppercase", color: "var(--primary-color)" }}>
+                                            MẠNG XÃ HỘI
+                                        </h4>
+                                        <ul className="img-socials-list" style={{ display: "flex", gap: "10px", listStyle: "none", padding: 0 }}>
+                                            <li className="img-socials-item">
+                                                <a href="https://zalo.me" target="_blank" rel="noreferrer">
+                                                    <img src="/assets/IMG/zalo.webp" alt="Zalo" className="img-socials-item-zalo" />
+                                                </a>
                                             </li>
-                                            <li class="img-socials-item">
-                                                <img src="../../assets/IMG/facebook.webp" alt="" class="img-socials-item-facebook" />
+                                            <li className="img-socials-item">
+                                                <a href="https://facebook.com" target="_blank" rel="noreferrer">
+                                                    <img src="/assets/IMG/facebook.webp" alt="Facebook" className="img-socials-item-facebook" />
+                                                </a>
                                             </li>
-                                            <li class="img-socials-item">
-                                                <img src="../../assets/IMG/youtube.webp" alt="" class="img-socials-item-youtube" />
+                                            <li className="img-socials-item">
+                                                <a href="https://youtube.com" target="_blank" rel="noreferrer">
+                                                    <img src="/assets/IMG/youtube.webp" alt="Youtube" className="img-socials-item-youtube" />
+                                                </a>
                                             </li>
-                                            <li class="img-socials-item">
-                                                <img src="../../assets/IMG/google.webp" alt="" class="img-socials-item-google" />
+                                            <li className="img-socials-item">
+                                                <a href="https://google.com" target="_blank" rel="noreferrer">
+                                                    <img src="/assets/IMG/google.webp" alt="Google" className="img-socials-item-google" />
+                                                </a>
                                             </li>
                                         </ul>
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                        <div class="footer-footer">
-                            <span>Bản quyền thuộc về <p>Dola theme</p>. Cung cấp bởi
-                                <a href="https://www.sapo.vn/?utm_campaign=cpn:kho_theme-plm:footer&utm_source=Tu_nhien&utm_medium=referral&utm_content=fm:text_link-km:-sz:&utm_term=&campaign=kho_theme-sapo">
-                                    Dola
-                                </a>
+
+                        {/* BOTTOM COPYRIGHT BAR */}
+                        <div className="footer-footer">
+                            <span>
+                                <p style={{ fontSize: "1.3rem", color: "#444" }}>
+                                    Bản quyền thuộc về <b>Givral Bakery</b>. Cung cấp bởi Sapo
+                                </p>
                             </span>
                         </div>
                     </div>
@@ -92,6 +143,6 @@ const Footer = () => {
             </div>
         </footer>
     );
-}
+};
 
 export default Footer;

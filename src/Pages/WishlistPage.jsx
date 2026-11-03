@@ -3,39 +3,41 @@ import Footer from "../Layout/Footer";
 import { getWishlist, removeFromWishlist } from "../services/wishlistService";
 import { addToCart } from "../services/cartService";
 import { useToast } from '../components/Toast/Toast';
-
-// Hàm xử lý đường dẫn ảnh giống Productpage
-const getImageSrc = (imageUrl) => {
-      const toast = useToast();
-if (!imageUrl) return "../../assets/IMG/productnew2.webp";
-    if (imageUrl.startsWith("http") || imageUrl.startsWith("/api/")) return imageUrl;
-    return `../../assets/IMG/${imageUrl.split('/').pop()}`;
-};
+import { formatImageUrl } from "../utils/imageUtils";
 
 // Hàm lấy tên sản phẩm (backend trả về nhiều kiểu field)
-const getProductName = (product) => {
-    if (!product) return "Sản phẩm";
-    return product.tenSP || product.TenSP || product.name || "Sản phẩm";
+const getProductName = (item) => {
+    if (!item) return "Sản phẩm";
+    const p = item.product || item.sanpham || item;
+    return p.name || p.tenSP || p.TenSP || p.tenSanPham || item.name || "Sản phẩm";
 };
 
 // Hàm format giá
-const formatPrice = (price) => {
-    if (!price) return "0₫";
+const getProductPrice = (item) => {
+    if (!item) return "0₫";
+    const p = item.product || item.sanpham || item;
+    const price = p.salePrice || p.price || p.giaBan || p.GIABAN || item.price || 0;
     return Number(price).toLocaleString('vi-VN') + "₫";
 };
 
+const getProductImage = (item) => {
+    if (!item) return "";
+    const p = item.product || item.sanpham || item;
+    return formatImageUrl(p.image || p.hinh_anh || p.imageUrl || p.HINHANH || item.image);
+};
+
 const WishlistPage = () => {
+    const toast = useToast();
     const [wishlistItems, setWishlistItems] = useState([]);
 
     const loadWishlist = async () => {
         try {
             const items = await getWishlist();
-            // items có thể là array hoặc single object
-            setWishlistItems(Array.isArray(items) ? items : [items]);
+            setWishlistItems(Array.isArray(items) ? items : (items ? [items] : []));
         } catch (e) {
             if (e.response?.status === 401) {
                 toast.warning("Vui lòng đăng nhập để xem danh sách yêu thích");
-                window.location.href = "/dang-nhap";
+                if (window.location.pathname !== "/dang-nhap") { window.location.href = "/dang-nhap"; }
             } else {
                 console.error(e);
             }
@@ -52,10 +54,12 @@ const WishlistPage = () => {
     const handleRemove = async (masp) => {
         try {
             await removeFromWishlist(masp);
+            toast.success("Đã xóa sản phẩm khỏi danh sách yêu thích!");
             loadWishlist();
             document.dispatchEvent(new Event('wishlistUpdated'));
         } catch (e) {
             console.error(e);
+            toast.error("Không thể xóa sản phẩm lúc này!");
         }
     };
 
@@ -67,9 +71,10 @@ const WishlistPage = () => {
         } catch (e) {
             if (e.response?.status === 401) {
                 toast.warning("Vui lòng đăng nhập để thêm vào giỏ hàng");
-                window.location.href = "/dang-nhap";
+                if (window.location.pathname !== "/dang-nhap") { window.location.href = "/dang-nhap"; }
             } else {
                 console.error(e);
+                toast.error("Không thể thêm vào giỏ hàng lúc này!");
             }
         }
     };
@@ -89,19 +94,19 @@ const WishlistPage = () => {
                         {wishlistItems.map((item, index) => (
                             <li
                                 key={index}
-                                data-masp={item.masp}
+                                data-masp={item.masp || item.id}
                                 className="product-sale-item-level2 col-lg-3 col-custom col-md-4 col-6"
                             >
                                 <div className="product-sale-item__img product-sale-item__img-js">
                                     <img
-                                        src={getImageSrc(item.product?.imageUrl || item.product?.HINHANH)}
-                                        alt={getProductName(item.product)}
+                                        src={getProductImage(item)}
+                                        alt={getProductName(item)}
                                         className="product-sale_img product-sale_img-js"
                                     />
                                     <ul className="product-bestSale-tag-list">
                                         <li
                                             className="product-bestSale-tag-item"
-                                            onClick={() => handleRemove(item.masp)}
+                                            onClick={() => handleRemove(item.masp || item.id)}
                                             style={{ display: 'inline-flex', cursor: 'pointer' }}
                                             title="Bỏ yêu thích"
                                         >
@@ -111,7 +116,7 @@ const WishlistPage = () => {
                                     <ul className="product-sale-tag-list-2 product-sale-tag-list-2-js">
                                         <li
                                             className="product-sale-tag-item-2 product-sale-tag-item-2-cart-js"
-                                            onClick={() => handleAddToCart(item.masp)}
+                                            onClick={() => handleAddToCart(item.masp || item.id)}
                                             style={{ cursor: 'pointer' }}
                                         >
                                             <i className="product-sale__tag-icon-2 fa-solid fa-cart-shopping"></i>
@@ -119,12 +124,12 @@ const WishlistPage = () => {
                                     </ul>
                                 </div>
                                 <div className="product-sale-item__content">
-                                    <a href="#" className="product-sale__name product-sale__name-js" style={{ textDecoration: "none", color: "#333" }}>
-                                        {getProductName(item.product)}
+                                    <a href={`/san-pham/${item.masp || item.id}`} className="product-sale__name product-sale__name-js" style={{ textDecoration: "none", color: "#333" }}>
+                                        {getProductName(item)}
                                     </a>
                                     <div className="product-sale__price">
                                         <span className="product-sale__price-sale product-sale__price-sale-js">
-                                            {formatPrice(item.product?.price || item.product?.GIABAN)}
+                                            {getProductPrice(item)}
                                         </span>
                                     </div>
                                 </div>

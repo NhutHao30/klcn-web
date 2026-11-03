@@ -46,6 +46,8 @@ const AdminAdvancedAuditPage = () => {
             'INSERT': { color: '#28a745', bg: '#e8f5e9' },
             'UPDATE': { color: '#ff9800', bg: '#fff3e0' },
             'DELETE': { color: '#dc3545', bg: '#ffebee' },
+            'LOGIN':  { color: '#0284c7', bg: '#e0f2fe' },
+            'LOGOUT': { color: '#64748b', bg: '#f1f5f9' },
         };
         const c = config[action] || { color: '#666', bg: '#f5f5f5' };
         return (
@@ -58,7 +60,7 @@ const AdminAdvancedAuditPage = () => {
     return (
         <AdminLayout>
             <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
-                <h1 className="admin-title" style={{ marginBottom: 0 }}>Nhật Ký Nâng Cao (Audit Logs)</h1>
+                <h1 className="admin-title" style={{ marginBottom: 0 }}>Audit Logs</h1>
                 <button className="admin-btn admin-btn-secondary" onClick={() => fetchLogs(page)}>
                     <i className="fa-solid fa-rotate-right"></i> Làm mới
                 </button>
@@ -82,9 +84,11 @@ const AdminAdvancedAuditPage = () => {
                         style={{ width: '160px', marginBottom: 0 }}
                     >
                         <option value="">Tất cả hành động</option>
-                        <option value="INSERT">INSERT</option>
-                        <option value="UPDATE">UPDATE</option>
-                        <option value="DELETE">DELETE</option>
+                        <option value="INSERT">INSERT (Thêm mới)</option>
+                        <option value="UPDATE">UPDATE (Cập nhật)</option>
+                        <option value="DELETE">DELETE (Xóa)</option>
+                        <option value="LOGIN">LOGIN (Đăng nhập)</option>
+                        <option value="LOGOUT">LOGOUT (Đăng xuất)</option>
                     </select>
                     <button type="submit" className="admin-btn admin-btn-primary">
                         <i className="fa-solid fa-magnifying-glass"></i> Tìm kiếm
@@ -124,8 +128,14 @@ const AdminAdvancedAuditPage = () => {
                                 logs.map((log) => (
                                     <tr key={log.id}>
                                         <td>{new Date(log.created_at).toLocaleString('vi-VN')}</td>
-                                        <td><strong>{log.user?.HOTEN || log.USERNAME || 'Hệ thống'}</strong></td>
-                                        <td>{getActionBadge(log.action)}</td>
+                                        <td>
+                                            <strong>{log.user?.HOTEN || log.USERNAME || 'Hệ thống'}</strong>
+                                            {log.role_name && <div style={{ fontSize: '11px', color: '#64748b' }}>{log.role_name}</div>}
+                                        </td>
+                                        <td>
+                                            {getActionBadge(log.action)}
+                                            {log.description && <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>{log.description}</div>}
+                                        </td>
                                         <td>{log.entity_type}</td>
                                         <td><strong>{log.entity_id}</strong></td>
                                         <td style={{ fontSize: '12px', color: '#888' }}>{log.ip_address || '-'}</td>
@@ -176,8 +186,8 @@ const AdminAdvancedAuditPage = () => {
                                 <strong>Thông tin Log:</strong>
                                 <ul style={{ listStyle: 'none', padding: 0, marginTop: '10px', fontSize: '14px', lineHeight: '1.8' }}>
                                     <li><strong>Thời gian:</strong> {new Date(selectedLog.created_at).toLocaleString('vi-VN')}</li>
-                                    <li><strong>Người thao tác:</strong> {selectedLog.user?.HOTEN || selectedLog.USERNAME}</li>
-                                    <li><strong>Hành động:</strong> {selectedLog.action}</li>
+                                    <li><strong>Người thao tác:</strong> {selectedLog.user?.HOTEN || selectedLog.USERNAME} {selectedLog.role_name ? `(${selectedLog.role_name})` : ''}</li>
+                                    <li><strong>Hành động:</strong> {selectedLog.action} {selectedLog.description ? `— ${selectedLog.description}` : ''}</li>
                                     <li><strong>Thực thể:</strong> {selectedLog.entity_type} / {selectedLog.entity_id}</li>
                                     <li><strong>Request ID:</strong> <code style={{ fontSize: '11px' }}>{selectedLog.request_id || '-'}</code></li>
                                     <li><strong>IP:</strong> {selectedLog.ip_address || '-'}</li>

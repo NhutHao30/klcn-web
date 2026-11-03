@@ -13,12 +13,14 @@ function StorePage() {
         const fetchStores = async () => {
             try {
                 const data = await getPublicStores();
-                setStores(data);
-                if (data.length > 0) {
-                    setActiveStore(data[0]);
+                const list = Array.isArray(data) ? data : (data?.data || []);
+                setStores(list);
+                if (list.length > 0) {
+                    setActiveStore(list[0]);
                 }
             } catch (error) {
                 console.error("Error fetching stores:", error);
+                setStores([]);
             }
             setLoading(false);
         };
@@ -78,23 +80,31 @@ function StorePage() {
                                     ) : stores.length === 0 ? (
                                         <div className="p-3 text-center">Không có cửa hàng nào</div>
                                     ) : (
-                                        stores.map((store) => (
-                                            <div 
-                                                key={store.MACUAHANG} 
-                                                className={`store-card ${activeStore?.MACUAHANG === store.MACUAHANG ? 'active' : ''}`}
-                                                onClick={() => handleStoreClick(store)}
-                                            >
-                                                <h4 className="store-name">{store.TENCUAHANG}</h4>
-                                                <p className="store-address">
-                                                    <i className="fa fa-map-marker-alt text-warning me-2"></i> 
-                                                    {store.DIACHI}
-                                                </p>
-                                                <p className="store-phone mb-0">
-                                                    <i className="fa fa-phone-alt text-warning me-2"></i>
-                                                    Hotline: {store.SDT}
-                                                </p>
-                                            </div>
-                                        ))
+                                        stores.map((store, idx) => {
+                                            const storeId = store.MACUAHANG || store.id || idx;
+                                            const storeName = store.TENCUAHANG || store.tenCuaHang || store.name || 'Cửa hàng Givral';
+                                            const storeAddress = store.DIACHI || store.diaChiChiTiet || store.address || '';
+                                            const storePhone = store.SDT || store.soDienThoai || store.phone || '1900 6750';
+                                            const isActive = (activeStore?.MACUAHANG || activeStore?.id) === (store.MACUAHANG || store.id);
+
+                                            return (
+                                                <div 
+                                                    key={storeId} 
+                                                    className={`store-card ${isActive ? 'active' : ''}`}
+                                                    onClick={() => handleStoreClick(store)}
+                                                >
+                                                    <h4 className="store-name">{storeName}</h4>
+                                                    <p className="store-address">
+                                                        <i className="fa fa-map-marker-alt text-warning me-2"></i> 
+                                                        {storeAddress}
+                                                    </p>
+                                                    <p className="store-phone mb-0">
+                                                        <i className="fa fa-phone-alt text-warning me-2"></i>
+                                                        Hotline: {storePhone}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })
                                     )}
                                 </div>
                             </div>
@@ -109,9 +119,9 @@ function StorePage() {
                                         height="600" 
                                         frameBorder="0" 
                                         style={{ border: 0, borderRadius: '8px' }}
-                                        src={`https://www.google.com/maps?q=${encodeURIComponent(activeStore.DIACHI)}&output=embed`} 
+                                        src={`https://www.google.com/maps?q=${encodeURIComponent(activeStore.DIACHI || activeStore.diaChiChiTiet || activeStore.address || activeStore.TENCUAHANG || 'Hồ Chí Minh')}&output=embed`} 
                                         allowFullScreen 
-                                        title={activeStore.TENCUAHANG}
+                                        title={activeStore.TENCUAHANG || activeStore.name || 'Store Map'}
                                     ></iframe>
                                 ) : (
                                     <div className="d-flex justify-content-center align-items-center bg-light" style={{ height: '600px', borderRadius: '8px' }}>

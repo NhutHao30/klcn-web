@@ -1,10 +1,12 @@
 import React, { Suspense, lazy } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Header from "./Layout/Header";
 import Modal from "./components/Modal";
 import ChatBox from "./components/ChatBox";
 import { getCurrentUser } from "./services/authService";
 import { ToastProvider } from "./components/Toast/Toast";
+import PageViewTracker from './components/PageViewTracker';
+import VisitActivityTracker from './components/VisitActivityTracker';
 
 // Lazy load các trang (Chỉ tải code khi người dùng thực sự vào trang đó)
 const HomePage = lazy(() => import("./Pages/HomePage"));
@@ -31,6 +33,7 @@ const AdminEmployeePage = lazy(() => import("./Pages/Admin/AdminEmployeePage"));
 const AdminTransferPage = lazy(() => import("./Pages/Admin/AdminTransferPage"));
 const AdminInvoicePage = lazy(() => import("./Pages/Admin/AdminInvoicePage"));
 const AdminPOSPage = lazy(() => import("./Pages/Admin/AdminPOSPage"));
+const AdminPOSShiftPage = lazy(() => import("./Pages/Admin/AdminPOSShiftPage"));
 const AdminReportPage = lazy(() => import("./Pages/Admin/AdminReportPage"));
 const AdminChatPage = lazy(() => import("./Pages/Admin/AdminChatPage"));
 const AdminInternalChatPage = lazy(() => import("./Pages/Admin/AdminInternalChatPage"));
@@ -40,6 +43,7 @@ const AdminVoucherPage = lazy(() => import("./Pages/Admin/AdminVoucherPage"));
 const AdminNewsPage = lazy(() => import("./Pages/Admin/AdminNewsPage"));
 const AdminInventoryLedgerPage = lazy(() => import("./Pages/Admin/AdminInventoryLedgerPage"));
 const AdminAdvancedAuditPage = lazy(() => import("./Pages/Admin/AdminAdvancedAuditPage"));
+const AdminFeatureLockPage = lazy(() => import("./Pages/Admin/AdminFeatureLockPage"));
 const AdminPreOrderPage = lazy(() => import("./Pages/Admin/AdminPreOrderPage"));
 const AdminLoHangPage = lazy(() => import("./Pages/Admin/AdminLoHangPage"));
 const AdminNhaCungCapPage = lazy(() => import("./Pages/Admin/AdminNhaCungCapPage"));
@@ -48,14 +52,14 @@ const AdminSignatureApprovalPage = lazy(() => import("./Pages/Admin/AdminSignatu
 const AdminNhapLoPage = lazy(() => import("./Pages/Admin/AdminNhapLoPage"));
 const AdminCategoryPage = lazy(() => import("./Pages/Admin/AdminCategoryPage"));
 const AdminOnlineOrderPage = lazy(() => import("./Pages/Admin/AdminOnlineOrderPage"));
+const AdminReviewPage = lazy(() => import("./Pages/Admin/AdminReviewPage"));
+const AdminSystemMonitorPage = lazy(() => import("./Pages/Admin/AdminSystemMonitorPage"));
+const AdminAnalyticsPage = lazy(() => import("./Pages/Admin/AdminAnalyticsPage"));
+
+import CookieSpinner from "./components/CookieSpinner";
 
 // Tạo hiệu ứng Loading nhẹ khi đang tải file JS
-const LoadingFallback = () => (
-  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh", flexDirection: "column" }}>
-    <i className="fa fa-spinner fa-spin" style={{ fontSize: "40px", color: "var(--primary-color)", marginBottom: "10px" }}></i>
-    <p style={{ color: "#555" }}>Đang tải trang...</p>
-  </div>
-);
+const LoadingFallback = () => <CookieSpinner fullPage text="Đang tải trang..." />;
 
 // Tạo component điều hướng cho /admin
 const DashboardRouter = () => {
@@ -64,14 +68,20 @@ const DashboardRouter = () => {
     import('./services/authService').then(({ getCurrentUser }) => {
       getCurrentUser().then(user => {
         setRole(Number(user.MAROLE !== undefined ? user.MAROLE : user.role));
-      }).catch(() => window.location.href = '/dang-nhap');
+      }).catch(() => {
+        if (window.location.pathname !== '/dang-nhap') {
+          window.location.href = '/dang-nhap';
+        }
+      });
     });
   }, []);
 
   if (role === null) return <LoadingFallback />;
   if (role === 0 || role === 1) return <AdminReportPage />;
-  if (role === 2) return <AdminPOSPage />;
-  if (role === 4) return <AdminChatPage />;
+  if (role === 2) return <Navigate to="/admin/pos" replace />;
+  if (role === 4) return <Navigate to="/admin/chat" replace />;
+  if (role === 5) return <Navigate to="/admin/lo-hang" replace />;
+  if (role === 6) return <Navigate to="/admin/hoa-don" replace />;
   return <AdminReportPage />;
 };
 
@@ -81,24 +91,24 @@ function App() {
   React.useEffect(() => {
     // Kiem tra URL xem co tra ve token tu Google khong
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
+    const token = params.get("token") || params.get("access_token");
     if (token) {
+        clearUserCache();
         localStorage.setItem("access_token", token);
+        document.dispatchEvent(new Event('authUpdated'));
         // Xoa token khoi URL cho dep
         window.history.replaceState({}, document.title, window.location.pathname + "?google=true");
     }
 
-    getCurrentUser().then(user => setCurrentUser(user)).catch(() => setCurrentUser(null));
-    
-    if (params.get("google") === "true") {
-        // Toast sẽ hiển thị ở trang đích;
-    }
+    getCurrentUser(true).then(user => setCurrentUser(user)).catch(() => setCurrentUser(null));
   }, []);
 
   return (
     <ToastProvider>
     <Router>
       <Header />
+      <VisitActivityTracker />
+      <PageViewTracker />
       <Suspense fallback={<LoadingFallback />}>
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -126,6 +136,7 @@ function App() {
         <Route path="/admin/dieu-chuyen" element={<AdminTransferPage />} />
         <Route path="/admin/hoa-don" element={<AdminInvoicePage />} />
         <Route path="/admin/pos" element={<AdminPOSPage />} />
+        <Route path="/admin/ca-lam-viec" element={<AdminPOSShiftPage />} />
         <Route path="/admin/bao-cao" element={<AdminReportPage />} />
         <Route path="/admin/cua-hang" element={<AdminStorePage />} />
         <Route path="/admin/chat" element={<AdminChatPage />} />
@@ -135,6 +146,7 @@ function App() {
         <Route path="/admin/tin-tuc" element={<AdminNewsPage />} />
         <Route path="/admin/so-cai-ton-kho" element={<AdminInventoryLedgerPage />} />
         <Route path="/admin/nhat-ky-nang-cao" element={<AdminAdvancedAuditPage />} />
+        <Route path="/admin/bao-tri-he-thong" element={<AdminFeatureLockPage />} />
         <Route path="/admin/dat-hang-truoc" element={<AdminPreOrderPage />} />
         <Route path="/admin/lo-hang" element={<AdminLoHangPage />} />
         <Route path="/admin/nha-cung-cap" element={<AdminNhaCungCapPage />} />
@@ -143,6 +155,9 @@ function App() {
         <Route path="/admin/nhap-lo-hang" element={<AdminNhapLoPage />} />
         <Route path="/admin/loai-san-pham" element={<AdminCategoryPage />} />
         <Route path="/admin/don-hang-online" element={<AdminOnlineOrderPage />} />
+        <Route path="/admin/danh-gia" element={<AdminReviewPage />} />
+        <Route path="/admin/giam-sat-he-thong" element={<AdminSystemMonitorPage />} />
+        <Route path="/admin/phan-tich-nguoi-dung" element={<AdminAnalyticsPage />} />
       </Routes>
       </Suspense>
       <Modal />

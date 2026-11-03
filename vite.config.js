@@ -4,7 +4,7 @@
 // // https://vite.dev/config/
 // export default defineConfig({
 //   plugins: [react()],
-//   base: './',
+//   base: '/',
 //   server: {
 //     allowedHosts: 'all' // Cho phép tất cả các domain (bao gồm Ngrok) truy cập vào Vite Dev Server
 //   },
@@ -17,10 +17,11 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const backendUrl = env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+  console.log('>>> BACKEND URL =', backendUrl);
 
   return {
     plugins: [react()],
-    base: './',
+    base: mode === 'production' ? './' : '/',
     server: {
       allowedHosts: true, 
       host: true,
@@ -29,6 +30,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: backendUrl,
           changeOrigin: true,
+          xfwd: true,
           headers: {
             'ngrok-skip-browser-warning': 'true'
           }
@@ -41,6 +43,13 @@ export default defineConfig(({ mode }) => {
           }
         },
         '/images': {
+          target: backendUrl,
+          changeOrigin: true,
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        },
+        '/assets/receipts': {
           target: backendUrl,
           changeOrigin: true,
           headers: {

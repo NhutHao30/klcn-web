@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 
-const SignatureCanvas = ({ onSave, onClear, initialSignature = null, height = 180, readOnly = false }) => {
+const SignatureCanvas = ({ onSave, onClear, initialSignature = null, height = 240, readOnly = false }) => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -123,7 +123,7 @@ const SignatureCanvas = ({ onSave, onClear, initialSignature = null, height = 18
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
           <span style={{ fontSize: '12px', color: '#64748b' }}>
             <i className="fa-solid fa-hand-pointer" style={{ marginRight: '4px' }}></i>
-            Vẽ chữ ký bằng chuột hoặc vuốt màn hình
+            Vẽ chữ ký bằng chuột hoặc vuốt màn hình cảm ứng
           </span>
           <button
             type="button"

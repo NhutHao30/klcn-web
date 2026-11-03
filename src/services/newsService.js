@@ -54,6 +54,11 @@ export const deleteNews = async (id) => {
     return response.data;
 };
 
+export const toggleNewsVisibility = async (id) => {
+    const response = await axiosClient.put(`/admin/news/${id}/toggle-visibility`);
+    return response.data;
+};
+
 export const deleteNewsComment = async (commentId) => {
     const response = await axiosClient.delete(`/admin/news/comments/${commentId}`);
     return response.data;

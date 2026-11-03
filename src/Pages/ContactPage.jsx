@@ -41,7 +41,7 @@ const [formData, setFormData] = useState({
                         <div className="row" style={{ alignItems: "center" }}>
                             <div className="col col-lg-6 col-md-6 col-12">
                                 <div style={{ borderRadius: "8px", padding: "12px", backgroundColor: "papayawhip", height: "160px" }}>
-                                    <h3 className="contact-form__title" style={{ fontSize: "2rem", marginBottom: "20px" }}>Cửa hàng Dola Bakery</h3>
+                                    <h3 className="contact-form__title" style={{ fontSize: "2rem", marginBottom: "20px" }}>Cửa hàng Givral Bakery</h3>
                                     <ul style={{ display: "flex", flexWrap: "wrap", height: "80px" }}>
                                         <li style={{ display: "flex", gap: "6px", alignItems: "center", width: "50%" }}>
                                             <div style={{ height: "30px", width: "30px", borderRadius: "50%", border: "1px solid var(--primary-color)", lineHeight: "27px", textAlign: "center", fontSize: "1.6rem", color: "var(--primary-color)" }}>

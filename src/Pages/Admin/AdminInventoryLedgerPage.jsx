@@ -28,22 +28,33 @@ const AdminInventoryLedgerPage = () => {
 
     const getMovementTypeBadge = (type) => {
         const types = {
+            0: { label: 'Bán hàng (POS)', color: 'admin-badge-primary' },
+            1: { label: 'Bán hàng (Online)', color: 'admin-badge-primary' },
+            2: { label: 'Chuyển kho (Xuất)', color: 'admin-badge-warning' },
+            3: { label: 'Chuyển kho (Nhập)', color: 'admin-badge-info' },
+            4: { label: 'Nhập lô hàng mới', color: 'admin-badge-success' },
+            5: { label: 'Xuất hủy hàng', color: 'admin-badge-danger' },
             'PURCHASE': { label: 'Nhập hàng', color: 'admin-badge-success' },
             'SALE': { label: 'Bán hàng (Online)', color: 'admin-badge-primary' },
             'POS_SALE': { label: 'Bán hàng (POS)', color: 'admin-badge-primary' },
-            'RETURN': { label: 'Khách trả hàng', color: 'admin-badge-warning' },
-            'TRANSFER_OUT': { label: 'Chuyển đi', color: 'admin-badge-secondary' },
+            'TRANSFER_OUT': { label: 'Chuyển đi', color: 'admin-badge-warning' },
             'TRANSFER_IN': { label: 'Nhận về', color: 'admin-badge-info' },
-            'ADJUSTMENT': { label: 'Kiểm kê/Điều chỉnh', color: 'admin-badge-danger' }
+            'ADJUSTMENT': { label: 'Xuất hủy / Kiểm kê', color: 'admin-badge-danger' }
         };
-        const config = types[type] || { label: type, color: 'admin-badge-secondary' };
+        const config = types[type] || { label: type ?? 'Biến động', color: 'admin-badge-secondary' };
         return <span className={`admin-badge ${config.color}`}>{config.label}</span>;
     };
 
     return (
         <AdminLayout>
             <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
-                <h1 className="admin-title" style={{ marginBottom: 0 }}>Sổ Cái Tồn Kho (Immutable Ledger)</h1>
+                <div>
+                    <h1 className="admin-title" style={{ marginBottom: '4px' }}>
+                        <i className="fa-solid fa-book-open" style={{ color: 'var(--admin-primary)', marginRight: 10 }} />
+                        Sổ cái tồn kho
+                    </h1>
+                    <p style={{ margin: 0, color: '#888', fontSize: '13px' }}>Ghi nhận nhật ký nhập kho, xuất kho, điều chuyển và bán hàng toàn hệ thống</p>
+                </div>
                 <button className="admin-btn admin-btn-secondary" onClick={() => fetchMovements(page)}>
                     <i className="fa-solid fa-rotate-right"></i> Làm mới
                 </button>
@@ -58,46 +69,46 @@ const AdminInventoryLedgerPage = () => {
                                 <th>Sản phẩm</th>
                                 <th>Cửa hàng</th>
                                 <th>Loại biến động</th>
-                                <th style={{ textAlign: 'right' }}>SL Trước</th>
                                 <th style={{ textAlign: 'right' }}>Thay đổi</th>
-                                <th style={{ textAlign: 'right' }}>SL Sau</th>
-                                <th>Tham chiếu</th>
-                                <th>Người thực hiện</th>
+                                <th style={{ textAlign: 'right' }}>Tồn kho sau</th>
+                                <th>Mã tham chiếu</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '20px' }}>Đang tải dữ liệu...</td></tr>
+                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>Đang tải dữ liệu...</td></tr>
                             ) : movements.length === 0 ? (
-                                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '20px' }}>Chưa có biến động kho nào.</td></tr>
+                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>Chưa có biến động kho nào.</td></tr>
                             ) : (
-                                movements.map((item) => (
-                                    <tr key={item.id}>
-                                        <td>{new Date(item.created_at).toLocaleString('vi-VN')}</td>
-                                        <td>
-                                            <strong>{item.sanpham?.TENSP || item.MASP}</strong><br />
-                                            <small style={{ color: '#666' }}>{item.MASP}</small>
-                                        </td>
-                                        <td>{item.cuahang?.TENCUAHANG || `CH${item.MACUAHANG}`}</td>
-                                        <td>{getMovementTypeBadge(item.type)}</td>
-                                        <td style={{ textAlign: 'right' }}>{item.before_quantity}</td>
-                                        <td style={{ textAlign: 'right', fontWeight: 'bold', color: item.quantity > 0 ? 'green' : 'red' }}>
-                                            {item.quantity > 0 ? '+' : ''}{item.quantity}
-                                        </td>
-                                        <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{item.after_quantity}</td>
-                                        <td>
-                                            {item.reference_type}
-                                            <strong>{item.reference_id}</strong>
-                                        </td>
-                                        <td>{item.user?.HOTEN || item.USERNAME || 'Hệ thống'}</td>
-                                    </tr>
-                                ))
+                                movements.map((item) => {
+                                    const qty = item.so_luong_thay_doi ?? item.quantity ?? 0;
+                                    const time = item.createdAt || item.created_at;
+                                    const storeName = item.cuahang?.ten_cuahang || item.cuahang?.tenCuaHang || item.cuahang?.TENCUAHANG || `CH#${item.cuaHangId || item.MACUAHANG}`;
+                                    const prodName = item.sanpham?.tenSanPham || item.sanpham?.TENSP || `SP#${item.sanPhamId || item.MASP}`;
+                                    return (
+                                        <tr key={item.id}>
+                                            <td>{time ? new Date(time).toLocaleString('vi-VN') : '-'}</td>
+                                            <td>
+                                                <strong>{prodName}</strong>
+                                            </td>
+                                            <td>{storeName}</td>
+                                            <td>{getMovementTypeBadge(item.loai_bien_dong ?? item.type)}</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 'bold', color: qty > 0 ? '#198754' : '#dc3545', fontSize: '15px' }}>
+                                                {qty > 0 ? `+${qty}` : qty}
+                                            </td>
+                                            <td style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>{item.so_luong_ton_sau ?? item.after_quantity ?? '-'}</td>
+                                            <td>
+                                                <span className="admin-badge admin-badge-secondary">{item.ma_tham_chieu || item.reference_id || '-'}</span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
                 </div>
 
-                <div className="admin-pagination " style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'cente', }}>
+                <div className="admin-pagination" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                     <button 
                         className="admin-btn admin-btn-secondary" 
                         disabled={page <= 1}
@@ -105,7 +116,7 @@ const AdminInventoryLedgerPage = () => {
                     >
                         Trang trước
                     </button>
-                    <span style={{ margin: '0 15px', display: 'flex', alignItems: 'center', fontSize: '16px', }}>
+                    <span style={{ margin: '0 15px', display: 'flex', alignItems: 'center', fontSize: '14px' }}>
                         Trang {page} / {totalPages}
                     </span>
                     <button 

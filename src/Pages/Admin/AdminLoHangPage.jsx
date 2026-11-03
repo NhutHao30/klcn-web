@@ -197,13 +197,9 @@ const AdminLoHangPage = () => {
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản Lý Lô Hàng & Hạn Sử Dụng (FEFO)</h1>
-          <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>Theo dõi từng đợt nhập hàng, HSD bánh mì và xuất bán ưu tiên FEFO</p>
+          <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản lý lô hàng và HSD</h1>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="admin-btn admin-btn-info" onClick={() => setShowSimModal(true)}>
-            <i className="fa-solid fa-compass" style={{ marginRight: '6px' }}></i> Mô Phỏng Xuất FEFO
-          </button>
           <button className="admin-btn admin-btn-primary" onClick={fetchData}>
             <i className="fa-solid fa-rotate" style={{ marginRight: '6px' }}></i> Làm Mới
           </button>
@@ -358,10 +354,35 @@ const AdminLoHangPage = () => {
                     }
 
                     const storeName = l.cuahang?.TENCUAHANG || l.cua_hang?.TENCUAHANG || `CH #${l.MACUAHANG}`;
-                    const nccName = l.hdnhap?.nhacungcap?.TENNCC || l.hd_nhap?.nha_cung_cap?.TENNCC || '-';
+                    const nccName =
+                      l.nhaCungCap?.tenNcc ||
+                      l.nhaCungCap?.TENNCC ||
+                      l.nha_cung_cap?.tenNcc ||
+                      l.nha_cung_cap?.TENNCC ||
+                      l.nhacungcap?.TENNCC ||
+                      l.hoaDonNhap?.nhaCungCap?.tenNcc ||
+                      l.hdnhap?.nhacungcap?.TENNCC ||
+                      'Nhà cung cấp Givral';
                     const productName = l.sanpham?.TENSP || l.san_pham?.TENSP || l.MASP;
-                    const expDate = l.HSD || l.HSD_LO || '-';
-                    const daysText = l.so_ngay_con_lai !== null && l.so_ngay_con_lai !== undefined ? `${l.so_ngay_con_lai} ngày` : '-';
+                    const expDate = l.hsd || l.HSD || l.HSD_LO || '-';
+
+                    let daysText = '-';
+                    if (expDate && expDate !== '-') {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const exp = new Date(expDate);
+                      exp.setHours(0, 0, 0, 0);
+                      const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                      if (diffDays > 0) {
+                        daysText = `Còn ${diffDays} ngày`;
+                      } else if (diffDays === 0) {
+                        daysText = 'Hết hạn hôm nay';
+                      } else {
+                        daysText = `Quá hạn ${Math.abs(diffDays)} ngày`;
+                      }
+                    } else if (l.so_ngay_con_lai !== null && l.so_ngay_con_lai !== undefined) {
+                      daysText = l.so_ngay_con_lai > 0 ? `Còn ${l.so_ngay_con_lai} ngày` : `Quá hạn ${Math.abs(l.so_ngay_con_lai)} ngày`;
+                    }
 
                     return (
                       <tr key={l.MALOHAN}>
