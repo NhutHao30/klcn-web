@@ -231,7 +231,6 @@ const [products, setProducts] = useState([]);
       payload.append('SOLUONG', formData.SOLUONG || 0);
       payload.append('GHICHU', formData.GHICHU || '');
       payload.append('mo_ta', formData.GHICHU || '');
-      payload.append('IS_NEW', formData.IS_NEW ? 1 : 0);
       payload.append('PHAN_TRAM_GIAM', formData.PHAN_TRAM_GIAM || 0);
       
       if (selectedFile) {
@@ -240,7 +239,8 @@ const [products, setProducts] = useState([]);
       }
 
       if (editingProduct) {
-        const id = editingProduct.id || editingProduct.maSP || editingProduct.MaSP || editingProduct.MASP;
+        payload.append('_method', 'PUT');
+        const id = editingProduct.id || (editingProduct.MASP ? String(editingProduct.MASP).replace(/\D/g, '') : (editingProduct.maSP || editingProduct.MaSP));
         await updateProduct(id, payload);
         toast.success('Cập nhật thành công!');
       } else {
