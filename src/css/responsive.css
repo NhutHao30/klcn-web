@@ -587,7 +587,7 @@
     }
 
     .footer-content-item_text {
-        font-size: 2rem;
+        font-size: 1.3rem !important;
     }
 
     .footer-content-item h3 {

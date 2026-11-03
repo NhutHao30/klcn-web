@@ -4,8 +4,35 @@ import { useToast } from './Toast/Toast';
 
 const Modal = () => {
     const [searchQuery, setSearchQuery] = useState("");
+    const [isProductsSubmenuOpen, setIsProductsSubmenuOpen] = useState(false);
+    const [authUser, setAuthUser] = useState(null);
     const navigate = useNavigate();
     const toast = useToast();
+
+    const closeAllModals = () => {
+        const modal = document.querySelector('.modal-js');
+        const modalSearch = document.querySelector('.Modal-Search-js');
+        const searchInfor = document.querySelector('.searchInfor-js');
+        const addCart = document.querySelector('.addCart-js');
+        const menuBar = document.querySelector('.Modal-MenuMobile-block-js');
+
+        if (modalSearch) modalSearch.style.display = 'none';
+        if (menuBar) menuBar.style.display = 'none';
+        if (addCart) addCart.style.display = 'none';
+        if (searchInfor) searchInfor.style.display = 'none';
+        if (modal) modal.style.display = 'none';
+    };
+
+    const handleMobileLogout = async () => {
+        closeAllModals();
+        try {
+            const { logout } = await import('../services/authService.js');
+            await logout();
+            window.location.href = '/dang-nhap';
+        } catch (e) {
+            window.location.href = '/dang-nhap';
+        }
+    };
 
     const handleSearchSubmit = () => {
         if (searchQuery.trim()) {
@@ -386,6 +413,11 @@ const Modal = () => {
             }
         };
 
+        // Fetch authUser for mobile drawer
+        import('../services/authService.js').then(m => {
+            m.getCurrentUser().then(u => setAuthUser(u)).catch(() => setAuthUser(null));
+        });
+
         // Initialize header counters (only if logged in)
         if (localStorage.getItem('access_token')) {
             import('../services/wishlistService.js').then(async m => {
@@ -416,156 +448,117 @@ const Modal = () => {
     return (
         <>
         <div className="modal modal-js" style={{ display: "none" }}>
-            <div className="modal__overlay modal-overlay-js">           
-        
-                <div className="modal__body modal__body-js">
+            {/* Backdrop Overlay - click closes everything */}
+            <div className="modal__overlay modal-overlay-js" onClick={closeAllModals}></div>
 
-                    
-                    <div className="grid">
-                        <div className="row">
-                            <div className="Modal-Search Modal-Search-js">
-                                <ul className="search-list">
-                                    <li className="search-item">
-                                        <input 
-                                            type="text" 
-                                            id="search-input" 
-                                            className="Search-input" 
-                                            placeholder="Bạn muốn tìm gì?" 
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            onKeyDown={handleKeyDown}
-                                        />
-                                        <label htmlFor="search-input" className="search-item-icon" onClick={handleSearchSubmit} style={{cursor: "pointer"}}>
-                                            <i className="search-icon fa-solid fa-magnifying-glass"></i> 
-                                        </label>
-                                    </li>
-                                    <p className="exit-btn exit-btn-js">
-                                        <i className="exit-icon fa-solid fa-x"></i>
-                                    </p>
-                                </ul>
-                                    
-                            </div> 
+            {/* Modal Body: Search, Quick View, Add to Cart */}
+            <div className="modal__body modal__body-js">
+                <div className="exit-btn exit-btn-js" onClick={closeAllModals}>
+                    <i className="exit-icon fa-solid fa-xmark"></i>
+                </div>
+
+                {/* Modal Search */}
+                <div className="grid">
+                    <div className="row">
+                        <div className="Modal-Search Modal-Search-js">
+                            <ul className="search-list">
+                                <li className="search-item">
+                                    <input 
+                                        type="text" 
+                                        id="search-input" 
+                                        className="Search-input" 
+                                        placeholder="Bạn muốn tìm gì?" 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onKeyDown={handleKeyDown}
+                                    />
+                                    <label htmlFor="search-input" className="search-item-icon" onClick={handleSearchSubmit} style={{cursor: "pointer"}}>
+                                        <i className="search-icon fa-solid fa-magnifying-glass"></i> 
+                                    </label>
+                                </li>
+                                <p className="exit-btn exit-btn-js" onClick={closeAllModals}>
+                                    <i className="exit-icon fa-solid fa-xmark"></i>
+                                </p>
+                            </ul>
+                        </div> 
+                    </div>
+                </div>
+
+                {/* Modal Add to Cart Success */}
+                <div className="grid">
+                    <div className="row">
+                        <div className="addCart addCart-js">
+                            <ul className="addCart-list addCart-list-js">
+                                <li className="addCart-item">
+                                    <div className="addCart-item__title">
+                                        <i className="addCart-item__title-check-icon fa-regular fa-circle-check"></i>
+                                        Thêm vào giỏ hàng thành công
+                                    </div>
+                                    <span className="addCart-item__exit-icon addCart-item__exit-icon-js" onClick={closeAllModals}>
+                                        <i className="fa-solid fa-xmark"></i>
+                                    </span>
+                                </li>
+                                <li className="addCart-item addCart-item-js">
+                                    <div className="addCart-item__img">
+                                        <img src="" alt="" className="addCart-item-img addCart-item-img-js" />
+                                    </div>
+                                    <div className="addCart-item__content">
+                                        <p className="addCart-item__name addCart-item__name-js"></p>
+                                        <p className="addCart-item__price addCart-item__price-js"></p>
+                                    </div>
+                                </li>
+                                <li className="addCart-item">
+                                    <Link to="/gio-hang" className="addCart-item__viewCart" onClick={closeAllModals}>Xem giỏ hàng</Link>
+                                </li>
+                            </ul>
                         </div>
                     </div>
+                </div>
 
-                    
-                    <div className="grid">
-                        <div className="row">
-                            <div className="addCart addCart-js">
-                                <ul className="addCart-list addCart-list-js">
-                                    <li className="addCart-item">
-                                        <div className="addCart-item__title">
-                                            <i className="addCart-item__title-check-icon fa-regular fa-circle-check"></i>
-                                            Thêm vào giỏ hàng thành công
-                                        </div>
-                                        <div className="addCart-item__exit addCart-item__exit-js">
-                                            <i className="addCart-item__exit-icon fa-solid fa-xmark"></i>
-                                        </div>
-                                    </li>
-                                    <li className="addCart-item">
-                                        <div className="addCart-item__img-block">
-                                            <img id="largeImageaddCart" src="../../assets/IMG/productSale_1.webp" alt="" className="addCart-item__img" />
-                                        </div>
-                                        <div className="addCart-item__des-product">
-                                            <div className="addCart-item__name">Bánh Sừng Bò Mini</div>
-                                            <div className="addCart-item__price">36.000₫</div>
-                                        </div>
-                                    </li>
-                                    <li className="addCart-item">
-                                        <div className="addCart-item__des addCart-item__des-js">
-                                            <span>
-                                                Giỏ hàng của bạn hiện có <span className="highligh">0</span> sản phẩm</span>
-                                        </div>
-                                        <div className="addCart-item__btn">
-                                            <div className="addCart-item__continueBuy" style={{cursor: "pointer"}}>
-                                                Tiếp tục mua hàng
-                                            </div>
-                                            <div className="addCart-item__payNow">
-                                                <Link to="/gio-hang" className="addCart-item__payNow-link" onClick={() => document.querySelector('.Modal-addCart-js').style.display = 'none'}>
-                                                    Xem giỏ hàng
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    
-                    <div className="grid">
-                        <div className="row">
-                            <div className="searchInfor searchInfor-js">
+                {/* Modal Search Quick View (Product Detail Modal) */}
+                <div className="grid">
+                    <div className="row">
+                        <div className="searchInfor searchInfor-js">
+                            <div className="col-12">
                                 <ul className="searchInfor-list searchInfor-list-js">
-                                    <li className="searchInfor-item">
-                                        <div className="searchInfor-item__IMG">
-                                                <img id="largeImage" src="../../assets/IMG/productSale_1.webp" alt="" className="searchInfor-img  " />
-                                                <ul className="searchInfor-item__IMG-option">
-                                                    <li className="searchInfor-item__IMG-option-item">
-                                                        <img src="../../assets/IMG/productSale_1.webp" alt="" className="searchInfor-item__IMG-option-item-img searchInfor-item__IMG-option-item-img-js" onClick={() => {}} />
-                                                    </li>
-                                                    <li className="searchInfor-item__IMG-option-item">
-                                                        <img src="../../assets/IMG/productInfor0.webp" alt="" className="searchInfor-item__IMG-option-item-img searchInfor-item__IMG-option-item-img1-js" onClick={() => {}} />
-                                                    </li>
-                                                </ul>
-                                        </div>
+                                    <li className="searchInfor-item col-lg-6 col-md-6 col-12">
+                                        <ul className="searchInfor-list__level2-img">
+                                            <li className="searchInfor-item__level2-img">
+                                                <div className="searchInfor-item__level2-imgMain">
+                                                    <img id="largeImage" src="" alt="Large Image" />
+                                                </div>
+                                            </li>
+                                        </ul>
                                     </li>
-                                    <li className="searchInfor-item">
+                                    <li className="searchInfor-item col-lg-6 col-md-6 col-12">
                                         <ul className="searchInfor-list__level2">
                                             <li className="searchInfor-item__level2">
-                                                <div className="searchInfor-item__name searchInfor-item__name-js">Bánh Sừng Bò Mini</div>
+                                                <h3 className="searchInfor-item__name searchInfor-item__name-js"></h3>
                                             </li>
                                             <li className="searchInfor-item__level2">
-                                                <div className="searchInfor-item__productStatus">
-                                                    Tình trạng: <span className="searchInfor-item__productStatus-title">Còn hàng</span>
-                                                </div>
-                                                <div className="searchInfor-item__productStock" style={{marginLeft: "15px"}}>
-                                                    Kho: <span className="searchInfor-item__productStock-title" style={{fontWeight: "bold"}}>0</span>
-                                                </div>
-                                                <div className="searchInfor-item__productCode">
-                                                    Mã sản phẩm: <span className="searchInfor-item__productCode-title">Đang cập nhật</span>
+                                                <span className="searchInfor-item__thuonghieu">Thương hiệu: <span className="searchInfor-item__thuonghieu-name">Givral Bakery</span></span>
+                                                <span className="searchInfor-item__tinhtrang">Tình trạng: <span className="searchInfor-item__tinhtrang-name">Còn hàng</span></span>
+                                            </li>
+                                            <li className="searchInfor-item__level2">
+                                                <div className="searchInfor-item__price">
+                                                    <span className="searchInfor-item__priceSale searchInfor-item__priceSale-js"></span>
+                                                    <span className="searchInfor-item__priceOld searchInfor-item__priceOld-js"></span>
                                                 </div>
                                             </li>
                                             <li className="searchInfor-item__level2">
-                                                <div className="searchInfor-item__priceSale searchInfor-item__priceSale-js">36.000₫</div>
-                                                <div className="searchInfor-item__priceOriginal searchInfor-item__priceOriginal-js">40.000₫</div>
-                                            </li>
-                                            <li className="searchInfor-item__level2">
-                                                <div className="searchInfor-item__productInfor">Thông tin sản phẩm đang cập nhật</div>
-                                            </li>
-                                            <li className="searchInfor-item__level2">
-                                                <div className="searchInfor-item__productQuantity">
-                                                    <span className="searchInfor-item__productQuantity-number">Số lượng:</span>
-                                                    <ul className="CustomizeQuantity">
-                                                        <li className="CustomizeQuantity-remove CustomizeQuantity-remove-js" style={{cursor: "pointer"}}>
-                                                            <i className="CustomizeQuantity-icon fa-solid fa-minus"></i>
-                                                        </li>
-                                                        <li className="CustomizeQuantity-number CustomizeQuantity-number-js">1</li>
-                                                        <li className="CustomizeQuantity-add CustomizeQuantity-add-js" style={{cursor: "pointer"}}>
-                                                            <i className="CustomizeQuantity-icon fa-solid fa-plus"></i>
-                                                        </li>
-                                                    </ul>
+                                                <div className="CustomizeQuantity">
+                                                    <div className="CustomizeQuantity-btn CustomizeQuantity-decrement-js">-</div>
+                                                    <div className="CustomizeQuantity-number CustomizeQuantity-number-js">1</div>
+                                                    <div className="CustomizeQuantity-btn CustomizeQuantity-increment-js">+</div>
+                                                </div>
+                                                <div className="searchInfor-item__addCart">
+                                                    <button className="searchInfor-item__addCartBtn searchInfor-item__addCartBtn-js">
+                                                        Thêm vào giỏ hàng
+                                                    </button>
                                                 </div>
                                             </li>
-                                            <li className="searchInfor-item__level2" style={{ display: 'flex', gap: '10px' }}>
-                                                <div className="searchInfor-item__addCartBtn searchInfor-item__addCartBtn-js" style={{ flex: 1 }}>Thêm Vào Giỏ Hàng</div>
-                                                <div 
-                                                    className="searchInfor-item__viewReviewBtn searchInfor-item__viewReviewBtn-js" 
-                                                    style={{ flex: 1, backgroundColor: '#f39c12', color: '#fff', textAlign: 'center', lineHeight: '45px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', borderRadius: '4px' }}
-                                                    onClick={() => {
-                                                        const modalSearchInfo = document.querySelector('.searchInfor-list-js');
-                                                        const masp = modalSearchInfo?.dataset?.masp;
-                                                        if (masp) {
-                                                            navigate(`/san-pham/${masp}`);
-                                                            document.querySelector('.modal-js').style.display = 'none';
-                                                        }
-                                                    }}
-                                                >
-                                                    Xem đánh giá
-                                                </div>
-                                            </li>
-                                            <span className="searchInfor-list__level2-exit searchInfor-list__level2-exit-js">
-                                                <i className="searchInfor-list__level2-exit-icon fa-solid fa-x"></i>
+                                            <span className="searchInfor-list__level2-exit searchInfor-list__level2-exit-js" onClick={closeAllModals}>
+                                                <i className="searchInfor-list__level2-exit-icon fa-solid fa-xmark"></i>
                                             </span>
                                         </ul>
                                     </li>
@@ -574,62 +567,141 @@ const Modal = () => {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                    
-                <div className="grid">
-                    <div className="row" >
-                        <div className="Modal-MenuMobile-block Modal-MenuMobile-block-js" style={{ flexDirection: "column" }}>
-                                    <div className="Modal-MenuMobile-block__header">
-                                        <div>
-                                            <Link to="/dang-ky" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Đăng ký</Link>
-                                        </div>
-                                        <div>
-                                            <Link to="/dang-nhap" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Đăng nhập</Link>
-                                        </div>
-                                        <div>
-                                            <Link to="/" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Menu chính</Link>
-                                        </div>
-                                    </div>
-                                    <div className="Modal-MenuMobile-block__content" style={{ padding: "0 8px" }}>
-                                        <ul className="Modal-MenuMobile-block__content-list" style={{ borderBottom: "1px solid var(--primary-color)" }}>
-                                            <li className="Modal-MenuMobile-block__content-item">
-                                                <Link to="/" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Trang chủ</Link>
-                                            </li>
-                                            <li className="Modal-MenuMobile-block__content-item">
-                                                <Link to="/gioi-thieu" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Giới thiệu</Link>
-                                            </li>
-                                            <li className="Modal-MenuMobile-block__content-item">
-                                                <Link to="/san-pham" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Sản phẩm</Link>
-                                            </li>
-                                            <li className="Modal-MenuMobile-block__content-item">
-                                                <Link to="/tin-tuc" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Tin tức</Link>
-                                            </li>
-                                            <li className="Modal-MenuMobile-block__content-item">
-                                                <Link to="/lien-he" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Liên hệ</Link>
-                                            </li>
-                                            <li className="Modal-MenuMobile-block__content-item">
-                                                <Link to="/he-thong-cua-hang" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Hệ thống cửa hàng</Link>
-                                            </li>
-                                            <li className="Modal-MenuMobile-block__content-item">
-                                                <Link to="/Cau-hoi-thuong-gap" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Câu hỏi thường gặp</Link>
-                                            </li>
-                                        </ul>
-                                        <ul className="Modal-MenuMobile-block__content-list">
-                                            <li className="Modal-MenuMobile-block__content-item">
-                                                <Link to="/yeu-thich" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Sản phẩm yêu thích</Link>
-                                            </li>
-                                            <li className="Modal-MenuMobile-block__content-item">
-                                                <Link to="/gio-hang" className="Modal-MenuMobile-block__content-item-link" onClick={() => document.querySelector('.Modal-MenuMobile-js').style.display = 'none'}>Danh sách giỏ hàng</Link>
-                                            </li>
-                                        </ul>
-                                    </div>
+            {/* Mobile Offcanvas Drawer (Dola Bakery Style - Clean, No Underline) */}
+            <div className="Modal-MenuMobile-block Modal-MenuMobile-block-js" style={{ display: "none" }}>
+                <div className="mobile-drawer-header">
+                    <button type="button" className="mobile-drawer-close-btn" onClick={closeAllModals} title="Đóng menu">
+                        <i className="fa-solid fa-xmark"></i>
+                    </button>
+
+                    {authUser ? (
+                        <div className="mobile-auth-btns">
+                            <Link to="/thong-tin-ca-nhan" className="mobile-auth-btn" onClick={closeAllModals}>
+                                <i className="fa-solid fa-user-circle" style={{ marginRight: '6px' }}></i>
+                                {authUser.HOTEN || authUser.name || 'Tài khoản'}
+                            </Link>
+                            <button type="button" className="mobile-auth-btn" onClick={handleMobileLogout} style={{ backgroundColor: '#dc2626' }}>
+                                <i className="fa-solid fa-right-from-bracket" style={{ marginRight: '4px' }}></i>
+                                Đăng xuất
+                            </button>
                         </div>
-                        
+                    ) : (
+                        <div className="mobile-auth-btns">
+                            <Link to="/dang-ky" className="mobile-auth-btn" onClick={closeAllModals}>
+                                Đăng ký
+                            </Link>
+                            <Link to="/dang-nhap" className="mobile-auth-btn" onClick={closeAllModals}>
+                                Đăng nhập
+                            </Link>
+                        </div>
+                    )}
+
+                    <div className="mobile-menu-title-bar">
+                        MENU CHÍNH
+                    </div>
+                </div>
+
+                <div className="mobile-drawer-content">
+                    <ul className="mobile-nav-list">
+                        <li className="mobile-nav-item">
+                            <Link to="/" className="mobile-nav-link" onClick={closeAllModals}>
+                                Trang chủ
+                            </Link>
+                        </li>
+                        <li className="mobile-nav-item">
+                            <Link to="/gioi-thieu" className="mobile-nav-link" onClick={closeAllModals}>
+                                Giới thiệu
+                            </Link>
+                        </li>
+                        <li className="mobile-nav-item">
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Link to="/san-pham" className="mobile-nav-link" onClick={closeAllModals} style={{ flex: 1, borderBottom: 'none' }}>
+                                    Sản phẩm
+                                </Link>
+                                <button
+                                    type="button"
+                                    className="mobile-sub-toggle-btn"
+                                    onClick={() => setIsProductsSubmenuOpen(!isProductsSubmenuOpen)}
+                                    title="Mở rộng danh mục"
+                                >
+                                    <i className={`fa-solid ${isProductsSubmenuOpen ? 'fa-minus' : 'fa-plus'}`}></i>
+                                </button>
+                            </div>
+                            {isProductsSubmenuOpen && (
+                                <ul className="mobile-subnav-list">
+                                    <li>
+                                        <Link to="/san-pham" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Tất cả sản phẩm
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/san-pham?search=b%C3%A1nh+kem" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Bánh kem sinh nhật
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/san-pham?search=mousse" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Bánh Mousse & Cheesecake
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/san-pham?search=b%C3%A1nh+m%C3%AC" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Bánh mì tươi
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/san-pham?search=trung+thu" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Bánh Trung thu
+                                        </Link>
+                                    </li>
+                                </ul>
+                            )}
+                        </li>
+                        <li className="mobile-nav-item">
+                            <Link to="/tin-tuc" className="mobile-nav-link" onClick={closeAllModals}>
+                                Tin tức
+                            </Link>
+                        </li>
+                        <li className="mobile-nav-item">
+                            <Link to="/lien-he" className="mobile-nav-link" onClick={closeAllModals}>
+                                Liên hệ
+                            </Link>
+                        </li>
+                        <li className="mobile-nav-item">
+                            <Link to="/he-thong-cua-hang" className="mobile-nav-link" onClick={closeAllModals}>
+                                Hệ thống cửa hàng
+                            </Link>
+                        </li>
+                        <li className="mobile-nav-item">
+                            <Link to="/cau-hoi-thuong-gap" className="mobile-nav-link" onClick={closeAllModals}>
+                                Câu hỏi thường gặp
+                            </Link>
+                        </li>
+                    </ul>
+
+                    <ul className="mobile-nav-list" style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #e5e5e5' }}>
+                        <li className="mobile-nav-item">
+                            <Link to="/yeu-thich" className="mobile-nav-link" onClick={closeAllModals}>
+                                <span><i className="fa-regular fa-heart" style={{ marginRight: '8px', color: 'var(--primary-color)' }}></i>Sản phẩm yêu thích</span>
+                            </Link>
+                        </li>
+                        <li className="mobile-nav-item">
+                            <Link to="/gio-hang" className="mobile-nav-link" onClick={closeAllModals}>
+                                <span><i className="fa-solid fa-bag-shopping" style={{ marginRight: '8px', color: 'var(--primary-color)' }}></i>Danh sách giỏ hàng</span>
+                            </Link>
+                        </li>
+                    </ul>
+
+                    <div className="mobile-drawer-footer">
+                        <p><strong>Hotline:</strong> <a href="tel:19006750" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>1900 6750</a></p>
+                        <p><strong>Email:</strong> support@sapo.vn</p>
+                        <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '8px' }}>© Givral Bakery - Dola theme</p>
                     </div>
                 </div>
             </div>
-       </div>
-    
+        </div>
         </>
     );
 };
