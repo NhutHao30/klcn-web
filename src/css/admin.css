@@ -840,3 +840,96 @@
   border-radius: 8px !important;
   flex-shrink: 0;
 }
+
+/* ═══════════════════════════════════════════
+   ADMIN COMPONENT RESPONSIVE LAYOUTS
+   ═══════════════════════════════════════════ */
+
+/* Profile Page Layout */
+.admin-profile-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .admin-profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* POS Page Layout */
+.admin-pos-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+@media (max-width: 1024px) {
+  .admin-pos-layout {
+    flex-direction: column !important;
+  }
+  .admin-pos-layout > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+    position: static !important;
+  }
+}
+
+.admin-pos-scan-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+@media (max-width: 640px) {
+  .admin-pos-scan-form input {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+  .admin-pos-scan-form button {
+    flex: 1 1 calc(50% - 5px) !important;
+    padding: 10px !important;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* Batch Discount Action Bar (Voucher & Category Discounts) */
+.admin-batch-bar {
+  display: grid;
+  grid-template-columns: 1fr 220px 220px;
+  gap: 1rem;
+  align-items: end;
+}
+@media (max-width: 900px) {
+  .admin-batch-bar {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+  .admin-batch-bar button {
+    width: 100% !important;
+  }
+}
+
+/* Form Grid Utilities */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .admin-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Responsive safety fallback for any mobile screens */
+@media (max-width: 768px) {
+  .admin-card {
+    padding: 14px 12px !important;
+  }
+  .admin-card-title {
+    font-size: 1.15rem !important;
+  }
+}

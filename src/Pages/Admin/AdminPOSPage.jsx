@@ -536,12 +536,12 @@ const AdminPOSPage = () => {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+      <div className="admin-pos-layout">
         {/* Left Side: Scanner & Products */}
         <div className="admin-card" style={{ flex: 2 }}>
           <h2 className="admin-card-title">Quét mã vạch sản phẩm</h2>
           
-          <form onSubmit={handleScan} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+          <form onSubmit={handleScan} className="admin-pos-scan-form">
             <input 
               ref={inputRef}
               type="text" 

@@ -220,7 +220,7 @@ const AdminProfilePage = () => {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="admin-profile-grid">
         {/* Left Column: Avatar & Account Info */}
         <div>
           <div className="admin-card" style={{ textAlign: 'center' }}>
@@ -332,7 +332,7 @@ const AdminProfilePage = () => {
           <div className="admin-card">
             <h2 className="admin-card-title">Cập Nhật Thông Tin Cá Nhân</h2>
             <form onSubmit={handleSaveProfile}>
-              <div className="admin-form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <div className="admin-form-grid">
                 <div className="admin-form-group">
                   <label className="admin-label">Họ và Tên <span style={{ color: 'red' }}>*</span></label>
                   <input

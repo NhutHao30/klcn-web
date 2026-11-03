@@ -573,7 +573,7 @@ const AdminVoucherPage = () => {
           </p>
 
           {/* Control bar */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px 220px', gap: '1rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'end' }}>
+          <div className="admin-batch-bar" style={{ marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <div>
               <label className="admin-label">Tìm kiếm bánh cần giảm giá</label>
               <input
@@ -854,7 +854,7 @@ const AdminVoucherPage = () => {
             </div>
 
             {/* Step 2: Batch Discount Control Bar */}
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 220px 220px', gap: '1rem', alignItems: 'end' }}>
+            <div className="admin-batch-bar" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
               <div>
                 <label style={{ fontWeight: 700, color: '#334155', fontSize: '13px', display: 'block', marginBottom: '4px' }}>
                   Mức Giảm Giá Hàng Loạt (%)
@@ -1042,7 +1042,7 @@ const AdminVoucherPage = () => {
             </div>
 
             <form onSubmit={handleVoucherSubmit}>
-              <div className="admin-modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="admin-modal-body admin-form-grid">
                 <div className="admin-form-group">
                   <label className="admin-label">Mã Voucher (Nhập Viết Hoa) <span style={{ color: 'red' }}>*</span></label>
                   <input
