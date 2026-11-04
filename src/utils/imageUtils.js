@@ -7,58 +7,65 @@ export const formatImageUrl = (image) => {
   
   if (typeof image !== 'string') return "/assets/IMG/productnew2.webp";
 
-  // If already full URL with http/https
-  if (image.startsWith("http://") || image.startsWith("https://")) {
-    if (image.includes("9000") || image.includes("minio") || image.includes("dolabakery")) {
-	//Thêm đoạn này vào để chạy bigdata
-	const visitId = sessionStorage.getItem('website_visit_id');
-	const params = new URLSearchParams({ url: image });
-
-	if (visitId) {
-  	  params.set('visit_id', visitId);
-	}
-
-	return `/api/proxy-image?${params.toString()}`;
-      //return `/api/proxy-image?url=${encodeURIComponent(image)}`;
-    }
-    return image;
-  }
+  const trimmed = image.trim();
+  if (!trimmed) return "/assets/IMG/productnew2.webp";
 
   // If already proxy API
-  if (image.startsWith("/api/")) return image;
+  if (trimmed.startsWith("/api/")) return trimmed;
+
+  // Helper for proxying image with optional visit_id for Kafka tracking
+  const toProxyUrl = (targetUrl) => {
+    try {
+      const visitId = typeof window !== 'undefined' && window.sessionStorage ? sessionStorage.getItem('website_visit_id') : null;
+      const params = new URLSearchParams({ url: targetUrl });
+      if (visitId) {
+        params.set('visit_id', visitId);
+      }
+      return `/api/proxy-image?${params.toString()}`;
+    } catch {
+      return `/api/proxy-image?url=${encodeURIComponent(targetUrl)}`;
+    }
+  };
+
+  // If already full URL with http/https
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    // MinIO storage or HTTP backend IP on Azure -> proxy over HTTPS to avoid Mixed Content
+    if (
+      trimmed.includes("9000") || 
+      trimmed.includes("minio") || 
+      trimmed.includes("dolabakery") || 
+      trimmed.includes("104.46.218.250")
+    ) {
+      return toProxyUrl(trimmed);
+    }
+    return trimmed;
+  }
 
   // MinIO / Storage / Receipts paths
   if (
-    image.startsWith("products/") || 
-    image.startsWith("news/") || 
-    image.startsWith("cccd/") || 
-    image.startsWith("storage/") || 
-    image.startsWith("/storage/") ||
-    image.includes("products/") ||
-    image.includes("news/") ||
-    image.includes("receipts")
+    trimmed.startsWith("products/") || 
+    trimmed.startsWith("news/") || 
+    trimmed.startsWith("cccd/") || 
+    trimmed.startsWith("storage/") || 
+    trimmed.startsWith("/storage/") ||
+    trimmed.startsWith("/products/") ||
+    trimmed.startsWith("/news/") ||
+    trimmed.includes("products/") ||
+    trimmed.includes("news/") ||
+    trimmed.includes("receipts")
   ) {
-    const cleanPath = image.startsWith("/") ? image : `/${image}`;
+    const cleanPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
     if (cleanPath.startsWith("/assets/receipts/")) {
       return cleanPath;
     }
-    //Thêm vào để chạy bigdata
-    const visitId = sessionStorage.getItem('website_visit_id');
-    const params = new URLSearchParams({ url: cleanPath });
-
-    if (visitId) {
-      params.set('visit_id', visitId);
-    }
-
-     return `/api/proxy-image?${params.toString()}`;
-    //return `/api/proxy-image?url=${encodeURIComponent(cleanPath)}`;
+    return toProxyUrl(cleanPath);
   }
 
   // Static local assets
-  if (image.startsWith("/assets/") || image.startsWith("assets/")) {
-    return image.startsWith("/") ? image : `/${image}`;
+  if (trimmed.startsWith("/assets/") || trimmed.startsWith("assets/")) {
+    return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
   }
 
-  const filename = image.split("/").pop();
+  const filename = trimmed.split("/").pop();
   return `/assets/IMG/${filename}`;
 };

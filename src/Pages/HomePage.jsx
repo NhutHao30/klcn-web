@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Footer from "../Layout/Footer";
 import { getBestSellers, getHomepageProducts, getProducts } from "../services/productService";
 import { getNews } from "../services/newsService";
 import axiosClient from "../services/axiosClient";
+import { formatImageUrl } from "../utils/imageUtils";
 
 const HomePage = () => {
+    const navigate = useNavigate();
 
     const [discountedProducts, setDiscountedProducts] = useState([]);
     const [bestSellers, setBestSellers] = useState([]);
@@ -68,14 +71,6 @@ const HomePage = () => {
         }
     };
 
-    // Helper: format image URL
-    const formatImageUrl = (url) => {
-        if (!url) return "/assets/IMG/productSale_5.webp";
-        if (url.startsWith("http") || url.startsWith("/api/")) return url;
-        const filename = url.split('/').pop();
-        return `/assets/IMG/${filename}`;
-    };
-
     // Helper: format price
     const formatPrice = (price) => {
         return Number(price).toLocaleString('vi-VN') + "₫";
@@ -103,19 +98,33 @@ const HomePage = () => {
 
     // Render a product card for "Bánh đang giảm giá" section
     const renderSaleProduct = (product, index) => {
-        const masp = product.MASP;
-        const name = product.TENSP;
-        const price = Number(product.GIABAN);
-        const discount = parseInt(product.PHAN_TRAM_GIAM || 0);
+        const masp = product.MASP || product.maSP || product.id;
+        const name = product.TENSP || product.tenSanPham || product.tenSP || "Sản phẩm";
+        const price = Number(product.GIABAN || product.giaBan || 0);
+        const discount = parseInt(product.PHAN_TRAM_GIAM || product.phanTramGiam || 0);
         const salePrice = getSalePrice(price, discount);
-        const img = formatImageUrl(product.HINHANH);
+        const rawImg = product.hinh_anh || product.hinhanh || product.HINHANH || product.hinhAnh || product.image;
+        const img = formatImageUrl(rawImg);
         const soluong = product.TONKHO_THUCTE !== undefined ? product.TONKHO_THUCTE : (product.SOLUONG || 0);
         const tonkhoChitiet = product.TONKHO_CHITIET || "[]";
 
         return (
             <li key={index} data-masp={masp} data-soluong={soluong} data-tonkho-chitiet={tonkhoChitiet} className="product-sale-item-level2 col-custom col-lg-3 col-md-3 col-2 ">
-                <div className="product-sale-item__img product-sale-item__img-js">
-                    <img src={img} alt={name} className=" product-sale_img product-sale_img-js" />
+                <div 
+                    className="product-sale-item__img product-sale-item__img-js"
+                    style={{ cursor: "pointer" }}
+                    onClick={(e) => {
+                        if (!e.target.closest('.product-bestSale-tag-list') && !e.target.closest('.product-sale-tag-list-2')) {
+                            navigate(`/san-pham/${masp}`);
+                        }
+                    }}
+                >
+                    <img 
+                        src={img} 
+                        alt={name} 
+                        className=" product-sale_img product-sale_img-js" 
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/productnew2.webp"; }}
+                    />
                     <ul className="product-bestSale-tag-list">
                         {discount > 0 && (
                             <li className="product-bestSale-tag-item">
@@ -130,16 +139,20 @@ const HomePage = () => {
                         </li>
                     </ul>
                     <ul className="product-sale-tag-list-2 product-sale-tag-list-2-js">
-                        <li className="product-sale-tag-item-2 product-sale-tag-item-2-cart-js">
+                        <li className="product-sale-tag-item-2 product-sale-tag-item-2-cart-js" title="Thêm vào giỏ">
                             <i className="product-sale__tag-icon-2 fa-solid fa-cart-shopping"></i>
                         </li>
-                        <li className="product-sale-tag-item-2 product-sale-tag-item-2-search-js">
+                        <li className="product-sale-tag-item-2 product-sale-tag-item-2-search-js" title="Xem nhanh">
                             <i className="product-sale__tag-icon-2 fa-solid fa-magnifying-glass"></i>
                         </li>
                     </ul>
                 </div>
                 <div className="product-sale-des-2">
-                    <div className="product-sale__name product-sale__name-js">
+                    <div 
+                        className="product-sale__name product-sale__name-js"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => navigate(`/san-pham/${masp}`)}
+                    >
                         {name}
                     </div>
                     <ul className="product-sale__price">
@@ -151,22 +164,36 @@ const HomePage = () => {
         );
     };
 
-    // Render a product card for "Được mua nhiều nhất" and "Bánh mới nhất" sections
+    // Render a product card for "Được mua nhiều nhất" section
     const renderBestSaleProduct = (product, index) => {
-        const masp = product.MASP;
-        const name = product.TENSP;
-        const price = Number(product.GIABAN);
-        const discount = parseInt(product.PHAN_TRAM_GIAM || 0);
-        const isNew = product.IS_NEW == 1;
+        const masp = product.MASP || product.maSP || product.id;
+        const name = product.TENSP || product.tenSanPham || product.tenSP || "Sản phẩm";
+        const price = Number(product.GIABAN || product.giaBan || 0);
+        const discount = parseInt(product.PHAN_TRAM_GIAM || product.phanTramGiam || 0);
+        const isNew = product.IS_NEW == 1 || product.isNew;
         const salePrice = getSalePrice(price, discount);
-        const img = formatImageUrl(product.HINHANH);
+        const rawImg = product.hinh_anh || product.hinhanh || product.HINHANH || product.hinhAnh || product.image;
+        const img = formatImageUrl(rawImg);
         const soluong = product.TONKHO_THUCTE !== undefined ? product.TONKHO_THUCTE : (product.SOLUONG || 0);
         const tonkhoChitiet = product.TONKHO_CHITIET || "[]";
 
         return (
             <li key={index} data-masp={masp} data-soluong={soluong} data-tonkho-chitiet={tonkhoChitiet} className="product-sale-item-level2 product-bestSale-item-level2 product-bestSale-item-level2-md product-bestSale-item-level2-sm">
-                <div className="product-bestSale-item__img product-sale-item__img-js">
-                    <img src={img} alt={name} className="product-sale_img product-sale_img-js" />
+                <div 
+                    className="product-bestSale-item__img product-sale-item__img-js"
+                    style={{ cursor: "pointer" }}
+                    onClick={(e) => {
+                        if (!e.target.closest('.product-bestSale-tag-list') && !e.target.closest('.product-bestSale-tag-list-2')) {
+                            navigate(`/san-pham/${masp}`);
+                        }
+                    }}
+                >
+                    <img 
+                        src={img} 
+                        alt={name} 
+                        className="product-sale_img product-sale_img-js" 
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/productnew2.webp"; }}
+                    />
                     <ul className="product-bestSale-tag-list">
                         {discount > 0 && (
                             <li className="product-bestSale-tag-item">
@@ -189,16 +216,20 @@ const HomePage = () => {
                         </li>
                     </ul>
                     <ul className="product-bestSale-tag-list-2 product-sale-tag-list-2-js">
-                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-cart-js">
+                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-cart-js" title="Thêm vào giỏ">
                             <i className="product-bestSale__tag-icon-2 fa-solid fa-cart-shopping"></i>
                         </li>
-                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-search-js">
+                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-search-js" title="Xem nhanh">
                             <i className="product-bestSale__tag-icon-2 fa-solid fa-magnifying-glass"></i>
                         </li>
                     </ul>
                 </div>
                 <div className="product-bestSale-des-2">
-                    <div className="product-bestSale__name product-sale__name-js">
+                    <div 
+                        className="product-bestSale__name product-sale__name-js"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => navigate(`/san-pham/${masp}`)}
+                    >
                         {name}
                     </div>
                     <ul className="product-bestSale__price">
@@ -212,46 +243,64 @@ const HomePage = () => {
 
     // Render a product card for "Bánh mới nhất" section (horizontal scroll)
     const renderNewProduct = (product, index) => {
-        const masp = product.MASP;
-        const name = product.TENSP;
-        const price = Number(product.GIABAN);
-        const discount = parseInt(product.PHAN_TRAM_GIAM || 0);
+        const masp = product.MASP || product.maSP || product.id;
+        const name = product.TENSP || product.tenSanPham || product.tenSP || "Sản phẩm";
+        const price = Number(product.GIABAN || product.giaBan || 0);
+        const discount = parseInt(product.PHAN_TRAM_GIAM || product.phanTramGiam || 0);
         const salePrice = getSalePrice(price, discount);
-        const img = formatImageUrl(product.HINHANH);
+        const rawImg = product.hinh_anh || product.hinhanh || product.HINHANH || product.hinhAnh || product.image;
+        const img = formatImageUrl(rawImg);
         const soluong = product.TONKHO_THUCTE !== undefined ? product.TONKHO_THUCTE : (product.SOLUONG || 0);
         const tonkhoChitiet = product.TONKHO_CHITIET || "[]";
-
-        const isNew = product.IS_NEW == 1;
+        const isNew = product.IS_NEW == 1 || product.isNew;
 
         return (
             <li key={index} data-masp={masp} data-soluong={soluong} data-tonkho-chitiet={tonkhoChitiet} className="product-new-item-level2 col-20 col-custom col-md-3 col-3 ">
-                <img src={img} alt={name} className=" product-sale_img product-sale_img-js" />
-                <ul className="product-bestSale-tag-list">
-                    {isNew && (
-                        <li className="product-sale-tag-new" style={{ position: "relative"}}>
-                            new
+                <div 
+                    style={{ position: "relative", cursor: "pointer" }}
+                    onClick={(e) => {
+                        if (!e.target.closest('.product-bestSale-tag-list') && !e.target.closest('.product-bestSale-tag-list-2')) {
+                            navigate(`/san-pham/${masp}`);
+                        }
+                    }}
+                >
+                    <img 
+                        src={img} 
+                        alt={name} 
+                        className=" product-sale_img product-sale_img-js" 
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/productnew2.webp"; }}
+                    />
+                    <ul className="product-bestSale-tag-list">
+                        {isNew && (
+                            <li className="product-sale-tag-new" style={{ position: "relative"}}>
+                                new
+                            </li>
+                        )}
+                        {!isNew && (
+                            <li className="product-bestSale-tag-item--off"></li>
+                        )}
+                        <li className="product-bestSale-tag-item product-sale__tag-icon--noLike-js">
+                            <i className="product-bestSale__tag-icon--noLike fa-regular fa-heart"></i>
                         </li>
-                    )}
-                    {!isNew && (
-                        <li className="product-bestSale-tag-item--off"></li>
-                    )}
-                    <li className="product-bestSale-tag-item product-sale__tag-icon--noLike-js">
-                        <i className="product-bestSale__tag-icon--noLike fa-regular fa-heart"></i>
-                    </li>
-                    <li className="product-bestSale-tag-item product-sale__tag-icon--Like-js">
-                        <i className="product-bestSale__tag-icon--Like fa-solid fa-heart"></i>
-                    </li>
-                </ul>
-                <ul className="product-bestSale-tag-list-2 product-sale-tag-list-2-js">
-                    <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-cart-js">
-                        <i className="product-bestSale__tag-icon-2 fa-solid fa-cart-shopping"></i>
-                    </li>
-                    <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-search-js">
-                        <i className="product-bestSale__tag-icon-2 fa-solid fa-magnifying-glass"></i>
-                    </li>
-                </ul>
+                        <li className="product-bestSale-tag-item product-sale__tag-icon--Like-js">
+                            <i className="product-bestSale__tag-icon--Like fa-solid fa-heart"></i>
+                        </li>
+                    </ul>
+                    <ul className="product-bestSale-tag-list-2 product-sale-tag-list-2-js">
+                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-cart-js" title="Thêm vào giỏ">
+                            <i className="product-bestSale__tag-icon-2 fa-solid fa-cart-shopping"></i>
+                        </li>
+                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-search-js" title="Xem nhanh">
+                            <i className="product-bestSale__tag-icon-2 fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    </ul>
+                </div>
                 <div className="product-new-des-2">
-                    <div className="product-new__name product-sale__name-js">
+                    <div 
+                        className="product-new__name product-sale__name-js"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => navigate(`/san-pham/${masp}`)}
+                    >
                         {name}
                     </div>
                     <ul className="product-new__price">
@@ -265,25 +314,39 @@ const HomePage = () => {
 
     // Render a menu product block for "Tất cả bánh" section
     const renderMenuProduct = (product, index) => {
-        const name = product.TENSP;
-        const price = Number(product.GIABAN);
-        const discount = parseInt(product.PHAN_TRAM_GIAM || 0);
+        const masp = product.MASP || product.maSP || product.id;
+        const name = product.TENSP || product.tenSanPham || product.tenSP || "Sản phẩm";
+        const price = Number(product.GIABAN || product.giaBan || 0);
+        const discount = parseInt(product.PHAN_TRAM_GIAM || product.phanTramGiam || 0);
         const salePrice = getSalePrice(price, discount);
-        const img = formatImageUrl(product.HINHANH);
-        const masp = product.MASP;
+        const rawImg = product.hinh_anh || product.hinhanh || product.HINHANH || product.hinhAnh || product.image;
+        const img = formatImageUrl(rawImg);
         const soluong = product.TONKHO_THUCTE !== undefined ? product.TONKHO_THUCTE : (product.SOLUONG || 0);
         const tonkhoChitiet = product.TONKHO_CHITIET || "[]";
 
         return (
             <div key={index} className="menuProduct-block" data-masp={masp} data-soluong={soluong} data-tonkho-chitiet={tonkhoChitiet}>
                 <li className="menuProduct-item-img-level2">
-                    <a href="" className="menuProduct-item-img-level2-link">
-                        <img src={img} alt={name} className="menuProduct-item-img product-sale_img-js" />
-                    </a>
+                    <div 
+                        className="menuProduct-item-img-level2-link"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => navigate(`/san-pham/${masp}`)}
+                    >
+                        <img 
+                            src={img} 
+                            alt={name} 
+                            className="menuProduct-item-img product-sale_img-js" 
+                            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/productnew2.webp"; }}
+                        />
+                    </div>
                 </li>
                 <li className="menuProduct-item-level2">
                     <ul className="menuProduct-list-level3">
-                        <li className="menuProduct-item_name-level3 product-sale__name-js">
+                        <li 
+                            className="menuProduct-item_name-level3 product-sale__name-js"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => navigate(`/san-pham/${masp}`)}
+                        >
                             {name}
                         </li>
                         <li className="menuProduct-item_price-level3">
@@ -291,13 +354,13 @@ const HomePage = () => {
                             {discount > 0 && <span className="menuProduct-item_priceOriginal-level3 product-sale__price-original-js">{formatPrice(price)}</span>}
                         </li>
                         <li className="menuProduct-item_icon-level3">
-                            <span className="menuProduct-item_iconCart-level3">
+                            <span className="menuProduct-item_iconCart-level3 product-sale-tag-item-2-cart-js" title="Thêm vào giỏ" style={{ cursor: "pointer" }}>
                                 <i className="menuProduct-item_iconCart fa-solid fa-cart-shopping"></i>
                             </span>
-                            <span className="menuProduct-item_iconSearch-level3 product-sale-tag-item-2-search-js">
+                            <span className="menuProduct-item_iconSearch-level3 product-sale-tag-item-2-search-js" title="Xem nhanh" style={{ cursor: "pointer" }}>
                                 <i className="menuProduct-item_iconSearch fa-solid fa-magnifying-glass"></i>
                             </span>
-                            <span className="menuProduct-item_iconLike-level3 menuProduct-item_iconLike-level3-js">
+                            <span className="menuProduct-item_iconLike-level3 menuProduct-item_iconLike-level3-js" style={{ cursor: "pointer" }}>
                                 <i className="menuProduct-item_iconLike menuProduct-item_iconLike-js fa-solid fa-heart"></i>
                             </span>
                         </li>
@@ -570,7 +633,7 @@ const HomePage = () => {
                                                 </ul>
                                             </li>
                                         </ul>
-                                        <div className="seeAll mt-30">
+                                        <div className="seeAll mt-30" style={{ cursor: 'pointer' }} onClick={() => navigate('/san-pham')}>
                                             Xem tất cả
                                         </div>
                                     </li>
@@ -643,7 +706,7 @@ const HomePage = () => {
                                                         <ul className="product-post-block-list">
                                                             <li className="product-post-block-item_img">
                                                                 <a href={`/tin-tuc/${id}`} className="product-post-block-item_img-link">
-                                                                    <img src={img} alt={title} className="product-post_img" />
+                                                                    <img src={img} alt={title} className="product-post_img" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/post_img-1.webp"; }} />
                                                                 </a>
                                                             </li>
                                                             <li className="product-post-block-item_info">

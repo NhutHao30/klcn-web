@@ -457,29 +457,100 @@ function ProductPage() {
                   )}
 
                   {!loading && totalPages > 1 && (
-                    <div className="product-all-page" style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "20px" }}>
-                      {Array.from({ length: totalPages }, (_, i) => (
-                        <a
-                          key={i}
-                          href="#"
-                          className={`product-all-page-${i + 1}`}
+                    <div className="product-all-page" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "30px", flexWrap: "wrap" }}>
+                      {currentPage > 0 && (
+                        <button
+                          type="button"
+                          className="product-all-page-btn"
                           style={{
-                            padding: "5px 12px",
-                            border: "1px solid #ccc",
-                            borderRadius: "4px",
-                            color: currentPage === i ? "white" : "#333",
-                            backgroundColor: currentPage === i ? "var(--primary-color)" : "transparent",
-                            textDecoration: "none"
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minWidth: "36px",
+                            height: "36px",
+                            padding: "0 10px",
+                            border: "1px solid #ddd",
+                            borderRadius: "6px",
+                            color: "#333",
+                            backgroundColor: "#fff",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            boxSizing: "border-box",
+                            lineHeight: "1"
                           }}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(i);
+                          onClick={() => {
+                            setCurrentPage(prev => Math.max(0, prev - 1));
                             window.scrollTo({ top: 0, behavior: "smooth" });
                           }}
+                          title="Trang trước"
                         >
-                          {i + 1}
-                        </a>
-                      ))}
+                          <i className="fa-solid fa-chevron-left" style={{ fontSize: "11px" }}></i>
+                        </button>
+                      )}
+
+                      {Array.from({ length: totalPages }, (_, i) => {
+                        const isActive = currentPage === i;
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            className={`product-all-page-btn ${isActive ? "active" : ""}`}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              minWidth: "36px",
+                              height: "36px",
+                              padding: "0 10px",
+                              border: `1px solid ${isActive ? "var(--primary-color)" : "#ddd"}`,
+                              borderRadius: "6px",
+                              color: isActive ? "#fff" : "#333",
+                              backgroundColor: isActive ? "var(--primary-color)" : "#fff",
+                              fontWeight: isActive ? "600" : "normal",
+                              cursor: "pointer",
+                              fontSize: "14px",
+                              boxSizing: "border-box",
+                              lineHeight: "1"
+                            }}
+                            onClick={() => {
+                              setCurrentPage(i);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                          >
+                            {i + 1}
+                          </button>
+                        );
+                      })}
+
+                      {currentPage < totalPages - 1 && (
+                        <button
+                          type="button"
+                          className="product-all-page-btn"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minWidth: "36px",
+                            height: "36px",
+                            padding: "0 10px",
+                            border: "1px solid #ddd",
+                            borderRadius: "6px",
+                            color: "#333",
+                            backgroundColor: "#fff",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            boxSizing: "border-box",
+                            lineHeight: "1"
+                          }}
+                          onClick={() => {
+                            setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          title="Trang sau"
+                        >
+                          <i className="fa-solid fa-chevron-right" style={{ fontSize: "11px" }}></i>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
