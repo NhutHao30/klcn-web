@@ -92,6 +92,16 @@ const ProductDetailPage = () => {
 
   const handleAddToCart = async () => {
     if (!product) return;
+    const branches = product?.branchAvailability || [];
+    const isOutOfStock = Boolean(
+      product?.isOutOfStock ||
+      (branches.length > 0 && branches.every(b => !b.conHang)) ||
+      (product?.soLuongTon !== undefined && Number(product.soLuongTon) <= 0)
+    );
+    if (isOutOfStock) {
+      toast.error("Sản phẩm này hiện đang tạm hết hàng tại tất cả chi nhánh!");
+      return;
+    }
     const masp = product.id || product.MASP || product.maSP;
     setIsAddingCart(true);
     try {
@@ -162,6 +172,13 @@ const ProductDetailPage = () => {
   const formattedPrice = productPrice > 0 ? `${productPrice.toLocaleString('vi-VN')} đ` : "Liên hệ";
   const rawImage = product.hinhAnh || product.hinh_anh || product.HINHANH;
   const productImage = formatImageUrl(rawImage);
+
+  const branches = product?.branchAvailability || [];
+  const isOutOfStock = Boolean(
+    product?.isOutOfStock ||
+    (branches.length > 0 && branches.every(b => !b.conHang)) ||
+    (product?.soLuongTon !== undefined && Number(product.soLuongTon) <= 0)
+  );
 
   return (
     <>
@@ -247,8 +264,27 @@ const ProductDetailPage = () => {
                 {productName}
               </h2>
               
-              <div style={{ fontSize: '15px', color: '#7f8c8d', marginBottom: '15px' }}>
+              <div style={{ fontSize: '15px', color: '#7f8c8d', marginBottom: '10px' }}>
                 Thương hiệu: <span style={{ color: '#d39e00', fontWeight: '600' }}>Givral Bakery</span>
+              </div>
+
+              {/* Tình trạng tồn kho tổng thể */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
+                <span style={{ fontSize: '14px', color: '#555', fontWeight: '500' }}>Tình trạng:</span>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  backgroundColor: isOutOfStock ? '#fee2e2' : '#dcfce7',
+                  color: isOutOfStock ? '#dc2626' : '#16a34a'
+                }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isOutOfStock ? '#dc2626' : '#16a34a' }}></span>
+                  {isOutOfStock ? "Tạm hết hàng" : "Còn hàng"}
+                </span>
               </div>
 
               <div style={{
@@ -256,47 +292,87 @@ const ProductDetailPage = () => {
                 fontSize: '34px',
                 fontWeight: 'bold',
                 color: '#d39e00',
-                marginBottom: '25px'
+                marginBottom: '20px'
               }}>
                 {formattedPrice}
               </div>
+
+              {/* TÌNH TRẠNG THEO CỬA HÀNG (CHỈ HIỂN THỊ TRẠNG THÁI, KHÔNG HIỂN THỊ SỐ LƯỢNG TỒN) */}
+              {branches.length > 0 && (
+                <div style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  marginBottom: '22px',
+                  backgroundColor: '#f9fafb'
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <i className="fa-solid fa-store" style={{ color: '#d39e00' }}></i>
+                    Tình trạng tại các cửa hàng Givral Bakery:
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {branches.map((b) => (
+                      <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '6px 0', borderBottom: '1px dashed #e5e7eb' }}>
+                        <div>
+                          <span style={{ fontWeight: '600', color: '#1f2937' }}>{b.tenCuaHang}</span>
+                          {b.diaChi && <span style={{ color: '#6b7280', fontSize: '12px', display: 'block' }}>{b.diaChi}</span>}
+                        </div>
+                        <span style={{
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          padding: '3px 10px',
+                          borderRadius: '12px',
+                          backgroundColor: b.conHang ? '#dcfce7' : '#fee2e2',
+                          color: b.conHang ? '#16a34a' : '#dc2626',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {b.conHang ? "🟢 Còn hàng" : "🔴 Tạm hết"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* NÚT THÊM GIỎ HÀNG & NÚT YÊU THÍCH (CÂN BẰNG CHIỀU CAO & NỔI BẬT) */}
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '25px', alignItems: 'center' }}>
                 
                 {/* Bộ chọn số lượng */}
-                <div style={{ display: 'flex', border: '1px solid #ccc', borderRadius: '6px', overflow: 'hidden', height: '46px' }}>
+                <div style={{ display: 'flex', border: '1px solid #ccc', borderRadius: '6px', overflow: 'hidden', height: '46px', opacity: isOutOfStock ? 0.6 : 1 }}>
                   <button 
+                    disabled={isOutOfStock}
                     onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                    style={{ padding: '0 16px', background: '#f8f9fa', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}
+                    style={{ padding: '0 16px', background: '#f8f9fa', border: 'none', cursor: isOutOfStock ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '16px' }}
                   >-</button>
                   <input 
                     type="number" 
+                    disabled={isOutOfStock}
                     value={quantity} 
                     onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                     style={{ width: '45px', textAlign: 'center', border: 'none', fontWeight: 'bold', outline: 'none', fontSize: '15px' }}
                   />
                   <button 
+                    disabled={isOutOfStock}
                     onClick={() => setQuantity(prev => prev + 1)}
-                    style={{ padding: '0 16px', background: '#f8f9fa', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}
+                    style={{ padding: '0 16px', background: '#f8f9fa', border: 'none', cursor: isOutOfStock ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '16px' }}
                   >+</button>
                 </div>
 
                 {/* Nút Thêm Vào Giỏ hàng */}
                 <button 
                   onClick={handleAddToCart}
-                  disabled={isAddingCart}
+                  disabled={isAddingCart || isOutOfStock}
                   style={{
                     height: '46px',
                     padding: '0 24px',
-                    backgroundColor: '#d39e00',
+                    backgroundColor: isOutOfStock ? '#9ca3af' : '#d39e00',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '6px',
                     fontWeight: 'bold',
-                    cursor: 'pointer',
+                    cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                     fontSize: '15px',
-                    boxShadow: '0 4px 10px rgba(211, 158, 0, 0.25)',
+                    boxShadow: isOutOfStock ? 'none' : '0 4px 10px rgba(211, 158, 0, 0.25)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -304,7 +380,7 @@ const ProductDetailPage = () => {
                   }}
                 >
                   <i className="fa-solid fa-cart-shopping"></i>
-                  {isAddingCart ? "Đang thêm..." : "Thêm vào giỏ hàng"}
+                  {isOutOfStock ? "Tạm hết hàng" : (isAddingCart ? "Đang thêm..." : "Thêm vào giỏ hàng")}
                 </button>
 
                 {/* Nút Yêu Thích chuẩn kích thước 46px */}
