@@ -74,12 +74,21 @@ axiosClient.interceptors.response.use(
             const msg = error.response.data?.message || 'Chức năng này hiện đang được tạm khóa để bảo trì!';
             alert('🔒 TẠM KHÓA BẢO TRÌ HỆ THỐNG:\n\n' + msg);
         } else if (error.response && error.response.status === 401) {
+            const errData = error.response.data || {};
+            const isConcurrent = errData.code === 'CONCURRENT_LOGIN' || (errData.message && errData.message.includes('thiết bị'));
+
             // Xoa sach trang thai dang nhap de tranh lap loi
             localStorage.removeItem('access_token');
             localStorage.removeItem('is_logging_out');
             try {
                 sessionStorage.removeItem('current_user');
             } catch (e) {}
+
+            if (isConcurrent) {
+                alert('⚠️ ĐĂNG XUẤT DO ĐĂNG NHẬP Ở NƠI KHÁC:\n\n' + (errData.message || 'Tài khoản của bạn đã được đăng nhập từ một thiết bị hoặc trình duyệt khác. Phiên làm việc này đã kết thúc!'));
+                window.location.href = '/dang-nhap';
+                return Promise.reject(error);
+            }
 
             const currentPath = window.location.pathname;
             const requestUrl = error.config?.url || '';

@@ -122,8 +122,8 @@ const HomePage = () => {
                     <img 
                         src={img} 
                         alt={name} 
-                        className=" product-sale_img product-sale_img-js" 
-                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/productnew2.webp"; }}
+                        className=" product-sale_img product-sale_img-js" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} 
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/category_1.webp"; }}
                     />
                     <ul className="product-bestSale-tag-list">
                         {discount > 0 && (
@@ -138,14 +138,7 @@ const HomePage = () => {
                             <i className="product-bestSale__tag-icon--Like fa-solid fa-heart"></i>
                         </li>
                     </ul>
-                    <ul className="product-sale-tag-list-2 product-sale-tag-list-2-js">
-                        <li className="product-sale-tag-item-2 product-sale-tag-item-2-cart-js" title="Thêm vào giỏ">
-                            <i className="product-sale__tag-icon-2 fa-solid fa-cart-shopping"></i>
-                        </li>
-                        <li className="product-sale-tag-item-2 product-sale-tag-item-2-search-js" title="Xem nhanh">
-                            <i className="product-sale__tag-icon-2 fa-solid fa-magnifying-glass"></i>
-                        </li>
-                    </ul>
+                    {/* Đã gỡ bỏ 2 modal theo yêu cầu người dùng */}
                 </div>
                 <div className="product-sale-des-2">
                     <div 
@@ -191,8 +184,8 @@ const HomePage = () => {
                     <img 
                         src={img} 
                         alt={name} 
-                        className="product-sale_img product-sale_img-js" 
-                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/productnew2.webp"; }}
+                        className="product-sale_img product-sale_img-js" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} 
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/category_1.webp"; }}
                     />
                     <ul className="product-bestSale-tag-list">
                         {discount > 0 && (
@@ -215,14 +208,7 @@ const HomePage = () => {
                             <i className="product-bestSale__tag-icon--Like fa-solid fa-heart"></i>
                         </li>
                     </ul>
-                    <ul className="product-bestSale-tag-list-2 product-sale-tag-list-2-js">
-                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-cart-js" title="Thêm vào giỏ">
-                            <i className="product-bestSale__tag-icon-2 fa-solid fa-cart-shopping"></i>
-                        </li>
-                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-search-js" title="Xem nhanh">
-                            <i className="product-bestSale__tag-icon-2 fa-solid fa-magnifying-glass"></i>
-                        </li>
-                    </ul>
+                    {/* Đã gỡ bỏ 2 modal theo yêu cầu người dùng */}
                 </div>
                 <div className="product-bestSale-des-2">
                     <div 
@@ -267,8 +253,8 @@ const HomePage = () => {
                     <img 
                         src={img} 
                         alt={name} 
-                        className=" product-sale_img product-sale_img-js" 
-                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/productnew2.webp"; }}
+                        className=" product-sale_img product-sale_img-js" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} 
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/category_1.webp"; }}
                     />
                     <ul className="product-bestSale-tag-list">
                         {isNew && (
@@ -286,14 +272,7 @@ const HomePage = () => {
                             <i className="product-bestSale__tag-icon--Like fa-solid fa-heart"></i>
                         </li>
                     </ul>
-                    <ul className="product-bestSale-tag-list-2 product-sale-tag-list-2-js">
-                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-cart-js" title="Thêm vào giỏ">
-                            <i className="product-bestSale__tag-icon-2 fa-solid fa-cart-shopping"></i>
-                        </li>
-                        <li className="product-bestSale-tag-item-2 product-sale-tag-item-2-search-js" title="Xem nhanh">
-                            <i className="product-bestSale__tag-icon-2 fa-solid fa-magnifying-glass"></i>
-                        </li>
-                    </ul>
+                    {/* Đã gỡ bỏ 2 modal theo yêu cầu người dùng */}
                 </div>
                 <div className="product-new-des-2">
                     <div 
@@ -336,7 +315,7 @@ const HomePage = () => {
                             src={img} 
                             alt={name} 
                             className="menuProduct-item-img product-sale_img-js" 
-                            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/productnew2.webp"; }}
+                            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/category_1.webp"; }}
                         />
                     </div>
                 </li>

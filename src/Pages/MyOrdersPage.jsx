@@ -138,6 +138,13 @@ const MyOrdersPage = () => {
     try {
       const details = await getMyOrderDetails(order.maHD);
       setOrderDetails(details);
+      // Tự động làm mới đơn hàng để cập nhật số lượng và tổng tiền chuẩn xác nhất sau khi nhân viên chỉnh sửa
+      const freshOrders = await getMyOrders();
+      setOrders(freshOrders);
+      const freshOrder = freshOrders.find(o => o.maHD === order.maHD || o.id === order.id);
+      if (freshOrder) {
+        setViewingOrder(freshOrder);
+      }
     } catch (error) {
       console.error("Error fetching order details:", error);
     } finally {

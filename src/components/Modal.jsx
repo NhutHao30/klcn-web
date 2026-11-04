@@ -253,10 +253,7 @@ const Modal = () => {
             <div className="modal__overlay modal-overlay-js" onClick={closeAllModals}></div>
 
             {/* Modal Body: Search, Quick View, Add to Cart */}
-            <div className="modal__body modal__body-js">
-                <div className="exit-btn exit-btn-js" onClick={closeAllModals}>
-                    <i className="exit-icon fa-solid fa-xmark"></i>
-                </div>
+            <div className="modal__body modal__body-js" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999999 }}>
 
                 {/* Modal Search */}
                 <div className="grid">

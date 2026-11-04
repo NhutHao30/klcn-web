@@ -668,8 +668,7 @@ const AdminOnlineOrderPage = () => {
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
                   <th style={{ width: '130px' }}>Mã Đơn / Ngày</th>
-                  <th style={{ width: '180px' }}>Khách Hàng</th>
-                  <th>Sản Phẩm Đặt</th>
+                  <th style={{ width: '220px' }}>Khách Hàng</th>
                   <th style={{ width: '150px' }}>Thanh Toán</th>
                   <th style={{ width: '140px' }}>Vận Đơn GHN</th>
                   <th style={{ width: '160px', textAlign: 'center' }}>Trạng Thái</th>
@@ -683,7 +682,7 @@ const AdminOnlineOrderPage = () => {
                   return normalizeStatus(st) === listStatusFilter;
                 }).length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: '40px 10px', color: '#94a3b8' }}>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '40px 10px', color: '#94a3b8' }}>
                       <i className="fa-solid fa-inbox" style={{ fontSize: '32px', marginBottom: '8px', display: 'block' }}></i>
                       Không tìm thấy đơn hàng nào phù hợp với bộ lọc
                     </td>
@@ -696,7 +695,7 @@ const AdminOnlineOrderPage = () => {
                   }).map(order => {
                     const orderId = order.MAHD || order.MAHDBAN || order.maHD || order.id;
                     const khName = order.khach_hang?.HOTEN || order.HOTEN_KH || order.TENKH || order.tenKH || 'Khách Vãng Lai';
-                    const khPhone = order.khach_hang?.SDT || order.SDT || order.sdtKH || '';
+                    const khPhone = order.khach_hang?.SDT || order.SDT || order.sdtKH || order.soDienThoai || '';
                     const diaChi = order.DIACHI_GIAO || order.diaChiGiao || 'Nhận tại cửa hàng';
                     const tongTien = Number(order.TONGTIEN || order.TONG_TIEN || order.tongTien || order.tongThanhToan || 0);
                     const isPaid = Number(order.trangThaiThanhToan) === 1 || Boolean(order.minhChungThanhToan);
@@ -722,24 +721,6 @@ const AdminOnlineOrderPage = () => {
                           {khPhone && <div style={{ fontSize: '11px', color: '#2563eb' }}>📞 {khPhone}</div>}
                           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }} title={diaChi}>
                             📍 {diaChi}
-                          </div>
-                        </td>
-                        <td>
-                          <div style={{ fontSize: '12px', color: '#334155' }}>
-                            {order.chi_tiet && order.chi_tiet.length > 0 ? (
-                              <div>
-                                <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{order.chi_tiet.length} loại bánh: </span>
-                                {order.chi_tiet.slice(0, 2).map((it, i) => (
-                                  <span key={i}>
-                                    {it.san_pham?.TENSP || it.TENSP || it.tenSP} (x{it.SOLUONG || it.SO_LUONG || it.soLuong || 1})
-                                    {i < Math.min(order.chi_tiet.length, 2) - 1 ? ', ' : ''}
-                                  </span>
-                                ))}
-                                {order.chi_tiet.length > 2 && <span style={{ color: '#64748b' }}> (+{order.chi_tiet.length - 2} món)</span>}
-                              </div>
-                            ) : (
-                              <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chi tiết đang cập nhật</span>
-                            )}
                           </div>
                         </td>
                         <td>
@@ -1060,7 +1041,7 @@ const AdminOnlineOrderPage = () => {
                 <div>
                   <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#64748b' }}>👤 THÔNG TIN KHÁCH HÀNG</h4>
                   <p style={{ margin: '0 0 4px 0' }}><b>Họ tên:</b> {selectedOrder.khach_hang?.HOTEN || selectedOrder.HOTEN_KH || selectedOrder.TENKH || selectedOrder.tenKH || 'Khách hàng'}</p>
-                  <p style={{ margin: '0 0 4px 0' }}><b>SĐT:</b> {selectedOrder.khach_hang?.SDT || selectedOrder.SDT || selectedOrder.sdtKH || '-'}</p>
+                  <p style={{ margin: '0 0 4px 0' }}><b>SĐT:</b> {selectedOrder.khach_hang?.SDT || selectedOrder.SDT || selectedOrder.sdtKH || selectedOrder.soDienThoai || selectedOrder.receiverPhone || '-'}</p>
                   <p style={{ margin: 0 }}><b>Email:</b> {selectedOrder.khach_hang?.user?.EMAIL || selectedOrder.EMAIL || '-'}</p>
                 </div>
 

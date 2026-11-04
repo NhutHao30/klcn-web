@@ -457,7 +457,7 @@ function ProductPage() {
                   )}
 
                   {!loading && totalPages > 1 && (
-                    <div className="product-all-page" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "30px", flexWrap: "wrap" }}>
+                    <div className="product-all-page" style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "30px", flexWrap: "nowrap", overflowX: "auto", width: "100%", padding: "10px 0" }}>
                       {currentPage > 0 && (
                         <button
                           type="button"

@@ -1349,7 +1349,7 @@ const CartPage = () => {
                                                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                                         <span style={{ width: "10px", height: "10px", backgroundColor: "#16a34a", borderRadius: "50%", display: "inline-block", boxShadow: "0 0 0 3px rgba(22, 163, 74, 0.25)" }}></span>
                                                         <span style={{ fontSize: "12px", color: "#166534", fontWeight: "700" }}>
-                                                            Hệ thống đang tự động lắng nghe giao dịch...
+                                                            Hệ thống đang lắng nghe giao dịch...
                                                         </span>
                                                     </div>
                                                     <button
@@ -1385,7 +1385,7 @@ const CartPage = () => {
                                                     </button>
                                                 </div>
                                                 <div style={{ fontSize: "11px", color: "#15803d", marginTop: "6px", lineHeight: "1.4" }}>
-                                                    ⚡ Quý khách chuyển khoản xong hệ thống sẽ tự động cập nhật <b>Đã thanh toán</b> và chuyển hướng đơn hàng mà không cần chụp ảnh minh chứng.
+                                                    ⚡ Quý khách chuyển khoản xong hệ thống sẽ ghi nhận <b>Đã thanh toán</b> và chuyển hướng đơn hàng.
                                                 </div>
                                             </div>
                                         </div>
