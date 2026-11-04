@@ -35,26 +35,6 @@ const AVAILABLE_TRANSFER_BANKS = [
         accountName: 'NGUYEN HUU THIEN',
         badge: 'Khuyên dùng (24/7)',
         guide: 'Mở App MBBank hoặc bất kỳ App Ngân Hàng nào để quét mã VietQR',
-    },
-    {
-        id: 'VCB',
-        name: 'Vietcombank - Ngân hàng Ngoại Thương VN',
-        shortName: 'Vietcombank',
-        bin: 'VCB',
-        accountNumber: '1031367128',
-        accountName: 'TRUONG NHUT HAO',
-        badge: 'Dự phòng',
-        guide: 'Mở App Vietcombank (VCB Digibank) hoặc bất kỳ App Ngân Hàng nào để quét mã VietQR',
-    },
-    {
-        id: 'VIKKI',
-        name: 'Vikki - Ngân hàng số Vikki',
-        shortName: 'Vikki Bank',
-        bin: '970406',
-        accountNumber: '353144481',
-        accountName: 'TRUONG NHUT HAO',
-        badge: 'Ngân hàng số',
-        guide: 'Mở App Vikki hoặc bất kỳ App Ngân Hàng nào để quét mã VietQR',
     }
 ];
 
@@ -683,14 +663,15 @@ const CartPage = () => {
                     ) : (
                         <>
                             {/* Bảng danh sách sản phẩm trong giỏ */}
-                            <div style={{
+                            <div className="cart-table-wrapper" style={{
                                 backgroundColor: "#fff",
                                 border: "1px solid #ebe5df",
                                 borderRadius: "8px",
-                                overflow: "hidden",
+                                overflowX: "auto",
+                                WebkitOverflowScrolling: "touch",
                                 marginBottom: "30px"
                             }}>
-                                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                                <table style={{ width: "100%", minWidth: "600px", borderCollapse: "collapse", textAlign: "left" }}>
                                     <thead>
                                         <tr style={{ borderBottom: "1px solid #ebe5df", backgroundColor: "#faf8f5" }}>
                                             <th style={{ padding: "16px 20px", fontSize: "14px", fontWeight: "600", color: "#444", width: "45%" }}>
@@ -803,8 +784,30 @@ const CartPage = () => {
                                 </div>
                             </div>
 
+                            {/* Responsive styles cho thiết bị di động */}
+                            <style>{`
+                                @media (max-width: 768px) {
+                                    .cart-checkout-grid {
+                                        grid-template-columns: 1fr !important;
+                                        gap: 16px !important;
+                                    }
+                                    .cart-address-row {
+                                        grid-template-columns: 1fr !important;
+                                        gap: 12px !important;
+                                    }
+                                    .cart-table-wrapper {
+                                        border-radius: 8px !important;
+                                        overflow-x: auto !important;
+                                        -webkit-overflow-scrolling: touch !important;
+                                    }
+                                    .cart-table-wrapper table {
+                                        min-width: 600px !important;
+                                    }
+                                }
+                            `}</style>
+
                             {/* 2 Khối Thông tin giao hàng & Đơn hàng của bạn */}
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}>
+                            <div className="cart-checkout-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}>
                                 {/* Khối 1: Thông tin giao hàng */}
                                 <div style={{
                                     backgroundColor: "#fff",
@@ -869,7 +872,7 @@ const CartPage = () => {
                                     )}
 
                                     {/* Hàng 1: Tỉnh/Thành & Phường/Xã (Không còn quận theo yêu cầu gộp tỉnh thành) */}
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                                    <div className="cart-address-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                                         {/* Cột Tỉnh/Thành */}
                                         <div>
                                             <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#444", marginBottom: "6px" }}>
