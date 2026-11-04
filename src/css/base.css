@@ -1063,3 +1063,14 @@ html {
 .exit-btn:hover {
     background-color: #f1f5f9 !important;
 }
+
+/* Disable completely Add to Cart modal & Quick View modal */
+.addCart,
+.addCart-js,
+.searchInfor,
+.searchInfor-js,
+.searchInfor-list {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}

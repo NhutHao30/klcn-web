@@ -139,8 +139,9 @@ const Modal = () => {
                     if(searchInfor) searchInfor.style.display = 'none';
                     if(modalSearch) modalSearch.style.display = 'none';
                     if(menuBar) menuBar.style.display = 'none';
-                    if(modal) modal.style.display = 'block';
-                    if(addCart) addCart.style.display = 'flex';
+                    if(modal) modal.style.display = 'none';
+                    if(addCart) addCart.style.display = 'none';
+                    toast.success(`Đã thêm "${name || 'sản phẩm'}" vào giỏ hàng thành công!`);
                 } catch(error) {
                     if (error.response?.status === 401) {
                         toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
@@ -151,216 +152,16 @@ const Modal = () => {
                     }
                 }
             }
-            // Search Info Quick View
+            // Quick View - Chuyển thẳng sang trang chi tiết sản phẩm mà không hiện Modal
             if (e.target.closest('.product-sale-tag-item-2-search-js')) {
-                if(addCart) addCart.style.display = 'none';
-                if(modalSearch) modalSearch.style.display = 'none';
-                if(menuBar) menuBar.style.display = 'none';
-                
-                // Get product info
-                const productElement = e.target.closest('.product-sale-item-level2');
-                if (productElement) {
-                    const img = productElement.querySelector('.product-sale_img-js')?.src;
-                    const name = productElement.querySelector('.product-sale__name-js')?.textContent;
-                    const priceSale = productElement.querySelector('.product-sale__price-sale-js')?.textContent;
-                    const priceOriginal = productElement.querySelector('.product-sale__price-original-js')?.textContent;
-                    const masp = productElement.dataset.masp || "SP01";
-
-                    const searchInfoList = document.querySelector('.searchInfor-list-js');
-                    if (searchInfoList) searchInfoList.dataset.masp = masp; // Save masp for add to cart inside modal
-
-                    if (img) {
-                        const largeImg = document.getElementById('largeImage');
-                        if (largeImg) largeImg.src = img;
-                        const optImg = document.querySelector('.searchInfor-item__IMG-option-item-img-js');
-                        if(optImg) optImg.src = img;
-                    }
-                    if (name) {
-                        const nameEl = document.querySelector('.searchInfor-item__name-js');
-                        if (nameEl) nameEl.textContent = name;
-                    }
-                    if (priceSale) {
-                        const priceSaleEl = document.querySelector('.searchInfor-item__priceSale-js');
-                        if (priceSaleEl) priceSaleEl.textContent = priceSale;
-                    }
-                    if (priceOriginal) {
-                        const priceOrigEl = document.querySelector('.searchInfor-item__priceOriginal-js');
-                        if (priceOrigEl) priceOrigEl.textContent = priceOriginal;
-                    }
-                    
-                    const productCodeEl = document.querySelector('.searchInfor-item__productCode-title');
-                    if (productCodeEl) productCodeEl.textContent = masp;
-                    
-                    const soluong = parseInt(productElement.dataset.soluong) || 0;
-                    let tonkhoChitiet = [];
-                    try { 
-                        tonkhoChitiet = JSON.parse(productElement.dataset.tonkhoChitiet || "[]"); 
-                    } catch(e) {}
-
-                    const productStatusEl = document.querySelector('.searchInfor-item__productStatus-title');
-                    if (productStatusEl) {
-                        productStatusEl.textContent = soluong > 0 ? 'Còn hàng' : 'Hết hàng';
-                        productStatusEl.style.color = soluong > 0 ? 'var(--primary-color)' : 'red';
-                    }
-                    
-                    // Remove existing detailed stock row if any
-                    const existingDetailsRow = document.querySelector('.searchInfor-item__level2-stockDetails');
-                    if (existingDetailsRow) {
-                        existingDetailsRow.remove();
-                    }
-
-                    const productStockEl = document.querySelector('.searchInfor-item__productStock-title');
-                    
-                    // Xóa dropdown cũ nếu có
-                    const existingStoreRow = document.querySelector('.searchInfor-item__level2-storeSelect');
-                    if (existingStoreRow) existingStoreRow.remove();
-
-                    if (tonkhoChitiet && tonkhoChitiet.length > 0) {
-                        const availableStores = tonkhoChitiet.filter(tk => tk.SOLUONG_TON > 0);
-                        
-                        if (availableStores.length > 0) {
-                            // Khôi phục chữ "Kho:" ban đầu, nếu nó đã bị thay đổi
-                            const productStockContainer = document.querySelector('.searchInfor-item__productStock');
-                            if (productStockContainer && !productStockContainer.querySelector('.searchInfor-item__productStock-title')) {
-                                productStockContainer.innerHTML = 'Kho: <span class="searchInfor-item__productStock-title" style="font-weight: bold">0</span>';
-                            }
-                            
-                            const updatedProductStockEl = document.querySelector('.searchInfor-item__productStock-title');
-                            
-                            const btnLi = document.querySelector('.searchInfor-item__addCartBtn-js').closest('.searchInfor-item__level2');
-                            if (btnLi) {
-                                const storeLi = document.createElement('li');
-                                storeLi.className = 'searchInfor-item__level2 searchInfor-item__level2-storeSelect';
-                                storeLi.style.display = 'flex';
-                                storeLi.style.alignItems = 'center';
-                                storeLi.style.marginTop = '15px';
-                                
-                                const label = document.createElement('span');
-                                label.textContent = 'Mua hàng tại: ';
-                                label.style.marginRight = '10px';
-                                label.style.fontWeight = 'bold';
-                                label.style.fontSize = '14px';
-                                
-                                const select = document.createElement('select');
-                                select.style.padding = '8px 10px';
-                                select.style.borderRadius = '4px';
-                                select.style.border = '1px solid var(--primary-color)';
-                                select.style.outline = 'none';
-                                select.style.cursor = 'pointer';
-                                select.style.flex = '1';
-                                select.style.fontSize = '13px';
-                                select.style.backgroundColor = '#fff';
-                                
-                                availableStores.forEach(tk => {
-                                    const option = document.createElement('option');
-                                    option.value = tk.SOLUONG_TON;
-                                    const shortName = tk.TENCUAHANG.replace('Dola Bakery - ', '').replace('Givral Bakery - ', '');
-                                    option.textContent = `${shortName} (Còn ${tk.SOLUONG_TON})`;
-                                    select.appendChild(option);
-                                });
-                                
-                                select.addEventListener('change', (e) => {
-                                    const newMax = parseInt(e.target.value);
-                                    if (searchInfoList) searchInfoList.dataset.soluong = newMax;
-                                    
-                                    const qtyEl = document.querySelector('.CustomizeQuantity-number-js');
-                                    if (qtyEl && parseInt(qtyEl.textContent) > newMax) {
-                                        qtyEl.textContent = newMax;
-                                    }
-                                    
-                                    if (updatedProductStockEl) {
-                                        updatedProductStockEl.textContent = newMax;
-                                    }
-                                });
-                                
-                                if (searchInfoList) searchInfoList.dataset.soluong = availableStores[0].SOLUONG_TON;
-                                if (updatedProductStockEl) updatedProductStockEl.textContent = availableStores[0].SOLUONG_TON;
-                                
-                                storeLi.appendChild(label);
-                                storeLi.appendChild(select);
-                                btnLi.after(storeLi);
-                            }
-                        } else {
-                            const productStockContainer = document.querySelector('.searchInfor-item__productStock');
-                            if (productStockContainer && !productStockContainer.querySelector('.searchInfor-item__productStock-title')) {
-                                productStockContainer.innerHTML = 'Kho: <span class="searchInfor-item__productStock-title" style="font-weight: bold">0</span>';
-                            }
-                            if (searchInfoList) searchInfoList.dataset.soluong = 0;
-                            const updatedProductStockEl = document.querySelector('.searchInfor-item__productStock-title');
-                            if (updatedProductStockEl) updatedProductStockEl.textContent = 0;
-                        }
-                    } else {
-                        const productStockContainer = document.querySelector('.searchInfor-item__productStock');
-                        if (productStockContainer && !productStockContainer.querySelector('.searchInfor-item__productStock-title')) {
-                            productStockContainer.innerHTML = 'Kho: <span class="searchInfor-item__productStock-title" style="font-weight: bold">0</span>';
-                        }
-                        if (searchInfoList) searchInfoList.dataset.soluong = soluong;
-                        const updatedProductStockEl = document.querySelector('.searchInfor-item__productStock-title');
-                        if (updatedProductStockEl) updatedProductStockEl.textContent = soluong;
-                    }
-                    
-                    // Reset số lượng về 1 khi mở modal
-                    const quantityEl = document.querySelector('.CustomizeQuantity-number-js');
-                    if (quantityEl) quantityEl.textContent = "1";
-                    
-                    if (searchInfoList) {
-                        searchInfoList.dataset.masp = masp;
-                        searchInfoList.dataset.soluong = soluong; // Lưu lại số lượng tồn kho để check
-                    }
-                }
-
-                if(modal) modal.style.display = 'block';
-                if(searchInfor) searchInfor.style.display = 'flex';
-                const searchInfoList = document.querySelector('.searchInfor-list-js');
-                if (searchInfoList) searchInfoList.style.display = 'flex';
-            }
-            
-            // Xử lý tăng/giảm số lượng trong Modal
-            if (e.target.closest('.CustomizeQuantity-add-js') || e.target.closest('.CustomizeQuantity-remove-js')) {
                 e.preventDefault();
-                const searchInfoList = document.querySelector('.searchInfor-list-js');
-                const quantityEl = document.querySelector('.CustomizeQuantity-number-js');
-                
-                if (quantityEl && searchInfoList) {
-                    let currentQty = parseInt(quantityEl.textContent) || 1;
-                    const maxStock = parseInt(searchInfoList.dataset.soluong) || 0;
-                    
-                    if (e.target.closest('.CustomizeQuantity-add-js')) {
-                        if (currentQty < maxStock) {
-                            quantityEl.textContent = currentQty + 1;
-                        } else {
-                            toast.warning(`Chỉ còn lại ${maxStock} sản phẩm trong kho!`);
-                        }
-                    } else if (e.target.closest('.CustomizeQuantity-remove-js')) {
-                        if (currentQty > 1) {
-                            quantityEl.textContent = currentQty - 1;
-                        }
-                    }
+                const productElement = e.target.closest('.product-sale-item-level2') || e.target.closest('.menuProduct-block') || e.target.closest('[data-masp]');
+                const masp = productElement?.dataset?.masp;
+                if (masp) {
+                    navigate(`/san-pham/${masp}`);
                 }
+                return;
             }
-
-            // Exit Add Cart
-            if (e.target.closest('.addCart-item__exit-js') || e.target.closest('.addCart-item__continueBuy')) {
-                if(addCart) addCart.style.display = 'none';
-                if(modal) modal.style.display = 'none';
-            }
-
-            // Exit Search Info
-            if (e.target.closest('.searchInfor-list__level2-exit-js')) {
-                if(searchInfor) searchInfor.style.display = 'none';
-                if(modal) modal.style.display = 'none';
-            }
-
-            // Click Overlay to close all
-            if (e.target.matches('.modal__overlay') || e.target.matches('.modal-overlay-js')) {
-                if(modalSearch) modalSearch.style.display = 'none';
-                if(menuBar) menuBar.style.display = 'none';
-                if(addCart) addCart.style.display = 'none';
-                if(searchInfor) searchInfor.style.display = 'none';
-                if(modal) modal.style.display = 'none';
-            }
-
-            // Add to wishlist — click vào li.product-bestSale__tag-icon--noLike-js hoặc li.product-sale__tag-icon--noLike-js
             if (e.target.closest('.product-bestSale__tag-icon--noLike-js') || e.target.closest('.product-sale__tag-icon--noLike-js')) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -489,93 +290,10 @@ const Modal = () => {
                         </div> 
                     </div>
                 </div>
-
-                {/* Modal Add to Cart Success */}
-                <div className="grid">
-                    <div className="row">
-                        <div className="addCart addCart-js">
-                            <ul className="addCart-list addCart-list-js">
-                                <li className="addCart-item">
-                                    <div className="addCart-item__title">
-                                        <i className="addCart-item__title-check-icon fa-regular fa-circle-check"></i>
-                                        Thêm vào giỏ hàng thành công
-                                    </div>
-                                    <span className="addCart-item__exit-icon addCart-item__exit-icon-js" onClick={closeAllModals}>
-                                        <i className="fa-solid fa-xmark"></i>
-                                    </span>
-                                </li>
-                                <li className="addCart-item addCart-item-js">
-                                    <div className="addCart-item__img">
-                                        <img id="largeImageaddCart" src="" alt="Sản phẩm" className="addCart-item-img addCart-item-img-js" />
-                                    </div>
-                                    <div className="addCart-item__content">
-                                        <p className="addCart-item__name addCart-item__name-js"></p>
-                                        <p className="addCart-item__price addCart-item__price-js"></p>
-                                    </div>
-                                </li>
-                                <li className="addCart-item">
-                                    <Link to="/gio-hang" className="addCart-item__viewCart" onClick={closeAllModals}>Xem giỏ hàng</Link>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Modal Search Quick View (Product Detail Modal) */}
-                <div className="grid">
-                    <div className="row">
-                        <div className="searchInfor searchInfor-js">
-                            <div className="col-12">
-                                <ul className="searchInfor-list searchInfor-list-js">
-                                    <li className="searchInfor-item col-lg-6 col-md-6 col-12">
-                                        <ul className="searchInfor-list__level2-img">
-                                            <li className="searchInfor-item__level2-img">
-                                                <div className="searchInfor-item__level2-imgMain">
-                                                    <img id="largeImage" src="" alt="Large Image" />
-                                                </div>
-                                            </li>
-                                        </ul>
-                                    </li>
-                                    <li className="searchInfor-item col-lg-6 col-md-6 col-12">
-                                        <ul className="searchInfor-list__level2">
-                                            <li className="searchInfor-item__level2">
-                                                <h3 className="searchInfor-item__name searchInfor-item__name-js"></h3>
-                                            </li>
-                                            <li className="searchInfor-item__level2">
-                                                <span className="searchInfor-item__thuonghieu">Thương hiệu: <span className="searchInfor-item__thuonghieu-name">Givral Bakery</span></span>
-                                                <span className="searchInfor-item__tinhtrang">Tình trạng: <span className="searchInfor-item__tinhtrang-name">Còn hàng</span></span>
-                                            </li>
-                                            <li className="searchInfor-item__level2">
-                                                <div className="searchInfor-item__price">
-                                                    <span className="searchInfor-item__priceSale searchInfor-item__priceSale-js"></span>
-                                                    <span className="searchInfor-item__priceOld searchInfor-item__priceOld-js"></span>
-                                                </div>
-                                            </li>
-                                            <li className="searchInfor-item__level2">
-                                                <div className="CustomizeQuantity">
-                                                    <div className="CustomizeQuantity-btn CustomizeQuantity-decrement-js">-</div>
-                                                    <div className="CustomizeQuantity-number CustomizeQuantity-number-js">1</div>
-                                                    <div className="CustomizeQuantity-btn CustomizeQuantity-increment-js">+</div>
-                                                </div>
-                                                <div className="searchInfor-item__addCart">
-                                                    <button className="searchInfor-item__addCartBtn searchInfor-item__addCartBtn-js">
-                                                        Thêm vào giỏ hàng
-                                                    </button>
-                                                </div>
-                                            </li>
-                                            <span className="searchInfor-list__level2-exit searchInfor-list__level2-exit-js" onClick={closeAllModals}>
-                                                <i className="searchInfor-list__level2-exit-icon fa-solid fa-xmark"></i>
-                                            </span>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
+        </div>
 
-            {/* Mobile Offcanvas Drawer (Dola Bakery Style - Clean, No Underline) */}
+        {/* Mobile Offcanvas Drawer (Dola Bakery Style - Clean, No Underline) */}
             <div className="Modal-MenuMobile-block Modal-MenuMobile-block-js" style={{ display: "none" }}>
                 <div className="mobile-drawer-header">
                     <button type="button" className="mobile-drawer-close-btn" onClick={closeAllModals} title="Đóng menu">
@@ -707,7 +425,6 @@ const Modal = () => {
                     </div>
                 </div>
             </div>
-        </div>
         </>
     );
 };
