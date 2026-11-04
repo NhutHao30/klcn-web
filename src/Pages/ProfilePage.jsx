@@ -1218,8 +1218,8 @@ const ProfilePage = () => {
                         {isLoadingAddrWards ? 'Đang tải Phường/Xã...' : '-- Chọn Phường/Xã --'}
                       </option>
                       {addrWards.map(w => (
-                        <option key={w.WardCode} value={w.WardCode}>
-                          {w.WardName}
+                        <option key={`${w.WardCode}-${w.DistrictID || ''}`} value={w.WardCode}>
+                          {w.FullName || `${w.WardName}${w.DistrictName ? ` (${w.DistrictName})` : ''}`}
                         </option>
                       ))}
                     </select>

@@ -537,10 +537,13 @@ const CartPage = () => {
         return removeVietnameseTones(p.ProvinceName).includes(removeVietnameseTones(provinceSearch));
     });
 
-    // Lọc danh sách Phường/Xã theo từ khóa (có dấu hoặc không dấu)
+    // Lọc danh sách Phường/Xã theo từ khóa (có dấu hoặc không dấu, tìm theo cả tên Phường và tên Quận)
     const filteredWards = wards.filter(w => {
         if (!wardSearch.trim()) return true;
-        return removeVietnameseTones(w.WardName).includes(removeVietnameseTones(wardSearch));
+        const searchNorm = removeVietnameseTones(wardSearch);
+        const wardNorm = removeVietnameseTones(w.WardName || "");
+        const distNorm = removeVietnameseTones(w.DistrictName || "");
+        return wardNorm.includes(searchNorm) || distNorm.includes(searchNorm);
     });
 
     const finalTotal = selectedWard ? Math.max(0, (total + shippingFee) - voucherDiscount) : null;
@@ -905,8 +908,8 @@ const CartPage = () => {
                                                     {isLoadingWards ? "Đang tải Phường/Xã..." : "Chọn Phường/Xã"}
                                                 </option>
                                                 {filteredWards.map(w => (
-                                                    <option key={w.WardCode} value={w.WardCode}>
-                                                        {w.WardName}
+                                                    <option key={`${w.WardCode}-${w.DistrictID || ''}`} value={w.WardCode}>
+                                                        {w.FullName || `${w.WardName}${w.DistrictName ? ` (${w.DistrictName})` : ''}`}
                                                     </option>
                                                 ))}
                                             </select>
@@ -1143,9 +1146,6 @@ const CartPage = () => {
                                                         <span style={{ fontSize: "13px", fontWeight: "700", color: paymentMethod === "VIETQR" ? "#7a5230" : "#333" }}>
                                                             💳 Chuyển khoản Ngân hàng (VietQR 24/7)
                                                         </span>
-                                                        <span style={{ fontSize: "10px", backgroundColor: "#dbeafe", color: "#1e40af", padding: "1px 6px", borderRadius: "10px", fontWeight: "600" }}>
-                                                            Tự động cập nhật
-                                                        </span>
                                                     </div>
                                                     <div style={{ fontSize: "11px", color: "#777", marginTop: "2px" }}>
                                                         Quét mã VietQR từ bất kỳ App Ngân Hàng nào. Trạng thái thanh toán tự động ghi nhận ngay lập tức.
@@ -1179,9 +1179,6 @@ const CartPage = () => {
                                                     <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                                                         <span style={{ fontSize: "13px", fontWeight: "700", color: paymentMethod === "MOMO" ? "#a50064" : "#333" }}>
                                                             👛 Ví điện tử MoMo
-                                                        </span>
-                                                        <span style={{ fontSize: "10px", backgroundColor: "#fce7f3", color: "#9d174d", padding: "1px 6px", borderRadius: "10px", fontWeight: "600" }}>
-                                                            Tự động cập nhật
                                                         </span>
                                                     </div>
                                                     <div style={{ fontSize: "11px", color: "#777", marginTop: "2px" }}>

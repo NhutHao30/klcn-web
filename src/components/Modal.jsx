@@ -105,9 +105,9 @@ const Modal = () => {
                     name = document.querySelector('.searchInfor-item__name-js')?.textContent;
                     priceSale = document.querySelector('.searchInfor-item__priceSale-js')?.textContent;
                 } else if (boxProduct) {
-                    img = boxProduct.querySelector('.product-sale_img-js')?.src;
-                    name = boxProduct.querySelector('.product-sale__name-js')?.textContent;
-                    priceSale = boxProduct.querySelector('.product-sale__price-sale-js')?.textContent;
+                    img = boxProduct.querySelector('.product-sale_img-js')?.src || boxProduct.querySelector('img')?.src;
+                    name = boxProduct.querySelector('.product-sale__name-js')?.textContent || boxProduct.querySelector('.product-sale__name')?.textContent;
+                    priceSale = boxProduct.querySelector('.product-sale__price-sale-js')?.textContent || boxProduct.querySelector('.product-sale__price-sale')?.textContent;
                 }
 
                 try {
@@ -125,7 +125,7 @@ const Modal = () => {
                         document.dispatchEvent(new Event('cartUpdated'));
 
                         // Cập nhật thông tin Modal Thành Công
-                        const addCartImg = document.getElementById('largeImageaddCart');
+                        const addCartImg = document.getElementById('largeImageaddCart') || document.querySelector('.addCart-item-img-js');
                         const addCartName = document.querySelector('.addCart-item__name');
                         const addCartPrice = document.querySelector('.addCart-item__price');
                         const addCartCount = document.querySelector('.highligh');
@@ -472,12 +472,18 @@ const Modal = () => {
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         onKeyDown={handleKeyDown}
                                     />
-                                    <label htmlFor="search-input" className="search-item-icon" onClick={handleSearchSubmit} style={{cursor: "pointer"}}>
-                                        <i className="search-icon fa-solid fa-magnifying-glass"></i> 
+                                    <label htmlFor="search-input" className="search-item-icon" onClick={handleSearchSubmit} style={{cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center"}}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="11" cy="11" r="8"></circle>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                        </svg>
                                     </label>
                                 </li>
-                                <p className="exit-btn exit-btn-js" onClick={closeAllModals}>
-                                    <i className="exit-icon fa-solid fa-xmark"></i>
+                                <p className="exit-btn exit-btn-js" onClick={closeAllModals} title="Đóng tìm kiếm" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
                                 </p>
                             </ul>
                         </div> 
@@ -500,7 +506,7 @@ const Modal = () => {
                                 </li>
                                 <li className="addCart-item addCart-item-js">
                                     <div className="addCart-item__img">
-                                        <img src="" alt="" className="addCart-item-img addCart-item-img-js" />
+                                        <img id="largeImageaddCart" src="" alt="Sản phẩm" className="addCart-item-img addCart-item-img-js" />
                                     </div>
                                     <div className="addCart-item__content">
                                         <p className="addCart-item__name addCart-item__name-js"></p>
