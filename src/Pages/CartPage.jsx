@@ -78,7 +78,7 @@ const CartPage = () => {
     const [selectedWard, setSelectedWard] = useState("");
     const [selectedDistrict, setSelectedDistrict] = useState("");
     const [addressDetail, setAddressDetail] = useState("");
-    const [shippingFee, setShippingFee] = useState(0);
+    const [shippingFee, setShippingFee] = useState(30000);
     const [isLoadingWards, setIsLoadingWards] = useState(false);
 
     // Saved Addresses
@@ -110,6 +110,29 @@ const CartPage = () => {
         }
     }, []);
 
+    const fetchShippingFee = async (wardCode, districtId) => {
+        if (!wardCode) {
+            setShippingFee(30000);
+            return;
+        }
+        try {
+            const m = await import('../services/axiosClient.js');
+            const res = await m.default.post('/ghn/fee', {
+                to_ward_code: String(wardCode),
+                to_district_id: parseInt(districtId) || 1444,
+                weight: 1000
+            });
+            if (res.data && res.data.code === 200 && res.data.data && res.data.data.total) {
+                setShippingFee(Number(res.data.data.total));
+            } else {
+                setShippingFee(30000);
+            }
+        } catch (err) {
+            console.warn("Lỗi tính phí ship GHN, dùng phí chuẩn 30k:", err);
+            setShippingFee(30000);
+        }
+    };
+
     const applyAddress = async (addr) => {
         if (!addr) return;
         setSelectedAddressId(addr.id);
@@ -130,15 +153,21 @@ const CartPage = () => {
 
                 if (wCode) {
                     setSelectedWard(String(wCode));
+                    let districtIdToUse = dId;
                     const foundW = wardList.find(w => String(w.WardCode) === String(wCode));
                     if (foundW) {
+                        districtIdToUse = foundW.DistrictID;
                         setSelectedDistrict(String(foundW.DistrictID));
                     } else if (dId) {
                         setSelectedDistrict(String(dId));
                     }
+                    await fetchShippingFee(wCode, districtIdToUse);
+                } else {
+                    setShippingFee(30000);
                 }
             } catch (err) {
                 console.error("Lỗi nạp danh sách phường/xã theo địa chỉ lưu:", err);
+                setShippingFee(30000);
             } finally {
                 setIsLoadingWards(false);
             }
@@ -211,7 +240,7 @@ const CartPage = () => {
         setSelectedDistrict("");
         setWardSearch("");
         setSelectedAddressId(null);
-        setShippingFee(0);
+        setShippingFee(30000);
 
         if (!provId) {
             setWards([]);
@@ -234,34 +263,19 @@ const CartPage = () => {
     };
 
     // Khi Phường/Xã thay đổi -> Tự động ánh xạ districtId và tính phí vận chuyển GHN
-    const handleWardChange = (e) => {
+    const handleWardChange = async (e) => {
         const wCode = e.target.value;
         setSelectedWard(wCode);
         setSelectedAddressId(null);
 
         const foundWard = wards.find(w => String(w.WardCode) === String(wCode));
         if (foundWard) {
-            setSelectedDistrict(String(foundWard.DistrictID));
-            // Tính phí GHN
-            import('../services/axiosClient.js').then(m => {
-                m.default.post('/ghn/fee', {
-                    to_ward_code: String(wCode),
-                    to_district_id: parseInt(foundWard.DistrictID),
-                    weight: 1000
-                }).then(res => {
-                    if (res.data && res.data.code === 200 && res.data.data && res.data.data.total) {
-                        setShippingFee(res.data.data.total);
-                    } else {
-                        setShippingFee(30000);
-                    }
-                }).catch(err => {
-                    console.warn("Lỗi tính phí ship GHN, dùng phí chuẩn 30k:", err);
-                    setShippingFee(30000);
-                });
-            });
+            const dId = String(foundWard.DistrictID);
+            setSelectedDistrict(dId);
+            await fetchShippingFee(wCode, dId);
         } else {
             setSelectedDistrict("");
-            setShippingFee(0);
+            setShippingFee(30000);
         }
     };
 
@@ -419,15 +433,25 @@ const CartPage = () => {
                 ? `${addressDetail}, ${wardName}, ${provName}`
                 : 'Địa chỉ nhận hàng mặc định của khách hàng';
 
-            const checkoutPayload = new FormData();
-            checkoutPayload.append('mahd', mahd);
-            checkoutPayload.append('paymentMethod', paymentMethod);
-            checkoutPayload.append('address', fullAddress);
-            checkoutPayload.append('note', `Khách thanh toán trực tuyến tự động qua ${paymentMethod === 'VIETQR' ? 'VietQR 24/7' : 'Ví MoMo'}.`);
-            checkoutPayload.append('shippingFee', shippingFee);
-            if (selectedWard) checkoutPayload.append('to_ward_code', selectedWard);
-            if (distId) checkoutPayload.append('to_district_id', distId);
-            if (appliedVoucherCode) checkoutPayload.append('voucher_code', appliedVoucherCode);
+            const itemsPayload = cartItems.map(item => ({
+                sanPhamId: getItemMasp(item),
+                soLuong: getItemQty(item),
+                donGia: getItemPrice(item),
+                tenSanPham: getItemName(item)
+            }));
+
+            const checkoutPayload = {
+                mahd: mahd,
+                paymentMethod: paymentMethod,
+                address: fullAddress,
+                note: `Khách thanh toán trực tuyến tự động qua ${paymentMethod === 'VIETQR' ? 'VietQR 24/7' : 'Ví MoMo'}.`,
+                shippingFee: shippingFee || 30000,
+                to_ward_code: selectedWard || '',
+                to_district_id: distId ? parseInt(distId) : 1444,
+                items: itemsPayload,
+                CHI_TIET: itemsPayload,
+                voucher_code: appliedVoucherCode || null
+            };
 
             await checkout(checkoutPayload);
 
@@ -440,7 +464,11 @@ const CartPage = () => {
         } catch (error) {
             console.error("Lỗi tự động hoàn tất đơn hàng:", error);
             setIsPaymentDetected(false);
-            const errorMsg = error.response?.data?.error || "Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại!";
+            const errorMsg = error.response?.data?.error 
+                || error.response?.data?.message 
+                || (error.response?.data?.errors ? Object.values(error.response.data.errors).flat().join(', ') : null)
+                || error.message 
+                || "Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại!";
             toast.error(errorMsg);
         } finally {
             setIsProcessing(false);
@@ -493,26 +521,41 @@ const CartPage = () => {
             return;
         }
 
-        if (window.confirm(`Xác nhận đặt hàng với hình thức "${paymentMethodLabel}"? Phí vận chuyển: ${shippingFee.toLocaleString('vi-VN')}đ`)) {
+        const currentShippingFee = shippingFee || 30000;
+
+        if (window.confirm(`Xác nhận đặt hàng với hình thức "${paymentMethodLabel}"? Phí vận chuyển: ${currentShippingFee.toLocaleString('vi-VN')}đ`)) {
             setIsProcessing(true);
             try {
-                const checkoutPayload = new FormData();
-                checkoutPayload.append('mahd', mahd);
-                checkoutPayload.append('paymentMethod', paymentMethod);
-                checkoutPayload.append('address', fullAddress);
-                checkoutPayload.append('note', `Khách tự đặt Online (${paymentMethodLabel}).`);
-                checkoutPayload.append('shippingFee', shippingFee);
-                checkoutPayload.append('to_ward_code', selectedWard);
-                checkoutPayload.append('to_district_id', distId);
-                checkoutPayload.append('saveAddress', saveAsDefault ? '1' : '0');
-                checkoutPayload.append('isDefault', saveAsDefault ? '1' : '0');
-                checkoutPayload.append('maTinh', selectedProvince);
-                checkoutPayload.append('maHuyen', distId);
-                checkoutPayload.append('maXa', selectedWard);
-                checkoutPayload.append('diaChiChiTiet', addressDetail);
-                if (appliedVoucherCode) checkoutPayload.append('voucher_code', appliedVoucherCode);
+                // Tự sinh mã đơn hàng độc nhất tránh trùng lặp
+                const currentOrderCode = "HD" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 90 + 10);
 
-                await checkout(checkoutPayload);
+                const itemsPayload = cartItems.map(item => ({
+                    sanPhamId: getItemMasp(item),
+                    soLuong: getItemQty(item),
+                    donGia: getItemPrice(item),
+                    tenSanPham: getItemName(item)
+                }));
+
+                const payload = {
+                    mahd: currentOrderCode,
+                    paymentMethod: paymentMethod,
+                    address: fullAddress,
+                    note: `Khách tự đặt Online (${paymentMethodLabel}).`,
+                    shippingFee: currentShippingFee,
+                    to_ward_code: selectedWard,
+                    to_district_id: distId ? parseInt(distId) : 1444,
+                    saveAddress: saveAsDefault ? 1 : 0,
+                    isDefault: saveAsDefault ? 1 : 0,
+                    maTinh: selectedProvince ? parseInt(selectedProvince) : null,
+                    maHuyen: distId ? parseInt(distId) : null,
+                    maXa: selectedWard,
+                    diaChiChiTiet: addressDetail,
+                    items: itemsPayload,
+                    CHI_TIET: itemsPayload,
+                    voucher_code: appliedVoucherCode || null
+                };
+
+                await checkout(payload);
 
                 toast.success("🎉 Đặt hàng thành công! Đơn hàng của bạn đã được tiếp nhận.");
                 setCartItems([]);
@@ -523,7 +566,11 @@ const CartPage = () => {
                 window.location.href = "/gio-hang?success=1";
             } catch (error) {
                 console.error("Lỗi thanh toán:", error);
-                const errorMsg = error.response?.data?.error || "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!";
+                const errorMsg = error.response?.data?.error 
+                    || error.response?.data?.message 
+                    || (error.response?.data?.errors ? Object.values(error.response.data.errors).flat().join(', ') : null)
+                    || error.message 
+                    || "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!";
                 toast.error(errorMsg);
             } finally {
                 setIsProcessing(false);
@@ -546,7 +593,7 @@ const CartPage = () => {
         return wardNorm.includes(searchNorm) || distNorm.includes(searchNorm);
     });
 
-    const finalTotal = selectedWard ? Math.max(0, (total + shippingFee) - voucherDiscount) : null;
+    const finalTotal = Math.max(0, (total + (shippingFee || 30000)) - voucherDiscount);
 
     return (
         <>
@@ -1059,8 +1106,8 @@ const CartPage = () => {
                                         </div>
                                         <div style={{ display: "flex", justifyContent: "space-between", color: "#444" }}>
                                             <span>Phí vận chuyển</span>
-                                            <span>
-                                                {selectedWard ? (shippingFee > 0 ? `${shippingFee.toLocaleString('vi-VN')}đ` : "Đang tính...") : "Nhập địa chỉ để tính phí"}
+                                            <span style={{ fontWeight: 600 }}>
+                                                {(shippingFee || 30000).toLocaleString('vi-VN')}đ
                                             </span>
                                         </div>
                                         <div style={{ display: "flex", justifyContent: "space-between", color: voucherDiscount > 0 ? "#15803d" : "#444" }}>
