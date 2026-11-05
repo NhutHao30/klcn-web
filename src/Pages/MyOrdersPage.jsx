@@ -979,29 +979,43 @@ const MyOrdersPage = () => {
                 )}
 
                 {/* Tóm tắt tiền đơn hàng */}
-                <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', alignItems: 'flex-end' }}>
-                  <div style={{ display: 'flex', gap: '40px', color: '#555' }}>
-                    <span>Tiền hàng:</span>
-                    <span>{Number(viewingOrder.tongTienHang || (viewingOrder.tongTien - (viewingOrder.phiVanChuyen || 0) + (viewingOrder.soTienGiam || 0))).toLocaleString('vi-VN')} đ</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '40px', color: '#555' }}>
-                    <span>Phí vận chuyển:</span>
-                    <span>{Number(viewingOrder.phiVanChuyen || 0).toLocaleString('vi-VN')} đ</span>
-                  </div>
-                  {Number(viewingOrder.soTienGiam) > 0 && (
-                    <div style={{ display: 'flex', gap: '40px', color: '#15803d', fontWeight: '600' }}>
-                      <span>Voucher giảm giá:</span>
-                      <span>-{Number(viewingOrder.soTienGiam).toLocaleString('vi-VN')} đ</span>
+                {(() => {
+                  const calculatedSubtotal = orderDetails && orderDetails.length > 0 
+                    ? orderDetails.reduce((sum, item) => sum + (Number(item.thanhTien) || (Number(item.donGia || item.price || 0) * Number(item.soLuong || item.quantity || 0))), 0)
+                    : null;
+                  const displaySubtotal = calculatedSubtotal !== null 
+                    ? calculatedSubtotal 
+                    : Number(viewingOrder.tongTienHang || (viewingOrder.tongTien - (viewingOrder.phiVanChuyen || 0) + (viewingOrder.soTienGiam || 0)));
+                  const displayTotal = calculatedSubtotal !== null 
+                    ? Math.max(0, calculatedSubtotal + Number(viewingOrder.phiVanChuyen || 0) - Number(viewingOrder.soTienGiam || 0)) 
+                    : Number(viewingOrder.tongTien);
+
+                  return (
+                    <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', alignItems: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: '40px', color: '#555' }}>
+                        <span>Tiền hàng:</span>
+                        <span>{Number(displaySubtotal).toLocaleString('vi-VN')} đ</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '40px', color: '#555' }}>
+                        <span>Phí vận chuyển:</span>
+                        <span>{Number(viewingOrder.phiVanChuyen || 0).toLocaleString('vi-VN')} đ</span>
+                      </div>
+                      {Number(viewingOrder.soTienGiam) > 0 && (
+                        <div style={{ display: 'flex', gap: '40px', color: '#15803d', fontWeight: '600' }}>
+                          <span>Voucher giảm giá:</span>
+                          <span>-{Number(viewingOrder.soTienGiam).toLocaleString('vi-VN')} đ</span>
+                        </div>
+                      )}
+                      <div style={{ borderTop: '1px solid #eee', width: '220px', margin: '4px 0' }}></div>
+                      <div style={{ display: 'flex', gap: '40px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#222' }}>Tổng thanh toán:</span>
+                        <span style={{ color: '#c89968', fontSize: '18px', fontWeight: '700' }}>
+                          {Number(displayTotal).toLocaleString('vi-VN')} đ
+                        </span>
+                      </div>
                     </div>
-                  )}
-                  <div style={{ borderTop: '1px solid #eee', width: '220px', margin: '4px 0' }}></div>
-                  <div style={{ display: 'flex', gap: '40px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#222' }}>Tổng thanh toán:</span>
-                    <span style={{ color: '#c89968', fontSize: '18px', fontWeight: '700' }}>
-                      {Number(viewingOrder.tongTien).toLocaleString('vi-VN')} đ
-                    </span>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
             </div>
 

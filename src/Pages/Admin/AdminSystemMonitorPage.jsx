@@ -148,6 +148,18 @@ const AdminSystemMonitorPage = () => {
     }
   };
 
+  // Đánh dấu tất cả sự cố là đã giải quyết
+  const handleClearAllErrors = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn đánh dấu TẤT CẢ sự cố kỹ thuật là Đã xử lý (Resolved)?")) return;
+    try {
+      const res = await axiosClient.post('/admin/system/errors/clear-all', { action: 'resolve_all' });
+      toast.success(res.data?.message || 'Đã đánh dấu toàn bộ sự cố kỹ thuật là Đã xử lý!');
+      fetchErrors();
+    } catch (err) {
+      toast.error('Lỗi khi đánh dấu sự cố!');
+    }
+  };
+
   // Handle Save Alert Settings
   const handleSaveAlerts = async (e) => {
     e.preventDefault();
@@ -716,13 +728,21 @@ const AdminSystemMonitorPage = () => {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
                 <button
                   onClick={fetchErrors}
                   style={{ padding: '8px 16px', borderRadius: 8, background: '#0284c7', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >
                   <i className="fa-solid fa-filter" style={{ marginRight: 6 }}></i>
                   Lọc dữ liệu
+                </button>
+                <button
+                  onClick={handleClearAllErrors}
+                  style={{ padding: '8px 16px', borderRadius: 8, background: '#10b981', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  title="Đánh dấu tất cả sự cố là đã xử lý"
+                >
+                  <i className="fa-solid fa-check-double" style={{ marginRight: 6 }}></i>
+                  Đánh dấu tất cả đã xử lý
                 </button>
               </div>
             </div>

@@ -61,6 +61,81 @@ import CookieSpinner from "./components/CookieSpinner";
 // Tạo hiệu ứng Loading nhẹ khi đang tải file JS
 const LoadingFallback = () => <CookieSpinner fullPage text="Đang tải trang..." />;
 
+// Error Boundary chống sập ứng dụng và chống màn hình trắng khi tải tài nguyên thất bại
+class GlobalErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("GlobalErrorBoundary phát hiện sự cố giao diện:", error, errorInfo);
+    const msg = error?.message || String(error || '');
+    if (
+      msg.includes('Failed to load module script') ||
+      msg.includes('dynamically imported module') ||
+      msg.includes('Loading chunk')
+    ) {
+      const lastReload = parseInt(sessionStorage.getItem('last_auto_reload') || '0', 10);
+      const now = Date.now();
+      if (now - lastReload > 8000) {
+        sessionStorage.setItem('last_auto_reload', String(now));
+        window.location.reload();
+      }
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          textAlign: 'center',
+          backgroundColor: '#fffdf9',
+          fontFamily: "'Inter', sans-serif"
+        }}>
+          <div style={{ fontSize: '56px', marginBottom: '16px' }}>🥐</div>
+          <h2 style={{ color: '#8a5829', marginBottom: '8px', fontSize: '22px', fontWeight: '700' }}>
+            Hệ thống đang tải lại tài nguyên mới nhất...
+          </h2>
+          <p style={{ color: '#666', maxWidth: '480px', marginBottom: '24px', fontSize: '14px', lineHeight: 1.6 }}>
+            Trình duyệt của bạn đang lưu bộ nhớ đệm cũ hoặc vừa có bản cập nhật mới từ hệ thống Givral Bakery. Vui lòng bấm nút bên dưới để tải lại dữ liệu mới nhất.
+          </p>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem('last_auto_reload');
+              window.location.reload();
+            }}
+            style={{
+              padding: '12px 28px',
+              backgroundColor: 'var(--primary-color, #c81f34)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '25px',
+              fontWeight: '700',
+              fontSize: '14px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(200, 31, 52, 0.3)'
+            }}
+          >
+            🔄 Tải lại trang ngay
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Tạo component điều hướng cho /admin
 const DashboardRouter = () => {
   const [role, setRole] = React.useState(null);
@@ -115,66 +190,68 @@ function App() {
   }, []);
 
   return (
-    <ToastProvider>
-    <Router>
-      <Header />
-      <VisitActivityTracker />
-      <PageViewTracker />
-      <Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/trang-chu" element={<HomePage />} />
-        <Route path="/gioi-thieu" element={<AboutPage />} />
-        <Route path="/san-pham" element={<ProductPage />} />
-        <Route path="/san-pham/:id" element={<ProductDetailPage />} />
-        <Route path="/tin-tuc" element={<PostPage />} />
-        <Route path="/tin-tuc/:id" element={<PostDetailPage />} />
-        <Route path="/lien-he" element={<ContactPage />} />
-        <Route path="/Cau-hoi-thuong-gap" element={<FAQPage />} />
-        <Route path="/he-thong-cua-hang" element={<StorePage />} />
-        <Route path="/gio-hang" element={<CartPage />} />
-        <Route path="/yeu-thich" element={<WishlistPage />} />
-        <Route path="/dang-nhap" element={<LoginPage />} />
-        <Route path="/dang-ky" element={<RegisterPage />} />
-        <Route path="/dang-ky-google" element={<RegisterGooglePage />} />
-        <Route path="/my-orders" element={<MyOrdersPage />} />
-        <Route path="/thong-tin-ca-nhan" element={<ProfilePage />} />
-        
-        <Route path="/admin" element={<DashboardRouter />} />
-        <Route path="/admin/san-pham" element={<AdminProductPage />} />
-        <Route path="/admin/khach-hang" element={<AdminCustomerPage />} />
-        <Route path="/admin/nhan-vien" element={<AdminEmployeePage />} />
-        <Route path="/admin/dieu-chuyen" element={<AdminTransferPage />} />
-        <Route path="/admin/hoa-don" element={<AdminInvoicePage />} />
-        <Route path="/admin/pos" element={<AdminPOSPage />} />
-        <Route path="/admin/ca-lam-viec" element={<AdminPOSShiftPage />} />
-        <Route path="/admin/bao-cao" element={<AdminReportPage />} />
-        <Route path="/admin/cua-hang" element={<AdminStorePage />} />
-        <Route path="/admin/chat" element={<AdminChatPage />} />
-        <Route path="/admin/chat-noi-bo" element={<AdminInternalChatPage />} />
-        <Route path="/admin/thong-tin-ca-nhan" element={<AdminProfilePage />} />
-        <Route path="/admin/khuyen-mai" element={<AdminVoucherPage />} />
-        <Route path="/admin/tin-tuc" element={<AdminNewsPage />} />
-        <Route path="/admin/so-cai-ton-kho" element={<AdminInventoryLedgerPage />} />
-        <Route path="/admin/nhat-ky-nang-cao" element={<AdminAdvancedAuditPage />} />
-        <Route path="/admin/bao-tri-he-thong" element={<AdminFeatureLockPage />} />
-        <Route path="/admin/dat-hang-truoc" element={<AdminPreOrderPage />} />
-        <Route path="/admin/lo-hang" element={<AdminLoHangPage />} />
-        <Route path="/admin/nha-cung-cap" element={<AdminNhaCungCapPage />} />
-        <Route path="/admin/bien-ban-huy" element={<AdminBienBanHuyPage />} />
-        <Route path="/admin/duyet-ky-so" element={<AdminSignatureApprovalPage />} />
-        <Route path="/admin/nhap-lo-hang" element={<AdminNhapLoPage />} />
-        <Route path="/admin/loai-san-pham" element={<AdminCategoryPage />} />
-        <Route path="/admin/don-hang-online" element={<AdminOnlineOrderPage />} />
-        <Route path="/admin/danh-gia" element={<AdminReviewPage />} />
-        <Route path="/admin/giam-sat-he-thong" element={<AdminSystemMonitorPage />} />
-        <Route path="/admin/phan-tich-nguoi-dung" element={<AdminAnalyticsPage />} />
-      </Routes>
-      </Suspense>
-      <Modal />
-      <ChatBox currentUser={currentUser} />
-    </Router>
-    </ToastProvider>
+    <GlobalErrorBoundary>
+      <ToastProvider>
+        <Router>
+          <Header />
+          <VisitActivityTracker />
+          <PageViewTracker />
+          <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/trang-chu" element={<HomePage />} />
+            <Route path="/gioi-thieu" element={<AboutPage />} />
+            <Route path="/san-pham" element={<ProductPage />} />
+            <Route path="/san-pham/:id" element={<ProductDetailPage />} />
+            <Route path="/tin-tuc" element={<PostPage />} />
+            <Route path="/tin-tuc/:id" element={<PostDetailPage />} />
+            <Route path="/lien-he" element={<ContactPage />} />
+            <Route path="/Cau-hoi-thuong-gap" element={<FAQPage />} />
+            <Route path="/he-thong-cua-hang" element={<StorePage />} />
+            <Route path="/gio-hang" element={<CartPage />} />
+            <Route path="/yeu-thich" element={<WishlistPage />} />
+            <Route path="/dang-nhap" element={<LoginPage />} />
+            <Route path="/dang-ky" element={<RegisterPage />} />
+            <Route path="/dang-ky-google" element={<RegisterGooglePage />} />
+            <Route path="/my-orders" element={<MyOrdersPage />} />
+            <Route path="/thong-tin-ca-nhan" element={<ProfilePage />} />
+            
+            <Route path="/admin" element={<DashboardRouter />} />
+            <Route path="/admin/san-pham" element={<AdminProductPage />} />
+            <Route path="/admin/khach-hang" element={<AdminCustomerPage />} />
+            <Route path="/admin/nhan-vien" element={<AdminEmployeePage />} />
+            <Route path="/admin/dieu-chuyen" element={<AdminTransferPage />} />
+            <Route path="/admin/hoa-don" element={<AdminInvoicePage />} />
+            <Route path="/admin/pos" element={<AdminPOSPage />} />
+            <Route path="/admin/ca-lam-viec" element={<AdminPOSShiftPage />} />
+            <Route path="/admin/bao-cao" element={<AdminReportPage />} />
+            <Route path="/admin/cua-hang" element={<AdminStorePage />} />
+            <Route path="/admin/chat" element={<AdminChatPage />} />
+            <Route path="/admin/chat-noi-bo" element={<AdminInternalChatPage />} />
+            <Route path="/admin/thong-tin-ca-nhan" element={<AdminProfilePage />} />
+            <Route path="/admin/khuyen-mai" element={<AdminVoucherPage />} />
+            <Route path="/admin/tin-tuc" element={<AdminNewsPage />} />
+            <Route path="/admin/so-cai-ton-kho" element={<AdminInventoryLedgerPage />} />
+            <Route path="/admin/nhat-ky-nang-cao" element={<AdminAdvancedAuditPage />} />
+            <Route path="/admin/bao-tri-he-thong" element={<AdminFeatureLockPage />} />
+            <Route path="/admin/dat-hang-truoc" element={<AdminPreOrderPage />} />
+            <Route path="/admin/lo-hang" element={<AdminLoHangPage />} />
+            <Route path="/admin/nha-cung-cap" element={<AdminNhaCungCapPage />} />
+            <Route path="/admin/bien-ban-huy" element={<AdminBienBanHuyPage />} />
+            <Route path="/admin/duyet-ky-so" element={<AdminSignatureApprovalPage />} />
+            <Route path="/admin/nhap-lo-hang" element={<AdminNhapLoPage />} />
+            <Route path="/admin/loai-san-pham" element={<AdminCategoryPage />} />
+            <Route path="/admin/don-hang-online" element={<AdminOnlineOrderPage />} />
+            <Route path="/admin/danh-gia" element={<AdminReviewPage />} />
+            <Route path="/admin/giam-sat-he-thong" element={<AdminSystemMonitorPage />} />
+            <Route path="/admin/phan-tich-nguoi-dung" element={<AdminAnalyticsPage />} />
+          </Routes>
+          </Suspense>
+          <Modal />
+          <ChatBox currentUser={currentUser} />
+        </Router>
+      </ToastProvider>
+    </GlobalErrorBoundary>
   );
 }
 

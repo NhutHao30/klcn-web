@@ -169,19 +169,19 @@
 
 @media (max-width: 768px) {
   .chatbox-container {
-    bottom: 85px !important;
-    right: 15px !important;
+    bottom: 95px !important;
+    right: 12px !important;
   }
 
   .chatbox-toggle-btn {
-    padding: 8px 16px !important;
-    font-size: 13px !important;
-    border-radius: 24px !important;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2) !important;
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
   }
 
   .chatbox-window {
-    width: calc(100vw - 30px) !important;
+    width: calc(100vw - 24px) !important;
     right: 0 !important;
     bottom: 0 !important;
     max-height: 80vh !important;

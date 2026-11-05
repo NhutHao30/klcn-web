@@ -1191,7 +1191,7 @@ const CskhPanel = ({ makh, conversationId, onSendChatText }) => {
               ) : (
                 filteredProducts.map(p => (
                   <option key={p.id || p.MASP} value={p.id || p.MASP}>
-                    {p.tenSanPham || p.TENSP || p.name || ('Bánh #' + (p.id || p.MASP))} - {Number(p.giaBan || p.GIABAN || 0).toLocaleString('vi-VN')} đ
+                    {p.tenSanPham || p.TENSP || p.name || p.ten_san_pham || ('Bánh #' + (p.id || p.MASP))} - {Number(p.giaBan || p.GIABAN || p.price || p.gia_ban || 0).toLocaleString('vi-VN')} đ
                   </option>
                 ))
               )}
@@ -1204,10 +1204,10 @@ const CskhPanel = ({ makh, conversationId, onSendChatText }) => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h5 style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', color: '#1e293b' }}>
-                    {selectedProduct.tenSanPham || selectedProduct.TENSP || selectedProduct.name}
+                    {selectedProduct.tenSanPham || selectedProduct.TENSP || selectedProduct.name || selectedProduct.ten_san_pham || ('Bánh #' + (selectedProduct.id || selectedProduct.MASP))}
                   </h5>
                   <div style={{ color: '#d82d8b', fontWeight: 'bold', fontSize: '13px', marginTop: '2px' }}>
-                    {Number(selectedProduct.giaBan || selectedProduct.GIABAN || 0).toLocaleString('vi-VN')} đ
+                    {Number(selectedProduct.giaBan || selectedProduct.GIABAN || selectedProduct.price || selectedProduct.gia_ban || 0).toLocaleString('vi-VN')} đ
                   </div>
                 </div>
                 <button

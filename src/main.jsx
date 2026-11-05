@@ -8,6 +8,16 @@ import App from "./app";
 // trình duyệt nhận mã HTML 200 thay vì JS gây lỗi "Failed to load module script".
 // Đoạn mã này tự động refresh trang để người dùng luôn nhận được phiên bản mới nhất trong suốt quá trình sử dụng.
 if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', (event) => {
+    console.warn('Vite preload error, reloading page to fetch latest chunks...', event);
+    const lastReload = parseInt(sessionStorage.getItem('last_auto_reload') || '0', 10);
+    const now = Date.now();
+    if (now - lastReload > 8000) {
+      sessionStorage.setItem('last_auto_reload', String(now));
+      window.location.reload();
+    }
+  });
+
   window.addEventListener('error', (e) => {
     const msg = e?.message || '';
     const isChunkOrMimeError = 

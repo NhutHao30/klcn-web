@@ -807,7 +807,7 @@ const CartPage = () => {
                             `}</style>
 
                             {/* 2 Khối Thông tin giao hàng & Đơn hàng của bạn */}
-                            <div className="cart-checkout-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}>
+                            <div className="cart-checkout-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px", alignItems: "start" }}>
                                 {/* Khối 1: Thông tin giao hàng */}
                                 <div style={{
                                     backgroundColor: "#fff",
@@ -872,7 +872,7 @@ const CartPage = () => {
                                     )}
 
                                     {/* Hàng 1: Tỉnh/Thành & Phường/Xã (Không còn quận theo yêu cầu gộp tỉnh thành) */}
-                                    <div className="cart-address-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                                    <div className="cart-address-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "16px" }}>
                                         {/* Cột Tỉnh/Thành */}
                                         <div>
                                             <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#444", marginBottom: "6px" }}>
@@ -880,7 +880,7 @@ const CartPage = () => {
                                             </label>
                                             <input
                                                 type="text"
-                                                placeholder="Tìm có dấu hoặc không dấu"
+                                                placeholder="Tìm Tỉnh/Thành..."
                                                 value={provinceSearch}
                                                 onChange={e => setProvinceSearch(e.target.value)}
                                                 style={{
@@ -908,7 +908,7 @@ const CartPage = () => {
                                                     cursor: "pointer"
                                                 }}
                                             >
-                                                <option value="">Chọn Tỉnh/Thành</option>
+                                                <option value="">-- Chọn Tỉnh/Thành --</option>
                                                 {filteredProvinces.map(p => (
                                                     <option key={p.ProvinceID} value={p.ProvinceID}>
                                                         {p.ProvinceName}
@@ -924,7 +924,7 @@ const CartPage = () => {
                                             </label>
                                             <input
                                                 type="text"
-                                                placeholder="Tìm có dấu hoặc không dấu"
+                                                placeholder="Tìm Phường/Xã..."
                                                 value={wardSearch}
                                                 onChange={e => setWardSearch(e.target.value)}
                                                 disabled={!selectedProvince}
