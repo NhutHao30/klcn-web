@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Header from "./Layout/Header";
 import Modal from "./components/Modal";
 import ChatBox from "./components/ChatBox";
-import { getCurrentUser } from "./services/authService";
+import { getCurrentUser, clearUserCache } from "./services/authService";
 import { ToastProvider } from "./components/Toast/Toast";
 import PageViewTracker from './components/PageViewTracker';
 import VisitActivityTracker from './components/VisitActivityTracker';
@@ -89,6 +89,10 @@ function App() {
   const [currentUser, setCurrentUser] = React.useState(null);
 
   React.useEffect(() => {
+    const updateUser = () => {
+      getCurrentUser(true).then(user => setCurrentUser(user)).catch(() => setCurrentUser(null));
+    };
+
     // Kiem tra URL xem co tra ve token tu Google khong
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token") || params.get("access_token");
@@ -100,7 +104,14 @@ function App() {
         window.history.replaceState({}, document.title, window.location.pathname + "?google=true");
     }
 
-    getCurrentUser(true).then(user => setCurrentUser(user)).catch(() => setCurrentUser(null));
+    updateUser();
+    window.addEventListener('authUpdated', updateUser);
+    document.addEventListener('authUpdated', updateUser);
+
+    return () => {
+      window.removeEventListener('authUpdated', updateUser);
+      document.removeEventListener('authUpdated', updateUser);
+    };
   }, []);
 
   return (

@@ -279,11 +279,10 @@ const [conversations, setConversations] = useState([]);
 
     fetchConversations(true);
     const interval = setInterval(() => {
-      const isConnected = window.Echo?.connector?.pusher?.connection?.state === 'connected';
-      if (!document.hidden && !isConnected) {
+      if (!document.hidden) {
         fetchConversations(false);
       }
-    }, 15000);
+    }, 4000);
     return () => {
       clearInterval(interval);
       if (pollMsgsIntervalRef.current) clearInterval(pollMsgsIntervalRef.current);
@@ -319,14 +318,15 @@ const [conversations, setConversations] = useState([]);
     const convId = conv.MACUOCTROCHUYEN || conv.id;
     if (pollMsgsIntervalRef.current) clearInterval(pollMsgsIntervalRef.current);
     pollMsgsIntervalRef.current = setInterval(async () => {
-      const isConnected = window.Echo?.connector?.pusher?.connection?.state === 'connected';
-      if (!document.hidden && !isConnected) {
+      if (!document.hidden) {
         try {
           const pollRes = await axiosClient.get(`/chat/conversations/${convId}/messages`);
-          setMessages(Array.isArray(pollRes.data) ? pollRes.data : []);
+          if (Array.isArray(pollRes.data) && pollRes.data.length > 0) {
+            setMessages(pollRes.data);
+          }
         } catch (_) {}
       }
-    }, 12000);
+    }, 3000);
     try {
       const res = await axiosClient.get(`/chat/conversations/${convId}/messages`);
       setMessages(Array.isArray(res.data) ? res.data : []);

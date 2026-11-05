@@ -245,6 +245,8 @@ const ChatBox = ({ currentUser }) => {
   useEffect(() => {
     if (isAdminPath || !currentUser) return;
 
+    let isMounted = true;
+
     // Khởi tạo Echo lắng nghe Pusher
     try {
       if (!window.Echo) {
@@ -275,24 +277,26 @@ const ChatBox = ({ currentUser }) => {
       console.warn("Pusher echo init warning:", e);
     }
 
-    let activeConvId = null;
-
     const initChat = async () => {
       try {
         const res = await axiosClient.post('/chat/conversations');
         const conv = res.data;
-        const convId = conv.MACUOCTROCHUYEN || conv.id;
+        const convId = conv?.MACUOCTROCHUYEN || conv?.id;
+        if (!isMounted || !convId) return;
+
         setConversationId(convId);
-        activeConvId = convId;
 
         // Lấy lịch sử tin nhắn
         const histRes = await axiosClient.get(`/chat/conversations/${convId}/messages`);
-        setMessages(histRes.data);
+        if (isMounted && Array.isArray(histRes.data)) {
+          setMessages(histRes.data);
+        }
 
         // Đăng ký lắng nghe kênh chat (Private Channel)
         if (window.Echo) {
           window.Echo.private(`chat.${convId}`)
             .listen('.MessageSent', (e) => {
+              if (!e?.message) return;
               setMessages(prev => {
                 const msgId = e.message.MATINNHAN || e.message.id;
                 const exists = prev.find(m => (m.MATINNHAN || m.id) === msgId);
@@ -315,25 +319,41 @@ const ChatBox = ({ currentUser }) => {
 
     initChat();
 
-    // Fallback polling mỗi 6s để đảm bảo luôn nhận tin nhắn mới ngay cả khi Pusher offline
-    // Polling thông minh: Chỉ kích hoạt khi Pusher/Echo chưa kết nối và tab đang hiển thị
-    const pollInterval = setInterval(async () => {
-      const isConnected = window.Echo?.connector?.pusher?.connection?.state === 'connected';
-      if (activeConvId && isOpen && !document.hidden && !isConnected) {
-        try {
-          const histRes = await axiosClient.get(`/chat/conversations/${activeConvId}/messages`);
-          setMessages(histRes.data);
-        } catch (_) {}
-      }
-    }, 15000);
-
     return () => {
-      clearInterval(pollInterval);
-      if (activeConvId && window.Echo) {
-        window.Echo.leave(`chat.${activeConvId}`);
+      isMounted = false;
+      if (conversationId && window.Echo) {
+        window.Echo.leave(`chat.${conversationId}`);
       }
     };
-  }, [currentUser, isOpen, isAdminPath]);
+  }, [currentUser, isAdminPath]);
+
+  // Polling đồng bộ tin nhắn siêu nhanh mỗi 3.5 giây khi mở hộp chat
+  useEffect(() => {
+    if (!conversationId || !isOpen || isAdminPath) return;
+
+    // Lấy tin nhắn ngay khi vừa mở hộp thoại
+    axiosClient.get(`/chat/conversations/${conversationId}/messages`)
+      .then(res => {
+        if (Array.isArray(res.data)) {
+          setMessages(res.data);
+        }
+      })
+      .catch(() => {});
+
+    const pollInterval = setInterval(() => {
+      if (!document.hidden) {
+        axiosClient.get(`/chat/conversations/${conversationId}/messages`)
+          .then(res => {
+            if (Array.isArray(res.data) && res.data.length > 0) {
+              setMessages(res.data);
+            }
+          })
+          .catch(() => {});
+      }
+    }, 3500);
+
+    return () => clearInterval(pollInterval);
+  }, [conversationId, isOpen, isAdminPath]);
 
   // Cuộn xuống cuối mỗi khi có tin nhắn mới
   useEffect(() => {
@@ -351,16 +371,38 @@ const ChatBox = ({ currentUser }) => {
     e.preventDefault();
     if (!newMessage.trim() || !conversationId) return;
 
-    const messageText = newMessage;
+    const messageText = newMessage.trim();
     setNewMessage('');
+
+    // OPTIMISTIC UPDATE: Hiển thị tin nhắn của khách ngay tức khắc (0ms)
+    const tempId = 'temp_' + Date.now();
+    const optimisticMsg = {
+      id: tempId,
+      MATINNHAN: tempId,
+      noiDung: messageText,
+      NOIDUNG: messageText,
+      nguoiGuiType: 0,
+      LOAINGUOIGUI: 'khachhang',
+      daDoc: 0,
+      createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      sending: true,
+    };
+
+    setMessages(prev => [...prev, optimisticMsg]);
 
     try {
       const res = await axiosClient.post(`/chat/conversations/${conversationId}/messages`, {
         NOIDUNG: messageText
       });
+
       setMessages(prev => {
+        // Thay thế tin nhắn tạm bằng tin nhắn thực từ server
+        const cleanList = prev.filter(m => (m.MATINNHAN || m.id) !== tempId);
         const msgId = res.data.MATINNHAN || res.data.id;
-        let list = prev.find(m => (m.MATINNHAN || m.id) === msgId) ? prev : [...prev, res.data];
+        let list = cleanList.find(m => (m.MATINNHAN || m.id) === msgId) ? cleanList : [...cleanList, res.data];
+
+        // Nếu có phản hồi tự động từ Chatbot AI (bot_reply)
         if (res.data.bot_reply) {
           const botId = res.data.bot_reply.MATINNHAN || res.data.bot_reply.id;
           if (!list.find(m => (m.MATINNHAN || m.id) === botId)) {
@@ -372,6 +414,7 @@ const ChatBox = ({ currentUser }) => {
     } catch (error) {
       console.error("Lỗi gửi tin nhắn:", error);
       toast.error('Không thể gửi tin nhắn. Vui lòng thử lại.');
+      // Giữ lại tin nhắn nếu lỗi để người dùng biết
     }
   };
 

@@ -1,4 +1,33 @@
 {
+  "headers": [
+    {
+      "source": "/(.*).html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -13,7 +42,7 @@
       "destination": "http://104.46.218.250:8000/images/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|favicon.ico|robots.txt).*)",
       "destination": "/index.html"
     }
   ]
