@@ -31,6 +31,12 @@ const AdminPOSPage = () => {
   const [discrepancyData, setDiscrepancyData] = useState(null);
   const [openingCash, setOpeningCash] = useState('');
   const [closingCash, setClosingCash] = useState('');
+  const [selectedShiftSchedule, setSelectedShiftSchedule] = useState(() => {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 14) return 'Ca Sáng';
+    if (hour >= 14 && hour < 22) return 'Ca Chiều';
+    return 'Hành chính';
+  });
 
   const inputRef = useRef(null);
 
@@ -53,7 +59,10 @@ const AdminPOSPage = () => {
       return;
     }
     try {
-      await axiosClient.post('/admin/pos/shifts/open', { opening_cash: Number(openingCash) });
+      await axiosClient.post('/admin/pos/shifts/open', { 
+        opening_cash: Number(openingCash),
+        caLamViec: selectedShiftSchedule,
+      });
       toast.success("Mở ca thành công!");
       setShowOpenShiftModal(false);
       fetchActiveShift();
@@ -381,6 +390,28 @@ const AdminPOSPage = () => {
           <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', width: '400px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <h2 style={{ marginBottom: '20px', color: 'var(--primary-color)' }}><i className="fa-solid fa-cash-register"></i> Bắt Đầu Ca Làm Việc</h2>
             <p style={{ marginBottom: '15px', color: '#555', fontSize: '18px', }}>Vui lòng kiểm đếm và nhập số tiền mặt có trong két hiện tại để mở ca.</p>
+            <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '6px', color: '#444' }}>
+                <i className="fa-regular fa-clock" style={{ marginRight: '6px', color: 'var(--primary-color)' }}></i>
+                Ca làm việc đăng ký:
+              </label>
+              <select
+                className="admin-input"
+                value={selectedShiftSchedule}
+                onChange={(e) => setSelectedShiftSchedule(e.target.value)}
+                style={{ width: '100%', padding: '10px', fontSize: '14px', borderRadius: '6px' }}
+              >
+                <option value="Ca Sáng">Ca Sáng (06:00 - 14:00)</option>
+                <option value="Ca Chiều">Ca Chiều (14:00 - 22:00)</option>
+                <option value="Hành chính">Hành chính (08:00 - 17:00)</option>
+              </select>
+            </div>
+            <div style={{ textAlign: 'left', marginBottom: '6px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: '#444' }}>
+                <i className="fa-solid fa-coins" style={{ marginRight: '6px', color: '#ffc107' }}></i>
+                Tiền mặt đầu ca (VNĐ):
+              </label>
+            </div>
             <input 
               type="number" 
               className="admin-input" 

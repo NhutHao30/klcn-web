@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: mode === 'production' ? './' : '/',
+    base: '/',
     server: {
       allowedHosts: true, 
       host: true,

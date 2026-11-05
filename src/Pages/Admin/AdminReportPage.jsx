@@ -578,21 +578,7 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
           💎 Báo cáo Khách hàng
         </button>
 
-        <Link
-          to="/admin/phan-tich-nguoi-dung"
-          className="admin-btn"
-          style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
-        >
-          📊 Phân tích người dùng & Hành vi
-        </Link>
 
-        <Link
-          to="/admin/giam-sat-he-thong"
-          className="admin-btn"
-          style={{ backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
-        >
-          🖥️ Giám sát hệ thống & Hiệu năng
-        </Link>
       </div>
 
       {isLoading ? (
