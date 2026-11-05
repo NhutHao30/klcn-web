@@ -604,7 +604,7 @@ const [conversations, setConversations] = useState([]);
           </div>
           <div style={{ padding: '15px', overflowY: 'auto', flex: 1 }}>
             {activeConversation ? (
-              <CskhPanel makh={activeConversation.khachHangId || activeConversation.MAKH} conversationId={activeConversation.MACUOCTROCHUYEN || activeConversation.id} onSendChatText={sendChatText} />
+              <CskhPanel makh={activeConversation.khachHangId || activeConversation.khachhang_id || activeConversation.khachhang?.id || activeConversation.MAKH || activeConversation.id} conversationId={activeConversation.MACUOCTROCHUYEN || activeConversation.id} onSendChatText={sendChatText} />
             ) : (
               <p style={{ color: '#888', textAlign: 'center', marginTop: '20px' }}>Vui lòng chọn khách hàng để tra cứu</p>
             )}
@@ -728,9 +728,10 @@ const CskhPanel = ({ makh, conversationId, onSendChatText }) => {
     setLoadingVoucher(true);
     try {
       const res = await axiosClient.get('/cskh/vouchers');
-      setVouchers(res.data || []);
+      setVouchers(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error('Lỗi lấy vouchers:', e);
+      setVouchers([]);
     } finally {
       setLoadingVoucher(false);
     }
@@ -953,7 +954,7 @@ const CskhPanel = ({ makh, conversationId, onSendChatText }) => {
   const kh = customerInfo?.khachhang;
   const recentOrders = customerInfo?.donhangs || [];
   const walletVouchers = customerInfo?.viVoucher || [];
-  const systemVouchers = vouchers.length > 0 ? vouchers : (customerInfo?.allVouchers || []);
+  const systemVouchers = vouchers || [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', fontSize: '13px' }}>
