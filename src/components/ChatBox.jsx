@@ -468,7 +468,13 @@ const ChatBox = ({ currentUser }) => {
                             border: isRecalled ? '1px dashed #cbd5e1' : (isCard ? 'none' : undefined),
                             padding: isCard ? 0 : undefined,
                             boxShadow: isCard ? 'none' : undefined,
-                            position: 'relative'
+                            position: 'relative',
+                            minWidth: isCard ? undefined : '50px',
+                            width: 'fit-content',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'normal',
+                            overflowWrap: 'break-word',
+                            flexShrink: 0
                           }}>
                             <ChatCardMessage content={text} isMine={isMine} />
                             {isMine && !isRecalled && !isCard && (

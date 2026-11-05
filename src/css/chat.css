@@ -107,11 +107,16 @@
 
 .chatbox-message {
   max-width: 75%;
+  min-width: 50px;
+  width: fit-content;
   padding: 10px 14px;
   border-radius: 18px;
   font-size: 14px;
   line-height: 1.4;
-  word-wrap: break-word;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: break-word;
+  flex-shrink: 0;
 }
 
 .chatbox-message.theirs {

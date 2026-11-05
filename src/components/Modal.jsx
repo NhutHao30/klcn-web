@@ -172,8 +172,12 @@ const Modal = () => {
                     if (!masp) { toast.error('Không tìm thấy mã sản phẩm!'); return; }
                     try {
                         const { addToWishlist, getWishlist } = await import('../services/wishlistService.js');
-                        await addToWishlist(masp);
-                        toast.success("Đã thêm vào danh sách yêu thích!");
+                        const res = await addToWishlist(masp);
+                        if (res?.already_exists) {
+                            toast.info("Sản phẩm đã có trong danh sách yêu thích.");
+                        } else {
+                            toast.success("Đã thêm vào danh sách yêu thích!");
+                        }
                         const wl = await getWishlist();
                         document.querySelectorAll('#wishlist-count').forEach(el => el.textContent = wl.length);
                         document.dispatchEvent(new Event('wishlistUpdated'));
@@ -183,7 +187,11 @@ const Modal = () => {
                         if (liLike) liLike.style.display = 'inline-flex';
                     } catch(err) {
                         console.error(err);
-                        toast.info("Sản phẩm đã có trong danh sách yêu thích.");
+                        if (err.response?.status === 401) {
+                            toast.warning("Vui lòng đăng nhập để lưu sản phẩm yêu thích!");
+                        } else {
+                            toast.error(err.response?.data?.error || err.response?.data?.message || "Có lỗi xảy ra khi thêm vào yêu thích.");
+                        }
                     }
                 }
             }

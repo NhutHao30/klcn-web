@@ -125,15 +125,19 @@ const ProductDetailPage = () => {
     const masp = product.id || product.MASP || product.maSP;
     setIsAddingWishlist(true);
     try {
-      await addToWishlist(masp);
-      toast.success(`Đã thêm "${product.ten_san_pham || product.TENSP}" vào danh sách yêu thích!`);
+      const res = await addToWishlist(masp);
+      if (res?.already_exists) {
+        toast.info("Sản phẩm đã có trong danh sách yêu thích của bạn.");
+      } else {
+        toast.success(`Đã thêm "${product.ten_san_pham || product.TENSP}" vào danh sách yêu thích!`);
+      }
       document.dispatchEvent(new Event("wishlistUpdated"));
     } catch (err) {
       console.error("Lỗi thêm yêu thích:", err);
       if (err.response?.status === 401) {
         toast.warning("Vui lòng đăng nhập để lưu sản phẩm yêu thích!");
       } else {
-        toast.info("Sản phẩm đã có trong danh sách yêu thích của bạn.");
+        toast.error(err.response?.data?.error || err.response?.data?.message || "Có lỗi xảy ra khi thêm vào yêu thích!");
       }
     } finally {
       setIsAddingWishlist(false);
