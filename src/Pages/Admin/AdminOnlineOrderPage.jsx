@@ -34,7 +34,7 @@ const STATUS_COLUMNS = [
     bgColor: '#fffbe6',
     borderColor: '#ffe58f',
     nextStatus: 'DANG_GIAO',
-    nextLabel: 'Tự Động Khi GHN Lấy'
+    nextLabel: '🚚 Bàn Giao Shipper'
   },
   {
     id: 'DANG_GIAO',
@@ -1103,6 +1103,43 @@ const AdminOnlineOrderPage = () => {
                     </p>
                   )}
                 </div>
+              </div>
+
+              {/* Thanh điều khiển nhân viên chủ động cập nhật trạng thái đơn hàng */}
+              <div style={{ backgroundColor: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '8px', padding: '10px 14px', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#166534' }}>
+                    <i className="fa-solid fa-arrows-rotate" style={{ marginRight: '6px' }}></i>
+                    Chủ động cập nhật trạng thái:
+                  </span>
+                  <select
+                    value={normalizeStatus(selectedOrder.TRANGTHAI || selectedOrder.trangThai || selectedOrder.trangThaiDonHang)}
+                    onChange={async (e) => {
+                      const newSt = e.target.value;
+                      const oId = selectedOrder.MAHD || selectedOrder.MAHDBAN || selectedOrder.maHD || selectedOrder.id;
+                      await handleStatusChange(oId, newSt);
+                      setSelectedOrder(prev => prev ? ({ ...prev, TRANGTHAI: newSt, trangThai: newSt, trangThaiDonHang: newSt }) : null);
+                    }}
+                    style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', borderRadius: '6px', border: '1.5px solid #16a34a', backgroundColor: '#fff', color: '#166534', cursor: 'pointer', outline: 'none' }}
+                  >
+                    <option value="CHO_XAC_NHAN">⏳ Chờ xác nhận</option>
+                    <option value="DANG_CHE_BIEN">👨‍🍳 Đang chuẩn bị (Chế biến)</option>
+                    <option value="CHO_LAY_HANG">📦 Chờ lấy hàng (Sẵn sàng GHN)</option>
+                    <option value="DANG_GIAO">🚚 Đang giao hàng (Bàn giao Shipper)</option>
+                    <option value="HOAN_THANH">✅ Giao thành công (Hoàn thành)</option>
+                    <option value="DA_HUY">❌ Hủy đơn hàng</option>
+                  </select>
+                </div>
+
+                {!(selectedOrder.maVanDon || selectedOrder.maVanDonGhn) && ['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(normalizeStatus(selectedOrder.TRANGTHAI || selectedOrder.trangThai)) && (
+                  <button
+                    type="button"
+                    onClick={() => handleCreateGhnOrder(selectedOrder.MAHD || selectedOrder.MAHDBAN || selectedOrder.maHD || selectedOrder.id)}
+                    style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#d82d8b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    🚚 Tạo / Đồng bộ mã GHN
+                  </button>
+                )}
               </div>
 
               {/* Thông tin hủy đơn nếu đơn đã hủy */}
