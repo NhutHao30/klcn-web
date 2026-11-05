@@ -139,10 +139,12 @@ class GlobalErrorBoundary extends React.Component {
 // Tạo component điều hướng cho /admin
 const DashboardRouter = () => {
   const [role, setRole] = React.useState(null);
+  const [vaiTroId, setVaiTroId] = React.useState(null);
   React.useEffect(() => {
     import('./services/authService').then(({ getCurrentUser }) => {
       getCurrentUser().then(user => {
         setRole(Number(user.MAROLE !== undefined ? user.MAROLE : user.role));
+        setVaiTroId(Number(user.vaiTroId || user.vai_tro_id || user.role_id || 0));
       }).catch(() => {
         if (window.location.pathname !== '/dang-nhap') {
           window.location.href = '/dang-nhap';
@@ -151,12 +153,13 @@ const DashboardRouter = () => {
     });
   }, []);
 
-  if (role === null) return <LoadingFallback />;
+  if (role === null && vaiTroId === null) return <LoadingFallback />;
   if (role === 0 || role === 1) return <AdminReportPage />;
-  if (role === 2) return <Navigate to="/admin/pos" replace />;
-  if (role === 4) return <Navigate to="/admin/chat" replace />;
-  if (role === 5) return <Navigate to="/admin/lo-hang" replace />;
-  if (role === 6) return <Navigate to="/admin/hoa-don" replace />;
+  if (vaiTroId === 4 || role === 7) return <Navigate to="/admin/lo-hang" replace />; // WAREHOUSE -> Lô hàng (Không nhảy vào POS)
+  if (vaiTroId === 3 || role === 2) return <Navigate to="/admin/pos" replace />; // CASHIER -> Bán hàng POS
+  if (role === 4 || vaiTroId === 5) return <Navigate to="/admin/chat" replace />;
+  if (role === 5 || vaiTroId === 8) return <Navigate to="/admin/lo-hang" replace />;
+  if (role === 6 || vaiTroId === 7) return <Navigate to="/admin/hoa-don" replace />;
   return <AdminReportPage />;
 };
 

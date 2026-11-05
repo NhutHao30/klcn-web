@@ -96,6 +96,7 @@ const AdminNhapLoPage = () => {
   const isAdmin = vaiTroId === 1 || maRole === 0 || String(currentUser?.username).toLowerCase() === 'admin';
   const isDirector = !isAdmin && (vaiTroId === 8 || maRole === 5 || tenVaiTro.includes('giám đốc'));
   const isBranchManager = !isAdmin && !isDirector && (vaiTroId === 2 || maRole === 1 || tenVaiTro.includes('quản lý'));
+  const isWarehouse = !isAdmin && !isDirector && !isBranchManager && (vaiTroId === 4 || maRole === 7 || tenVaiTro.includes('kho'));
 
   // Chi nhánh của người dùng hiện tại
   const userStoreId = currentUser?.nguoidung?.cuaHangId || currentUser?.cuaHangId || currentUser?.cuahang?.id || null;
@@ -399,7 +400,9 @@ const AdminNhapLoPage = () => {
       const res = await nhapLoHang(payload);
       if (res.success || res.status || res.message) {
         const maPhieu = res.data?.maHoaDonNhap || res.data?.MAHDNHAP || res.data?.hdnhap?.MAHDNHAP || '';
-        if (signImmediately && kyQuanLyData) {
+        if (isWarehouse) {
+          toast.success(`Nhân viên kho đã tạo yêu cầu nhập lô hàng mới ${maPhieu} thành công! Đang chờ Quản lý chi nhánh phê duyệt.`);
+        } else if (signImmediately && kyQuanLyData) {
           toast.success(`Quản lý chi nhánh đã tạo và ký duyệt hoàn tất Đơn Nhập Hàng ${maPhieu}! Tồn kho chi nhánh đã được cộng ngay (không cần các role khác ký thêm).`);
         } else {
           toast.success(`Đã tạo Đơn Nhập Hàng ${maPhieu} ở trạng thái chờ duyệt! Cần chữ ký của Nhân viên kho và Nhân viên kế toán (hoặc Quản lý chi nhánh) tại mục Duyệt & Ký số.`);
@@ -734,7 +737,7 @@ const AdminNhapLoPage = () => {
           GIAO DIỆN DÀNH CHO QUẢN LÝ CHI NHÁNH:
           TỰ TẠO ĐƠN NHẬP HÀNG MỚI CHO CHI NHÁNH CỦA MÌNH
           ======================================================== */}
-      {isBranchManager && (
+      {(isBranchManager || isWarehouse) && (
         <>
           <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
             <button
@@ -744,7 +747,7 @@ const AdminNhapLoPage = () => {
               style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
             >
               <i className="fa-solid fa-plus-circle" style={{ marginRight: '6px' }}></i>
-              1. Tạo Đơn Nhập Hàng Mới Cho Chi Nhánh
+              {isWarehouse ? '1. Tạo Yêu Cầu Nhập Lô Hàng Mới' : '1. Tạo Đơn Nhập Hàng Mới Cho Chi Nhánh'}
             </button>
             <button
               type="button"
@@ -762,7 +765,9 @@ const AdminNhapLoPage = () => {
               style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
             >
               <i className="fa-solid fa-boxes-packing" style={{ marginRight: '6px' }}></i>
-              3. Kiểm Đếm Phiếu Nhập Của Chi Nhánh ({branchInvoices.filter(i => i.trangThai === 0).length} chờ xử lý)
+              {isBranchManager
+                ? `3. Duyệt & Kiểm Đếm Phiếu Nhập (${branchInvoices.filter(i => i.trangThai === 0).length} chờ xử lý)`
+                : `3. Tra Cứu Phiếu Nhập (${branchInvoices.filter(i => i.trangThai === 0).length} chờ xử lý)`}
             </button>
           </div>
 
@@ -772,12 +777,16 @@ const AdminNhapLoPage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
                   <h2 className="admin-card-title" style={{ marginBottom: '4px' }}>
-                    Tạo Đơn Nhập Hàng Mới Cho {currentStoreName}
+                    {isWarehouse
+                      ? `Tạo Yêu Cầu Nhập Lô Hàng Mới Cho ${currentStoreName}`
+                      : `Tạo Đơn Nhập Hàng Mới Cho ${currentStoreName}`}
                   </h2>
                   <p style={{ color: '#666', fontSize: '13px', margin: 0 }}>
-                    {selectedYeuCauId
-                      ? `Đang lập đơn nhập hàng từ Yêu Cầu #${selectedYeuCauId}.`
-                      : 'Quản lý chi nhánh trực tiếp lập đơn nhập hàng mới cho chi nhánh của mình.'}
+                    {isWarehouse
+                      ? 'Nhân viên kho lập phiếu yêu cầu nhập lô hàng mới từ nhà cung cấp, trình Quản lý chi nhánh phê duyệt.'
+                      : (selectedYeuCauId
+                        ? `Đang lập đơn nhập hàng từ Yêu Cầu #${selectedYeuCauId}.`
+                        : 'Quản lý chi nhánh trực tiếp lập đơn nhập hàng mới cho chi nhánh của mình.')}
                   </p>
                 </div>
 
@@ -978,6 +987,7 @@ const AdminNhapLoPage = () => {
                 </div>
 
                 {/* TÙY CHỌN HÌNH THỨC KÝ DUYỆT CỦA QUẢN LÝ CHI NHÁNH */}
+                {isBranchManager && (
                 <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#1e40af', fontSize: '14px' }}>
@@ -1010,6 +1020,7 @@ const AdminNhapLoPage = () => {
                     </div>
                   )}
                 </div>
+                )}
 
                 <div style={{ textAlign: 'right' }}>
                   <button
@@ -1018,9 +1029,11 @@ const AdminNhapLoPage = () => {
                     style={{ padding: '10px 24px', fontSize: '15px' }}
                   >
                     <i className="fa-solid fa-stamp" style={{ marginRight: '8px' }}></i>
-                    {signImmediately
-                      ? 'Ký Duyệt (Quản Lý Chi Nhánh) & Hoàn Tất Nhập Kho Ngay'
-                      : 'Tạo Đơn Nhập Hàng (Chuyển Sang Chờ Kho & Kế Toán Ký)'}
+                    {isWarehouse
+                      ? 'Gửi Yêu Cầu Nhập Lô Hàng Mới (Chờ Quản Lý Duyệt)'
+                      : (signImmediately
+                        ? 'Ký Duyệt (Quản Lý Chi Nhánh) & Hoàn Tất Nhập Kho Ngay'
+                        : 'Tạo Đơn Nhập Hàng (Chuyển Sang Chờ Kho & Kế Toán Ký)')}
                   </button>
                 </div>
               </form>

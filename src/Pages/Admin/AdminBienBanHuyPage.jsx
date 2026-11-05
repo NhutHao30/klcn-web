@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
-import { getBienBanHuys, getBienBanHuyDetail } from '../../services/batchService';
+import { getBienBanHuys, getBienBanHuyDetail, duyetBienBanHuy } from '../../services/batchService';
 import { useToast } from '../../components/Toast/Toast';
 import '../../css/admin.css';
 
@@ -9,14 +9,42 @@ const AdminBienBanHuyPage = () => {
   const [bienBans, setBienBans] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [filterLyDo, setFilterLyDo] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Modal View Printable Document
   const [selectedBb, setSelectedBb] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
+    import('../../services/authService').then(({ getCurrentUser }) => {
+      getCurrentUser().then(u => setCurrentUser(u)).catch(() => {});
+    });
+  }, []);
+
+  const vaiTroId = Number(currentUser?.vaiTroId || currentUser?.vai_tro_id || 0);
+  const maRole = currentUser?.MAROLE !== undefined ? Number(currentUser.MAROLE) : null;
+  const isBranchManager = vaiTroId === 2 || maRole === 1;
+
+  useEffect(() => {
     fetchData();
   }, [filterLyDo]);
+
+  const handleApproveBienBan = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn phê duyệt biên bản hủy này? Số lượng sẽ được xuất hủy khỏi tồn kho chi nhánh.')) {
+      return;
+    }
+    try {
+      const res = await duyetBienBanHuy(id);
+      if (res.success || res.status) {
+        toast.success(res.message || 'Phê duyệt biên bản hủy thành công!');
+        fetchData();
+      } else {
+        toast.error(res.message || 'Không thể phê duyệt');
+      }
+    } catch (e) {
+      toast.error('Lỗi khi phê duyệt: ' + (e.response?.data?.message || e.message));
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -147,11 +175,20 @@ const AdminBienBanHuyPage = () => {
                         <td style={{ textAlign: 'center' }}>
                           <button
                             className="admin-btn admin-btn-info"
-                            style={{ padding: '3px 8px', fontSize: '11px' }}
+                            style={{ padding: '3px 8px', fontSize: '11px', marginRight: '6px' }}
                             onClick={() => handleViewDetail(b.id || b.MABB || b.maBienBan)}
                           >
                             <i className="fa-solid fa-file-invoice"></i> Xem Chứng Từ
                           </button>
+                          {isBranchManager && Number(b.trangThai ?? b.TRANGTHAI ?? 0) === 0 && (
+                            <button
+                              className="admin-btn admin-btn-success"
+                              style={{ padding: '3px 8px', fontSize: '11px' }}
+                              onClick={() => handleApproveBienBan(b.id || b.MABB || b.maBienBan)}
+                            >
+                              <i className="fa-solid fa-check"></i> Duyệt Hủy
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );

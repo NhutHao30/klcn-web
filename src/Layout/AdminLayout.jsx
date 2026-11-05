@@ -19,7 +19,7 @@ const AdminLayout = ({ children }) => {
         const u = JSON.parse(raw);
         const role = Number(u.MAROLE !== undefined ? u.MAROLE : u.role);
         const vtId = Number(u.vaiTroId || u.role_id || (u.vaitro ? u.vaitro.id : 1));
-        if ([1, 2, 3, 4, 5, 7, 8].includes(vtId) || [0, 1, 2, 4, 5, 6].includes(role)) {
+        if ([1, 2, 3, 4, 5, 7, 8].includes(vtId) || [0, 1, 2, 4, 5, 6, 7].includes(role)) {
           return { isAuth: true, role, vtId };
         }
       }
@@ -33,10 +33,11 @@ const AdminLayout = ({ children }) => {
   const [vaitroId, setVaitroId] = useState(initialAuth.vtId);
 
   // Accordion state for sidebar dropdown groups
+  const isWarehouseInit = initialAuth.vtId === 4 || initialAuth.role === 7;
   const [openGroups, setOpenGroups] = useState({
-    sales: true,
-    warehouse: false,
-    supplier: false,
+    sales: !isWarehouseInit,
+    warehouse: isWarehouseInit,
+    supplier: isWarehouseInit,
     products: false,
     approval: false,
     business: false,
@@ -61,7 +62,7 @@ const AdminLayout = ({ children }) => {
         const vtId = Number(user.vaiTroId || user.role_id || (user.vaitro ? user.vaitro.id : 1));
 
         // Allow all internal roles: 1: Admin, 2: Manager, 3: Cashier, 4: Warehouse, 5: CSKH, 7: Accountant, 8: Director
-        if ([1, 2, 3, 4, 5, 7, 8].includes(vtId) || [0, 1, 2, 4, 5, 6].includes(role)) {
+        if ([1, 2, 3, 4, 5, 7, 8].includes(vtId) || [0, 1, 2, 4, 5, 6, 7].includes(role)) {
           setUserRole(role);
           setVaitroId(vtId);
           setIsAuthorized(true);
@@ -95,8 +96,8 @@ const AdminLayout = ({ children }) => {
   const isAdmin = vaitroId === 1 || userRole === 0;
   const isDirector = vaitroId === 8 || userRole === 5;
   const isManager = vaitroId === 2 || userRole === 1;
-  const isCashier = vaitroId === 3;
-  const isWarehouse = vaitroId === 4;
+  const isWarehouse = vaitroId === 4 || userRole === 7;
+  const isCashier = (vaitroId === 3 || userRole === 2) && !isWarehouse;
   const isCskh = vaitroId === 5 || userRole === 4;
   const isAccountant = vaitroId === 7 || userRole === 6;
 
@@ -343,13 +344,22 @@ const AdminLayout = ({ children }) => {
                   <i className="fa-solid fa-building"></i>
                   Quản lý nhà cung cấp
                 </Link>
-                {isManager ? (
+                {isWarehouse ? (
                   <Link 
                     to="/admin/nhap-lo-hang" 
                     className={`nav-link ${location.pathname === '/admin/nhap-lo-hang' ? 'active' : ''}`}
                   >
                     <i className="fa-solid fa-boxes-packing"></i>
-                    Tạo đơn nhập hàng
+                    Tạo yêu cầu nhập lô hàng
+                    <span className="nav-badge nav-badge-hot">Kho</span>
+                  </Link>
+                ) : isManager ? (
+                  <Link 
+                    to="/admin/nhap-lo-hang" 
+                    className={`nav-link ${location.pathname === '/admin/nhap-lo-hang' ? 'active' : ''}`}
+                  >
+                    <i className="fa-solid fa-boxes-packing"></i>
+                    Duyệt & Tạo đơn nhập hàng
                     <span className="nav-badge nav-badge-hot">QL Chi nhánh</span>
                   </Link>
                 ) : isDirector ? (

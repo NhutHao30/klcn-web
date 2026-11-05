@@ -135,7 +135,7 @@ const AdminTransferPage = () => {
     const validDetails = newRequest.details.filter(d => d.MASP && d.SOLUONG > 0);
     if (validDetails.length === 0) { toast.warning('Vui lòng chọn ít nhất 1 sản phẩm!'); return; }
 
-    const targetStoreId = newRequest.MACUAHANG_YEUCAU || userStoreId;
+    const targetStoreId = newRequest.MACUAHANG_YEUCAU || userStoreId || (stores[0]?.id ?? 1);
     if (!targetStoreId) {
       toast.warning('Vui lòng chọn chi nhánh yêu cầu nhận hàng!');
       return;
@@ -562,6 +562,25 @@ const AdminTransferPage = () => {
                 <div style={{ padding: '14px 18px', background: '#e8f4fd', borderRadius: 10, marginBottom: 20, fontSize: 13, color: '#0c5460', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   <i className="fa-solid fa-circle-info" style={{ marginTop: 2 }} />
                   <span>Chọn sản phẩm cần nhập. Yêu cầu sẽ được gửi đến tất cả chi nhánh khác. Chi nhánh nào có hàng có thể hỗ trợ điều chuyển.</span>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#555', marginBottom: 6, display: 'block' }}>
+                    Chi nhánh yêu cầu nhận hàng <span style={{ color: 'red' }}>*</span>
+                  </label>
+                  <select
+                    value={newRequest.MACUAHANG_YEUCAU || userStoreId || ''}
+                    onChange={e => setNewRequest({ ...newRequest, MACUAHANG_YEUCAU: e.target.value })}
+                    required
+                    style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #ddd', borderRadius: 10, fontSize: 14, outline: 'none' }}
+                  >
+                    <option value="">-- Chọn chi nhánh nhận hàng --</option>
+                    {(Array.isArray(stores) ? stores : []).map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.ten_cuahang || s.tenCuaHang || s.TENCUAHANG || s.name || `Chi nhánh #${s.id}`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {newRequest.details.map((d, index) => (

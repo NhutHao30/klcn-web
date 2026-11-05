@@ -58,6 +58,11 @@ export const getBienBanHuyDetail = async (id) => {
   return response.data;
 };
 
+export const duyetBienBanHuy = async (id) => {
+  const response = await axiosClient.post(`/bien-ban-huy/${id}/duyet`);
+  return response.data;
+};
+
 // Thống Kê & Báo Cáo Nâng Cao
 export const getThongKeLoiNhuan = async (params = {}) => {
   const response = await axiosClient.get('/admin/thong-ke/loi-nhuan', { params });
