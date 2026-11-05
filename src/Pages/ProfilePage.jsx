@@ -4,6 +4,7 @@ import { getCurrentUser, updateProfile } from '../services/authService';
 import axiosClient from '../services/axiosClient';
 import { useToast } from '../components/Toast/Toast';
 import SignatureCanvas from '../components/Signature/SignatureCanvas';
+import { formatImageUrl } from '../utils/imageUtils';
 
 const ProfilePage = () => {
   const toast = useToast();
@@ -383,7 +384,10 @@ const ProfilePage = () => {
       payload.append('NGAYSINH', formData.NGAYSINH || '');
       payload.append('EMAIL', formData.EMAIL || '');
 
-      if (avatarFile) payload.append('AVATAR', avatarFile);
+      if (avatarFile) {
+        payload.append('AVATAR', avatarFile);
+        payload.append('avatar', avatarFile);
+      }
       if (cccdTruocFile) payload.append('CCCD_TRUOC', cccdTruocFile);
       if (cccdSauFile) payload.append('CCCD_SAU', cccdSauFile);
 
@@ -393,6 +397,7 @@ const ProfilePage = () => {
       const userData = await getCurrentUser(true);
       setUser(userData);
       setProfileData(userData.nguoidung || userData.khachhang || userData.nhanvien);
+      document.dispatchEvent(new Event('authUpdated'));
       setCccdTruocFile(null);
       setCccdSauFile(null);
       setCccdTruocPreview(null);
@@ -481,10 +486,14 @@ const ProfilePage = () => {
             <div style={styles.avatarWrapper}>
               {isEditing ? (
                 <label style={{ ...styles.avatar, cursor: 'pointer', position: 'relative' }}>
-                  {avatarPreview || user?.AVATAR ? (
-                    <img src={avatarPreview || ((user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`)} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                  {avatarPreview || user?.AVATAR || user?.avatar || profileData?.avatar || profileData?.AVATAR ? (
+                    <img 
+                      src={avatarPreview || formatImageUrl(user?.AVATAR || user?.avatar || profileData?.avatar || profileData?.AVATAR)} 
+                      alt="Avatar" 
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                    />
                   ) : (
-                    getInitials(profileData.HOTEN || profileData.hoTen)
+                    getInitials(profileData.HOTEN || profileData.hoTen || user?.username)
                   )}
                   <div style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: 'var(--primary-color)', color: '#fff', padding: '6px', borderRadius: '50%', fontSize: '14px' }}>
                     <i className="fa-solid fa-camera"></i>
@@ -493,10 +502,14 @@ const ProfilePage = () => {
                 </label>
               ) : (
                 <div style={styles.avatar}>
-                  {user?.AVATAR ? (
-                    <img src={(user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                  {user?.AVATAR || user?.avatar || profileData?.avatar || profileData?.AVATAR ? (
+                    <img 
+                      src={formatImageUrl(user?.AVATAR || user?.avatar || profileData?.avatar || profileData?.AVATAR)} 
+                      alt="Avatar" 
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                    />
                   ) : (
-                    getInitials(profileData.HOTEN || profileData.hoTen)
+                    getInitials(profileData.HOTEN || profileData.hoTen || user?.username)
                   )}
                 </div>
               )}

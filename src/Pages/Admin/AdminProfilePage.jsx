@@ -5,6 +5,7 @@ import axiosClient from '../../services/axiosClient';
 import { useToast } from '../../components/Toast/Toast';
 import SignatureCanvas from '../../components/Signature/SignatureCanvas';
 import '../../css/admin.css';
+import { formatImageUrl } from '../../utils/imageUtils';
 
 const AdminProfilePage = () => {
   const toast = useToast();
@@ -52,7 +53,8 @@ const AdminProfilePage = () => {
         NGAYSINH: nv.ngaySinh ? String(nv.ngaySinh).split('T')[0] : (nv.NGAYSINH ? String(nv.NGAYSINH).split('T')[0] : ''),
         EMAIL: userData.email || userData.EMAIL || nv.email || nv.EMAIL || ''
       });
-      if (nv.hinhAnh || nv.HINHANH) setAvatarPreview(nv.hinhAnh || nv.HINHANH);
+      const av = nv.avatar || nv.AVATAR || nv.hinhAnh || nv.HINHANH || userData.avatar || userData.AVATAR;
+      if (av) setAvatarPreview(formatImageUrl(av));
     } catch (e) {
       toast.error('Không thể tải thông tin cá nhân: ' + (e.response?.data?.message || e.message));
     } finally {
@@ -89,11 +91,13 @@ const AdminProfilePage = () => {
       }
       if (avatarFile) {
         payload.append('avatar', avatarFile);
+        payload.append('AVATAR', avatarFile);
         payload.append('HINHANH', avatarFile);
       }
 
       const res = await updateProfile(payload);
       toast.success(res.message || 'Cập nhật thông tin thành công!');
+      document.dispatchEvent(new Event('authUpdated'));
       fetchProfile();
     } catch (e) {
       toast.error('Lỗi khi lưu thông tin: ' + (e.response?.data?.error || e.response?.data?.message || e.message));
@@ -112,7 +116,8 @@ const AdminProfilePage = () => {
       const res = await axiosClient.post('/profile/chu-ky', { chu_ky: signatureData });
       if (res.data?.status || res.data?.message) {
         toast.success('Đã lưu chữ ký số cá nhân thành công!');
-        fetchProfile();
+        document.dispatchEvent(new Event('authUpdated'));
+      fetchProfile();
       }
     } catch (e) {
       toast.error('Lỗi khi lưu chữ ký: ' + (e.response?.data?.error || e.message));

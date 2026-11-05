@@ -41,6 +41,112 @@ const getUserDisplayName = (user) => {
     );
 };
 
+const getUserInitial = (user) => {
+    const displayName = getUserDisplayName(user) || '';
+    if (!displayName) return 'U';
+    const parts = displayName.trim().split(/\s+/);
+    const lastWord = parts[parts.length - 1];
+    return (lastWord?.charAt(0) || displayName.charAt(0) || 'U').toUpperCase();
+};
+
+const renderUserAvatar = (user) => {
+    if (!user) {
+        return <i className="nav-icon fa-regular fa-user"></i>;
+    }
+
+    const avatarUrl =
+        user?.AVATAR ||
+        user?.avatar ||
+        user?.nguoidung?.AVATAR ||
+        user?.nguoidung?.avatar ||
+        user?.khachhang?.AVATAR ||
+        user?.khachhang?.avatar ||
+        user?.nhanvien?.AVATAR ||
+        user?.nhanvien?.avatar;
+
+    const initial = getUserInitial(user);
+
+    if (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.trim() !== '') {
+        const fullSrc = (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://') || avatarUrl.startsWith('/api/'))
+            ? avatarUrl
+            : formatImageUrl(avatarUrl);
+
+        return (
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                <img
+                    src={fullSrc}
+                    alt="Avatar"
+                    onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.avatar-initial-fallback');
+                        if (fallback) fallback.style.display = 'inline-flex';
+                    }}
+                    style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '2px solid #ffffff',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                        verticalAlign: 'middle',
+                        marginBottom: '4px'
+                    }}
+                />
+                <div
+                    className="avatar-initial-fallback"
+                    style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary-color, #c58b38)',
+                        color: '#ffffff',
+                        display: 'none',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        textTransform: 'uppercase',
+                        border: '2px solid #ffffff',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                        userSelect: 'none',
+                        marginBottom: '4px',
+                        verticalAlign: 'middle'
+                    }}
+                    title={getUserDisplayName(user)}
+                >
+                    {initial}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div
+            style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--primary-color, #c58b38)',
+                color: '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '700',
+                fontSize: '13px',
+                textTransform: 'uppercase',
+                border: '2px solid #ffffff',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                userSelect: 'none',
+                marginBottom: '4px',
+                verticalAlign: 'middle'
+            }}
+            title={getUserDisplayName(user)}
+        >
+            {initial}
+        </div>
+    );
+};
+
 const Header = () => {
     const [isScrolled, setIsScrolled] = useState(false);
 
@@ -195,12 +301,8 @@ const Header = () => {
                                             <div className="nav-item__link-icon search-btn-js">
                                                 <i className="nav-icon fa-solid fa-magnifying-glass"></i>
                                             </div>
-                                            <div className="nav-item__link-icon hide-on-mobile" style={{ cursor: "pointer" }}>
-                                                {user?.AVATAR ? (
-                                                    <img src={(user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px', }} />
-                                                ) : (
-                                                    <i className="nav-icon fa-regular fa-user"></i>
-                                                )}
+                                            <div className="nav-item__link-icon" style={{ cursor: "pointer" }}>
+                                                {renderUserAvatar(user)}
                                                 <ul className="nav-icon__user">
                                                     {user ? (
                                                         <>
@@ -316,12 +418,8 @@ const Header = () => {
                                                     <div className="nav-item__link-icon search-btn-js">
                                                         <i className="nav-icon fa-solid fa-magnifying-glass"></i>
                                                     </div>
-                                                    <div className="nav-item__link-icon hide-on-mobile" style={{ cursor: "pointer" }}>
-                                                        {user?.AVATAR ? (
-                                                            <img src={(user.AVATAR.startsWith('http') || user.AVATAR.startsWith('/api/')) ? user.AVATAR : `../../assets/IMG/${user.AVATAR.split('/').pop()}`} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px'}} />
-                                                        ) : (
-                                                            <i className="nav-icon fa-regular fa-user"></i>
-                                                        )}
+                                                    <div className="nav-item__link-icon" style={{ cursor: "pointer" }}>
+                                                        {renderUserAvatar(user)}
                                                         <ul className="nav-icon__user">
                                                             {user ? (
                                                                 <>
