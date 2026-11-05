@@ -198,6 +198,21 @@ const AdminOnlineOrderPage = () => {
     }
   };
 
+  const handleCreateGhnOrder = async (orderId) => {
+    try {
+      toast.info('Đang gửi yêu cầu tạo vận đơn Giao Hàng Nhanh...');
+      const res = await axiosClient.post(`/ghn/create-order/${orderId}`);
+      if (res.data?.success) {
+        toast.success(res.data.message || 'Đã tạo vận đơn GHN thành công!');
+        await fetchOrders();
+      } else {
+        toast.warning(res.data?.message || 'Không thể tạo vận đơn GHN');
+      }
+    } catch (e) {
+      toast.error('Lỗi tạo vận đơn GHN: ' + (e.response?.data?.message || e.message));
+    }
+  };
+
   const handleOpenDetailModal = async (order) => {
     setSelectedOrder(order);
     setIsEditingOrder(false);
@@ -775,7 +790,31 @@ const AdminOnlineOrderPage = () => {
                               </button>
                             </div>
                           ) : (
-                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>Chưa phát sinh</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>Chưa phát sinh</span>
+                              {['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(normStatus) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCreateGhnOrder(orderId)}
+                                  style={{
+                                    padding: '2px 8px',
+                                    fontSize: '11px',
+                                    backgroundColor: '#d82d8b',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px'
+                                  }}
+                                  title="Khởi tạo mã vận đơn GHN cho đơn hàng này"
+                                >
+                                  🚚 Tạo mã GHN
+                                </button>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td style={{ textAlign: 'center' }}>

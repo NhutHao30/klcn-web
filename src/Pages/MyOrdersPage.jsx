@@ -17,6 +17,7 @@ const CANCEL_REASONS = [
 ];
 
 const RETURN_REASONS = [
+  "Không ưng ý (Sản phẩm còn nguyên vẹn, chưa khui mở/chưa sử dụng)",
   "Bánh bị hỏng hóc, dập nát, biến dạng khi vận chuyển",
   "Giao sai mẫu mã, chủng loại hoặc kích thước bánh",
   "Bánh có dấu hiệu không đảm bảo chất lượng / cận hạn sử dụng",
@@ -365,18 +366,17 @@ const MyOrdersPage = () => {
     }
   };
 
-  // Đơn hàng chỉ được hủy khi trạng thái là đang xử lý VÀ CHƯA THANH TOÁN
+  // QUY TẮC: Đơn hàng CHỈ được hủy khi đang ở trạng thái ban đầu "đang xử lý" (Chờ xử lý / Chờ xác nhận) VÀ CHƯA THANH TOÁN
+  // Khi nhân viên đã xác nhận đơn (Đang chuẩn bị, Chờ lấy hàng, Đang giao...), KHÔNG CHO PHÉP HỦY ĐƠN!
   const isCancellable = viewingOrder && 
-    (viewingOrder.trangThaiDonHang === 1 || viewingOrder.trangThaiDonHang === 2 || viewingOrder.trangThaiDonHang === 7 || 
-     ['Chờ xử lý', 'Chờ xác nhận', 'Đang chuẩn bị', 'Chờ lấy hàng'].includes(viewingOrder.trangThai)) &&
-    !['Đang giao', 'Đã hoàn thành', 'Đã hủy', 'Đã hoàn hàng', 'Yêu cầu hoàn trả'].includes(viewingOrder.trangThai) &&
+    (viewingOrder.trangThaiDonHang === 1 || ['Chờ xử lý', 'Chờ xác nhận'].includes(viewingOrder.trangThai)) &&
+    !['Đang chuẩn bị', 'Chờ lấy hàng', 'Đang giao', 'Đã hoàn thành', 'Đã giao', 'Đã hủy', 'Đã hoàn hàng', 'Yêu cầu hoàn trả'].includes(viewingOrder.trangThai) &&
     Number(viewingOrder.trangThaiThanhToan) === 0;
 
   // Đơn hàng đang xử lý nhưng ĐÃ THANH TOÁN -> Khóa hủy, hướng dẫn hoàn hàng
   const isProcessingPaid = viewingOrder && 
-    (viewingOrder.trangThaiDonHang === 1 || viewingOrder.trangThaiDonHang === 2 || viewingOrder.trangThaiDonHang === 7 || 
-     ['Chờ xử lý', 'Chờ xác nhận', 'Đang chuẩn bị', 'Chờ lấy hàng'].includes(viewingOrder.trangThai)) &&
-    !['Đang giao', 'Đã hoàn thành', 'Đã hủy', 'Đã hoàn hàng', 'Yêu cầu hoàn trả'].includes(viewingOrder.trangThai) &&
+    (viewingOrder.trangThaiDonHang === 1 || ['Chờ xử lý', 'Chờ xác nhận'].includes(viewingOrder.trangThai)) &&
+    !['Đang chuẩn bị', 'Chờ lấy hàng', 'Đang giao', 'Đã hoàn thành', 'Đã giao', 'Đã hủy', 'Đã hoàn hàng', 'Yêu cầu hoàn trả'].includes(viewingOrder.trangThai) &&
     Number(viewingOrder.trangThaiThanhToan) === 1;
 
   // Đơn hàng có thể yêu cầu trả hàng & hoàn tiền (Đã giao đến khách)
@@ -490,7 +490,7 @@ const MyOrdersPage = () => {
                 <p style={{ margin: '0 0 6px 0' }}><strong>Ngày đặt:</strong> {viewingOrder.ngayLap}</p>
                 <p style={{ margin: '0 0 6px 0' }}><strong>Tiếp nhận bởi:</strong> <span style={{ color: '#c89968', fontWeight: '700' }}>{viewingOrder.tenCuaHang || 'Givral Bakery'}</span></p>
                 <p style={{ margin: '0 0 6px 0' }}><strong>Ghi chú:</strong> {viewingOrder.ghiChu || 'Không có'}</p>
-                <p style={{ margin: '0 0 6px 0' }}><strong>Vận chuyển:</strong> {viewingOrder.donViVanChuyen || 'Giao hàng tiêu chuẩn'}</p>
+                <p style={{ margin: '0 0 6px 0' }}><strong>Vận chuyển:</strong> {viewingOrder.donViVanChuyen || 'Giao Hàng Nhanh (GHN Express)'}</p>
                 {viewingOrder.maVanDon && (
                   <p style={{ margin: 0 }}>
                     <strong>Mã vận đơn:</strong> <span style={{ color: '#d82d8b', fontWeight: 'bold' }}>{viewingOrder.maVanDon}</span>
@@ -1274,8 +1274,14 @@ const MyOrdersPage = () => {
               )}
             </div>
 
-            {/* Khối kê khai thông tin tài khoản ngân hàng để nhân viên chuyển khoản hoàn tiền */}
-            {(Number(viewingOrder.trangThaiThanhToan) === 1 || viewingOrder.phuongThucTT?.includes('Chuyển khoản') || viewingOrder.phuongThucTT?.includes('MoMo') || viewingOrder.phuongThucTT?.includes('VietQR')) && (
+            {/* Khối kê khai thông tin tài khoản ngân hàng để nhân viên chuyển khoản hoàn tiền (Dành cho đơn thanh toán online hoặc đã thanh toán) */}
+            {(Number(viewingOrder.trangThaiThanhToan) === 1 || 
+              Number(viewingOrder.phuongThucThanhToan) === 1 || 
+              Number(viewingOrder.phuongThucThanhToan) === 2 || 
+              viewingOrder.phuongThucTT?.includes('Chuyển khoản') || 
+              viewingOrder.phuongThucTT?.includes('VNPAY') || 
+              viewingOrder.phuongThucTT?.includes('MoMo') || 
+              viewingOrder.phuongThucTT?.includes('VietQR')) && (
               <div style={{ padding: '14px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '20px' }}>
                 <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <i className="fa-solid fa-building-columns" style={{ color: '#0284c7' }}></i>

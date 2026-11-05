@@ -278,9 +278,13 @@ const [conversations, setConversations] = useState([]);
     });
 
     fetchConversations(true);
+    // Gửi ping báo hiệu nhân viên CSKH đang trực tuyến ngay lập tức
+    axiosClient.post('/chat/staff-ping').catch(() => {});
+
     const interval = setInterval(() => {
       if (!document.hidden) {
         fetchConversations(false);
+        axiosClient.post('/chat/staff-ping').catch(() => {});
       }
     }, 4000);
     return () => {

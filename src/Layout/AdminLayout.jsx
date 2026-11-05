@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { logout, getCurrentUser } from '../services/authService';
+import axiosClient from '../services/axiosClient';
 import { useToast } from '../components/Toast/Toast';
 import '../css/admin.css';
 
@@ -77,6 +78,18 @@ const AdminLayout = ({ children }) => {
     };
     checkAuth();
   }, []);
+
+  // Ping báo hiệu nhân viên / quản trị viên đang trực tuyến để Chatbot AI tự động nhường quyền
+  useEffect(() => {
+    if (!isAuthorized) return;
+    axiosClient.post('/chat/staff-ping').catch(() => {});
+    const pingInterval = setInterval(() => {
+      if (!document.hidden) {
+        axiosClient.post('/chat/staff-ping').catch(() => {});
+      }
+    }, 20000);
+    return () => clearInterval(pingInterval);
+  }, [isAuthorized]);
 
   // Helper flags for roles
   const isAdmin = vaitroId === 1 || userRole === 0;
