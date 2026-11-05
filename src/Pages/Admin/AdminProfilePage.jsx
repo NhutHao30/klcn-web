@@ -113,7 +113,7 @@ const AdminProfilePage = () => {
     }
     setIsSavingSignature(true);
     try {
-      const res = await axiosClient.post('/profile/chu-ky', { chu_ky: signatureData });
+      const res = await axiosClient.post('/profile/chu-ky', { chu_ky: signatureData, signature_data: signatureData });
       if (res.data?.status || res.data?.message) {
         toast.success('Đã lưu chữ ký số cá nhân thành công!');
         document.dispatchEvent(new Event('authUpdated'));
@@ -208,7 +208,7 @@ const AdminProfilePage = () => {
 
   const employeeData = user?.nguoidung || user?.nhanvien || {};
   const storeName = employeeData.cuahang?.tenCuaHang || employeeData.cuahang?.TENCUAHANG || employeeData.tenCuaHang || user?.tenCuaHang || null;
-  const signatureUrl = employeeData.chuKy || employeeData.CHU_KY || user?.chuKy;
+  const signatureUrl = employeeData.chuKy || employeeData.chuKySo || employeeData.CHU_KY || user?.chuKy || user?.chuKySo;
 
   return (
     <AdminLayout>
