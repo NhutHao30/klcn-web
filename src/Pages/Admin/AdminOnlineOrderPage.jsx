@@ -1620,11 +1620,43 @@ const AdminOnlineOrderPage = () => {
                 </table>
               )}
 
-              <div style={{ textAlign: 'right', marginTop: '1rem', fontSize: '16px' }}>
-                Tổng cộng thanh toán: <b style={{ color: '#b45309', fontSize: '18px' }}>
-                  {Number(selectedOrder.TONGTIEN || selectedOrder.TONG_TIEN || selectedOrder.tongTien || 0).toLocaleString('vi-VN')}đ
-                </b>
-              </div>
+              {(() => {
+                const lineSum = orderDetails && orderDetails.length > 0
+                  ? orderDetails.reduce((sum, it) => {
+                      const sl = Number(it.SOLUONG || it.SO_LUONG || it.soLuong || 1);
+                      const gia = Number(it.DONGIA || it.DON_GIA || it.donGia || it.GIABAN || 0);
+                      return sum + (Number(it.thanhTien) || (sl * gia));
+                    }, 0)
+                  : 0;
+                const shipping = Number(selectedOrder.phiVanChuyen || selectedOrder.phi_van_chuyen || 0);
+                const discount = Number(selectedOrder.soTienGiam || selectedOrder.so_tien_giam || 0);
+                const totalDisplay = lineSum > 0 ? Math.max(0, lineSum + shipping - discount) : Number(selectedOrder.TONGTIEN || selectedOrder.TONG_TIEN || selectedOrder.tongTien || selectedOrder.tongThanhToan || 0);
+
+                return (
+                  <div style={{ textAlign: 'right', marginTop: '1rem', fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    {lineSum > 0 && (
+                      <div style={{ color: '#64748b' }}>
+                        Tiền hàng: <b>{lineSum.toLocaleString('vi-VN')} đ</b>
+                      </div>
+                    )}
+                    {shipping > 0 && (
+                      <div style={{ color: '#64748b' }}>
+                        Phí vận chuyển: <b>{shipping.toLocaleString('vi-VN')} đ</b>
+                      </div>
+                    )}
+                    {discount > 0 && (
+                      <div style={{ color: '#16a34a', fontWeight: 'bold' }}>
+                        Voucher giảm giá: <b>-{discount.toLocaleString('vi-VN')} đ</b>
+                      </div>
+                    )}
+                    <div style={{ fontSize: '15px', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #eee', width: '220px' }}>
+                      Tổng cộng: <b style={{ color: '#b45309', fontSize: '18px' }}>
+                        {totalDisplay.toLocaleString('vi-VN')} đ
+                      </b>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="admin-modal-footer">

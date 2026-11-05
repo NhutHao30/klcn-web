@@ -298,12 +298,30 @@ const ChatBox = ({ currentUser }) => {
             .listen('.MessageSent', (e) => {
               if (!e?.message) return;
               setMessages(prev => {
-                const msgId = e.message.MATINNHAN || e.message.id;
-                const exists = prev.find(m => (m.MATINNHAN || m.id) === msgId);
-                if (exists) {
-                  return prev.map(m => (m.MATINNHAN || m.id) === msgId ? e.message : m);
+                const incoming = e.message;
+                const msgId = incoming.MATINNHAN || incoming.id;
+                const incomingText = (incoming.NOIDUNG || incoming.noiDung || '').trim();
+
+                // 1. Nếu tin nhắn đã có theo ID thật -> cập nhật
+                if (prev.some(m => (m.MATINNHAN || m.id) === msgId)) {
+                  return prev.map(m => (m.MATINNHAN || m.id) === msgId ? incoming : m);
                 }
-                return [...prev, e.message];
+
+                // 2. Nếu là tin nhắn của khách và đang có tin tạm (temp_*) cùng nội dung -> thay thế tin tạm
+                const isCust = incoming.nguoiGuiType === 0 || incoming.LOAINGUOIGUI === 'khachhang';
+                if (isCust) {
+                  const tempIdx = prev.findIndex(m => 
+                    (m.sending || String(m.id || m.MATINNHAN).startsWith('temp_')) &&
+                    (m.NOIDUNG || m.noiDung || '').trim() === incomingText
+                  );
+                  if (tempIdx !== -1) {
+                    const next = [...prev];
+                    next[tempIdx] = incoming;
+                    return next;
+                  }
+                }
+
+                return [...prev, incoming];
               });
             })
             .listenForWhisper('typing', (e) => {
@@ -327,16 +345,32 @@ const ChatBox = ({ currentUser }) => {
     };
   }, [currentUser, isAdminPath]);
 
-  // Polling đồng bộ tin nhắn siêu nhanh mỗi 3.5 giây khi mở hộp chat
+  // Polling đồng bộ tin nhắn định kỳ khi mở hộp chat
   useEffect(() => {
     if (!conversationId || !isOpen || isAdminPath) return;
+
+    const mergeServerMessages = (serverMsgs) => {
+      setMessages(prev => {
+        const serverCustTexts = new Set(
+          serverMsgs
+            .filter(m => m.nguoiGuiType === 0 || m.LOAINGUOIGUI === 'khachhang')
+            .map(m => (m.NOIDUNG || m.noiDung || '').trim())
+        );
+
+        // Giữ lại các tin tạm mà server chưa kịp trả về
+        const pendingTemps = prev.filter(m => 
+          (m.sending || String(m.id || m.MATINNHAN).startsWith('temp_')) &&
+          !serverCustTexts.has((m.NOIDUNG || m.noiDung || '').trim())
+        );
+
+        return [...serverMsgs, ...pendingTemps];
+      });
+    };
 
     // Lấy tin nhắn ngay khi vừa mở hộp thoại
     axiosClient.get(`/chat/conversations/${conversationId}/messages`)
       .then(res => {
-        if (Array.isArray(res.data)) {
-          setMessages(res.data);
-        }
+        if (Array.isArray(res.data)) mergeServerMessages(res.data);
       })
       .catch(() => {});
 
@@ -345,7 +379,7 @@ const ChatBox = ({ currentUser }) => {
         axiosClient.get(`/chat/conversations/${conversationId}/messages`)
           .then(res => {
             if (Array.isArray(res.data) && res.data.length > 0) {
-              setMessages(res.data);
+              mergeServerMessages(res.data);
             }
           })
           .catch(() => {});
@@ -432,10 +466,24 @@ const ChatBox = ({ currentUser }) => {
   // Ẩn hoàn toàn trên giao diện admin
   if (isAdminPath) return null;
 
-    // Lọc trùng lặp ID tin nhắn
+  // Lọc triệt để trùng lặp ID và trùng lặp tin tạm (Optimistic)
   const uniqueMessages = [];
   const seenIds = new Set();
+  const confirmedCustTexts = new Set(
+    messages
+      .filter(m => !String(m.id || m.MATINNHAN).startsWith('temp_') && !m.sending)
+      .map(m => (m.NOIDUNG || m.noiDung || '').trim())
+  );
+
   for (const m of messages) {
+    const isTemp = m.sending || String(m.id || m.MATINNHAN).startsWith('temp_');
+    const content = (m.NOIDUNG || m.noiDung || '').trim();
+
+    // Nếu tin tạm có cùng nội dung với tin đã có trên server -> bỏ qua tin tạm để chống trùng lặp
+    if (isTemp && confirmedCustTexts.has(content)) {
+      continue;
+    }
+
     const key = m.MATINNHAN || m.id;
     if (!key || !seenIds.has(key)) {
       if (key) seenIds.add(key);
