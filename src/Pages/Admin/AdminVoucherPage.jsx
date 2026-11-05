@@ -183,13 +183,18 @@ const AdminVoucherPage = () => {
   };
 
   const handleDeleteVoucher = async (code) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa voucher ${code}?`)) return;
+    const voucherKey = code;
+    if (!voucherKey) {
+      toast.warning('Không tìm thấy mã voucher để xóa!');
+      return;
+    }
+    if (!window.confirm(`Bạn có chắc muốn xóa voucher ${voucherKey}?`)) return;
     try {
-      await axiosClient.delete(`/admin/vouchers/${code}`);
+      await axiosClient.delete(`/admin/vouchers/${encodeURIComponent(voucherKey)}`);
       toast.success('Đã xóa voucher thành công!');
       fetchVouchers();
     } catch (e) {
-      toast.error('Lỗi khi xóa: ' + (e.response?.data?.message || e.message));
+      toast.error('Lỗi khi xóa: ' + (e.response?.data?.error || e.response?.data?.message || e.message));
     }
   };
 
@@ -549,7 +554,7 @@ const AdminVoucherPage = () => {
                           <button
                             className="admin-btn admin-btn-danger"
                             style={{ padding: '3px 8px', fontSize: '11px' }}
-                            onClick={() => handleDeleteVoucher(v.MA_VOUCHER)}
+                            onClick={() => handleDeleteVoucher(v.MA_VOUCHER || v.ma_voucher || v.maVoucher || v.id)}
                           >
                             <i className="fa-solid fa-trash"></i> Xóa
                           </button>

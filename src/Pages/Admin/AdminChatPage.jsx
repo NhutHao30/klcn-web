@@ -408,8 +408,11 @@ const [conversations, setConversations] = useState([]);
 
   const handleRecall = async (msgId) => {
     try {
-      const res = await axiosClient.delete(`/chat/conversations/${activeConversation.MACUOCTROCHUYEN}/messages/${msgId}`);
-      setMessages(prev => prev.map(m => m.MATINNHAN === msgId ? res.data : m));
+      const convId = activeConversation.MACUOCTROCHUYEN || activeConversation.id;
+      const res = await axiosClient.delete(`/chat/conversations/${convId}/messages/${msgId}`);
+      const updated = res.data?.data || res.data;
+      setMessages(prev => prev.map(m => (m.MATINNHAN || m.id) === msgId ? (updated || { ...m, NOIDUNG: '🚫 Tin nhắn đã bị thu hồi', noiDung: '🚫 Tin nhắn đã bị thu hồi' }) : m));
+      toast.success("Đã thu hồi tin nhắn thành công.");
     } catch (error) {
       toast.error("Không thể thu hồi tin nhắn này.");
     }
@@ -784,7 +787,7 @@ const CskhPanel = ({ makh, conversationId, onSendChatText }) => {
   const filteredProducts = allProducts.filter(p => {
     const matchCat = (selectedCategory === 'all') || String(p.loaiId) === String(selectedCategory);
     const q = (searchSp || '').trim().toLowerCase();
-    const name = (p.TENSP || p.tenSanPham || '').toLowerCase();
+    const name = (p.tenSanPham || p.TENSP || p.name || '').toLowerCase();
     const id = String(p.id || p.MASP || '');
     const matchSearch = !q || name.includes(q) || id.includes(q);
     return matchCat && matchSearch;
@@ -1188,7 +1191,7 @@ const CskhPanel = ({ makh, conversationId, onSendChatText }) => {
               ) : (
                 filteredProducts.map(p => (
                   <option key={p.id || p.MASP} value={p.id || p.MASP}>
-                    {p.TENSP || p.tenSanPham} - {Number(p.GIABAN || p.giaBan || 0).toLocaleString('vi-VN')} đ
+                    {p.tenSanPham || p.TENSP || p.name || ('Bánh #' + (p.id || p.MASP))} - {Number(p.giaBan || p.GIABAN || 0).toLocaleString('vi-VN')} đ
                   </option>
                 ))
               )}
@@ -1201,10 +1204,10 @@ const CskhPanel = ({ makh, conversationId, onSendChatText }) => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h5 style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', color: '#1e293b' }}>
-                    {selectedProduct.TENSP || selectedProduct.tenSanPham}
+                    {selectedProduct.tenSanPham || selectedProduct.TENSP || selectedProduct.name}
                   </h5>
                   <div style={{ color: '#d82d8b', fontWeight: 'bold', fontSize: '13px', marginTop: '2px' }}>
-                    {Number(selectedProduct.GIABAN || selectedProduct.giaBan || 0).toLocaleString('vi-VN')} đ
+                    {Number(selectedProduct.giaBan || selectedProduct.GIABAN || 0).toLocaleString('vi-VN')} đ
                   </div>
                 </div>
                 <button

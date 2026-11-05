@@ -421,7 +421,9 @@ const ChatBox = ({ currentUser }) => {
   const handleRecall = async (msgId) => {
     try {
       const res = await axiosClient.delete(`/chat/conversations/${conversationId}/messages/${msgId}`);
-      setMessages(prev => prev.map(m => (m.MATINNHAN || m.id) === msgId ? res.data : m));
+      const updated = res.data?.data || res.data;
+      setMessages(prev => prev.map(m => (m.MATINNHAN || m.id) === msgId ? (updated || { ...m, NOIDUNG: '🚫 Tin nhắn đã bị thu hồi', noiDung: '🚫 Tin nhắn đã bị thu hồi' }) : m));
+      toast.success("Đã thu hồi tin nhắn.");
     } catch (error) {
       toast.error("Không thể thu hồi tin nhắn này.");
     }
