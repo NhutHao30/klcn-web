@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Footer from '../Layout/Footer';
 import axiosClient from '../services/axiosClient';
@@ -23,6 +23,34 @@ const ProductDetailPage = () => {
   const [replyingReviewId, setReplyingReviewId] = useState(null);
   const [reviewCommentText, setReviewCommentText] = useState('');
   const [submittingReviewComment, setSubmittingReviewComment] = useState(false);
+  const [isRefreshingReviews, setIsRefreshingReviews] = useState(false);
+
+  const fetchReviews = useCallback(async (isManual = false) => {
+    if (isManual) setIsRefreshingReviews(true);
+    try {
+      const prodId = product?.id || id;
+      const reviewsRes = await axiosClient.get(`/products/${prodId}/reviews`, {
+        params: { _t: Date.now() }
+      });
+      if (Array.isArray(reviewsRes.data)) {
+        setReviews(reviewsRes.data);
+      }
+    } catch (e) {
+      // silent catch for polling
+    } finally {
+      if (isManual) setIsRefreshingReviews(false);
+    }
+  }, [id, product?.id]);
+
+  // Polling tự động làm mới đánh giá & bình luận sản phẩm mỗi 3 giây (Realtime)
+  useEffect(() => {
+    if (!id) return;
+    const interval = setInterval(() => {
+      fetchReviews(false);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [fetchReviews, id]);
+
 
   const handleSendReviewComment = async (reviewId) => {
     if (!localStorage.getItem('access_token')) {
@@ -41,9 +69,8 @@ const ProductDetailPage = () => {
       toast.success('Bình luận của bạn đã được đăng thành công!');
       setReviewCommentText('');
       setReplyingReviewId(null);
-      // Reload reviews
-      const reviewsRes = await axiosClient.get(`/products/${id}/reviews`).catch(() => ({ data: [] }));
-      setReviews(reviewsRes.data || []);
+      // Reload reviews realtime
+      await fetchReviews(true);
     } catch (e) {
       console.error(e);
       toast.error(e.response?.data?.message || e.response?.data?.error || 'Không thể gửi bình luận lúc này!');
@@ -577,9 +604,30 @@ const ProductDetailPage = () => {
 
           {/* SECTION 4: ĐÁNH GIÁ SẢN PHẨM */}
           <div style={{ backgroundColor: '#fff', padding: '30px 20px', borderRadius: '12px', border: '1px solid #eee', marginTop: '40px' }}>
-            <h3 style={{ fontSize: '20px', color: '#333', borderBottom: '2px solid #eee', paddingBottom: '10px', marginBottom: '20px', fontWeight: 'bold' }}>
-              Đánh Giá Sản Phẩm ({reviews.length})
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '10px', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h3 style={{ fontSize: '20px', color: '#333', margin: 0, fontWeight: 'bold' }}>
+                  Đánh Giá Sản Phẩm ({reviews.length})
+                </h3>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#16a34a', backgroundColor: '#dcfce7', padding: '3px 10px', borderRadius: '12px', fontWeight: '600' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16a34a', display: 'inline-block' }}></span>
+                  Trực tiếp
+                </span>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  fetchReviews(true);
+                  toast.info("Đã làm mới danh sách đánh giá & bình luận!");
+                }}
+                disabled={isRefreshingReviews}
+                style={{ background: '#f8f9fa', border: '1px solid #ddd', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }}
+                title="Làm mới danh sách đánh giá"
+              >
+                <i className={`fa-solid fa-rotate-right ${isRefreshingReviews ? 'fa-spin' : ''}`}></i>
+                {isRefreshingReviews ? 'Đang tải...' : 'Làm mới'}
+              </button>
+            </div>
 
             {reviews.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px', color: '#888' }}>

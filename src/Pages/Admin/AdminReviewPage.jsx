@@ -50,6 +50,33 @@ const AdminReviewPage = () => {
     fetchReviews();
   }, [fetchReviews]);
 
+  // Polling tự động làm mới danh sách đánh giá mỗi 3.5 giây (Realtime)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      axiosClient.get('/admin/reviews', {
+        params: {
+          page: pagination.current_page || 1,
+          search: search || undefined,
+          soSao: filterSoSao || undefined,
+          trangThai: filterTrangThai !== '' ? filterTrangThai : undefined,
+          _t: Date.now()
+        }
+      }).then(res => {
+        const raw = res.data;
+        const list = raw.data || (Array.isArray(raw) ? raw : []);
+        setReviews(list);
+        setPagination(prev => ({
+          ...prev,
+          current_page: raw.current_page || 1,
+          last_page: raw.last_page || 1,
+          total: raw.total !== undefined ? raw.total : list.length,
+        }));
+      }).catch(() => {});
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [search, filterSoSao, filterTrangThai, pagination.current_page]);
+
   const handleToggleStatus = async (review) => {
     try {
       const res = await axiosClient.put(`/admin/reviews/${review.id}/toggle`);
@@ -113,10 +140,22 @@ const AdminReviewPage = () => {
             Theo dõi, phản hồi nhận xét của khách hàng và ẩn/hiện đánh giá trên website
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#16a34a', backgroundColor: '#dcfce7', padding: '4px 10px', borderRadius: '14px', fontWeight: '600' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#16a34a', display: 'inline-block' }}></span>
+            Realtime
+          </span>
           <span style={{ backgroundColor: '#f0ece7', color: '#7a5230', padding: '6px 14px', borderRadius: '20px', fontWeight: '700', fontSize: '13px' }}>
             Tổng: {pagination.total} đánh giá
           </span>
+          <button 
+            type="button" 
+            className="admin-btn admin-btn-secondary" 
+            style={{ padding: '6px 12px', fontSize: '13px' }}
+            onClick={() => fetchReviews(pagination.current_page)}
+          >
+            <i className="fa-solid fa-rotate-right" style={{ marginRight: '5px' }}></i> Làm mới
+          </button>
         </div>
       </div>
 

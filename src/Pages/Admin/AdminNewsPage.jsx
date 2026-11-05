@@ -37,7 +37,7 @@ const [news, setNews] = useState([]);
         fetchNews();
     }, [searchTerm]);
 
-    // Polling tự động làm mới bình luận khi đang mở modal chi tiết bài viết (mỗi 4 giây)
+    // Polling tự động làm mới bình luận khi đang mở modal chi tiết bài viết (mỗi 2.5 giây - Realtime)
     useEffect(() => {
         if (!selectedNews?.MATINTUC) return;
         const interval = setInterval(async () => {
@@ -49,7 +49,7 @@ const [news, setNews] = useState([]);
             } catch (err) {
                 // Ignore silent poll error
             }
-        }, 4000);
+        }, 2500);
         return () => clearInterval(interval);
     }, [selectedNews?.MATINTUC]);
 

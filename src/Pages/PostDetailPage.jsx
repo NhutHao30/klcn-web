@@ -59,7 +59,7 @@ function PostDetailPage() {
         };
         fetchDetail();
 
-        // Tự động cập nhật bình luận mới (Polling mỗi 4 giây)
+        // Tự động cập nhật bình luận mới (Polling mỗi 2.5 giây - Realtime)
         const interval = setInterval(async () => {
             try {
                 const cmtData = await getNewsComments(id);
@@ -69,7 +69,7 @@ function PostDetailPage() {
             } catch (err) {
                 // Ignore silent poll error
             }
-        }, 4000);
+        }, 2500);
 
         return () => clearInterval(interval);
     }, [id]);
@@ -369,7 +369,26 @@ function PostDetailPage() {
                                         )}
 
                                         <div className="comments-list mt-5">
-                                            <h4>Bình luận ({totalCommentsCount})</h4>
+                                            <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <h4 className="mb-0">Bình luận ({totalCommentsCount})</h4>
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#16a34a', backgroundColor: '#dcfce7', padding: '3px 8px', borderRadius: '12px', fontWeight: '500' }}>
+                                                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#16a34a', display: 'inline-block' }}></span>
+                                                        Trực tiếp
+                                                    </span>
+                                                </div>
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                                                    onClick={async () => {
+                                                        const cmtData = await getNewsComments(id);
+                                                        setComments(Array.isArray(cmtData) ? cmtData : []);
+                                                        toast.info("Đã làm mới danh sách bình luận!");
+                                                    }}
+                                                >
+                                                    <i className="fa fa-rotate-right"></i> Làm mới
+                                                </button>
+                                            </div>
                                             {comments.length === 0 ? (
                                                 <p className="text-muted mt-3">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
                                             ) : (

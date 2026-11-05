@@ -14,7 +14,9 @@ export const getNewsDetail = async (id) => {
 };
 
 export const getNewsComments = async (id) => {
-    const response = await axiosClient.get(`/news/${id}/comments`);
+    const response = await axiosClient.get(`/news/${id}/comments`, {
+        params: { _t: Date.now() }
+    });
     return response.data;
 };
 
