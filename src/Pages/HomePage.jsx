@@ -387,7 +387,7 @@ const HomePage = () => {
                                 {Policy.map((item, index) => (
                                     <ul key={index} className="policy-list col-lg-3 col-md-4">
                                         <li className="policy-item">
-                                            <a href="" className="policy-item__link">
+                                            <div className="policy-item__link">
                                                 <div className="policy-img">
                                                     <img src={item.img} alt="" className="policy_1-img" />
                                                 </div>
@@ -399,7 +399,7 @@ const HomePage = () => {
                                                         {item.des}
                                                     </p>
                                                 </div>
-                                            </a>
+                                            </div>
                                         </li>
                                     </ul>
                                 ))}

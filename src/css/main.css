@@ -12,19 +12,16 @@
     width: 100%;
     display: flex;
     justify-content: center;
-    /* padding: 0 18px 0 15px; */
-    margin-bottom: 50px;
+    margin-bottom: 30px;
+    padding: 10px 0;
 }
 
 .policy-list {
     list-style: none;
-    width: 220px;
-    height: 66px;
+    width: auto;
+    height: auto;
+    min-height: 66px;
 }
-
-/* .policy-list li{
-
-} */
 
 .policy-item {
     height: 100%;
@@ -36,6 +33,9 @@
     display: flex;
     height: 100%;
     align-items: center;
+    padding: 6px 8px;
+    border-radius: 8px;
+    box-sizing: border-box;
 }
 
 .policy-item__link:hover {
@@ -45,29 +45,43 @@
 }
 
 .policy-img {
-    width: fit-content;
-    height: fit-content;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .policy_1-img {
-    width: auto;
+    max-width: 40px;
     max-height: 40px;
+    object-fit: contain;
 }
 
 .policy-title {
     padding-left: 10px;
-    width: 215px;
-    padding-left: 10px;
+    flex: 1;
+    overflow: visible;
 }
 
 .policy-title__span {
+    display: block;
     font-size: 1.4rem;
-    font-weight: 400;
+    font-weight: 600;
+    color: #222;
+    line-height: 1.35;
+    margin-bottom: 3px;
+    word-break: break-word;
 }
 
 .policy-title__p {
+    margin: 0;
     font-size: 1.2rem;
-    font-weight: 300;
+    font-weight: 400;
+    color: #666;
+    line-height: 1.4;
+    word-break: break-word;
 }
 /* policy End*/
 
