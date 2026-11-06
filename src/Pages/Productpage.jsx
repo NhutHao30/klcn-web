@@ -161,11 +161,6 @@ function ProductPage() {
                         <img src="/assets/IMG/category_1.webp" alt="Bánh kếp" className="category_1-img" />
                         <ul className="category-des-list">
                           <li className="category-des-item">Bánh kếp</li>
-                          <li className="category-des-item">
-                            <a href="#" onClick={(e) => { e.preventDefault(); setSelectedCategory("LSP002"); }} className="category-des-item-link">
-                              Xem ngay
-                            </a>
-                          </li>
                         </ul>
                       </div>
                     </div>
@@ -178,11 +173,6 @@ function ProductPage() {
                         <img src="/assets/IMG/category_2.webp" alt="Bánh su kem" className="category_1-img" />
                         <ul className="category-des-list">
                           <li className="category-des-item">Bánh su kem</li>
-                          <li className="category-des-item">
-                            <a href="#" onClick={(e) => { e.preventDefault(); setSelectedCategory("LSP002"); }} className="category-des-item-link">
-                              Xem ngay
-                            </a>
-                          </li>
                         </ul>
                       </div>
                     </div>
@@ -195,11 +185,6 @@ function ProductPage() {
                         <img src="/assets/IMG/category_3.webp" alt="Bánh mì nướng" className="category_1-img" />
                         <ul className="category-des-list">
                           <li className="category-des-item">Bánh mì nướng</li>
-                          <li className="category-des-item">
-                            <a href="#" onClick={(e) => { e.preventDefault(); setSelectedCategory("LSP003"); }} className="category-des-item-link">
-                              Xem ngay
-                            </a>
-                          </li>
                         </ul>
                       </div>
                     </div>
@@ -212,11 +197,6 @@ function ProductPage() {
                         <img src="/assets/IMG/category_4.webp" alt="Bánh khác" className="category_1-img" />
                         <ul className="category-des-list">
                           <li className="category-des-item">Bánh khác</li>
-                          <li className="category-des-item">
-                            <a href="#" onClick={(e) => { e.preventDefault(); setSelectedCategory(null); }} className="category-des-item-link">
-                              Xem ngay
-                            </a>
-                          </li>
                         </ul>
                       </div>
                     </div>
@@ -234,9 +214,12 @@ function ProductPage() {
                 <ul className="product-new-list-level-1">
                   <li className="product-new-item">
                     <p className="product-new-title product-sale-title-js">
-                      <a href="#" onClick={(e) => { e.preventDefault(); setSelectedCategory(null); setSortType(null); }}>
+                      <span
+                        style={{ cursor: "pointer" }}
+                        onClick={() => { setSelectedCategory(null); setSortType(null); }}
+                      >
                         Tất cả sản phẩm
-                      </a>
+                      </span>
                     </p>
                     <div className="productImg">
                       <img src="/assets/IMG/productSale--.webp" alt="" className="product-Img-new" />
