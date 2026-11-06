@@ -224,7 +224,7 @@ const ChatCardMessage = ({ content, isMine }) => {
     );
   }
 
-  return <span>{content}</span>;
+  return <span style={{ wordBreak: 'break-word', overflowWrap: 'break-word', display: 'inline' }}>{content}</span>;
 };
 
 const ChatBox = ({ currentUser }) => {
@@ -562,12 +562,11 @@ const ChatBox = ({ currentUser }) => {
                             padding: isCard ? 0 : undefined,
                             boxShadow: isCard ? 'none' : undefined,
                             position: 'relative',
-                            minWidth: isCard ? undefined : '50px',
-                            width: 'fit-content',
+                            maxWidth: isCard ? '300px' : '82%',
                             whiteSpace: 'pre-wrap',
-                            wordBreak: 'normal',
+                            wordBreak: 'break-word',
                             overflowWrap: 'break-word',
-                            flexShrink: 0
+                            boxSizing: 'border-box'
                           }}>
                             <ChatCardMessage content={text} isMine={isMine} />
                             {isMine && !isRecalled && !isCard && (
