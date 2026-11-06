@@ -314,7 +314,14 @@ const ProfilePage = () => {
     fetchAddresses();
     fetchVoucherWallet();
     axiosClient.get('/ghn/provinces').then(res => {
-      if (res.data?.data) setAddrProvinces(res.data.data);
+      if (res.data?.data) {
+        const cleanList = res.data.data.filter(p => {
+          const id = Number(p.ProvinceID);
+          const name = String(p.ProvinceName || '').toLowerCase();
+          return id !== 298 && id !== 2002 && !/test|alert|demo|fake|hà nội 02/i.test(name);
+        });
+        setAddrProvinces(cleanList);
+      }
     }).catch(() => {});
   }, [navigate]);
 

@@ -203,7 +203,12 @@ const CartPage = () => {
         import('../services/axiosClient.js').then(m => {
             m.default.get('/ghn/provinces').then(res => {
                 if (res.data && res.data.data) {
-                    setProvinces(res.data.data);
+                    const cleanList = res.data.data.filter(p => {
+                        const id = Number(p.ProvinceID);
+                        const name = String(p.ProvinceName || '').toLowerCase();
+                        return id !== 298 && id !== 2002 && !/test|alert|demo|fake|hà nội 02/i.test(name);
+                    });
+                    setProvinces(cleanList);
                 }
             }).catch(e => console.error("Lỗi load tỉnh/thành:", e));
         });
