@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../Layout/Footer";
 import { getBestSellers, getHomepageProducts, getProducts } from "../services/productService";
@@ -17,6 +17,29 @@ const HomePage = () => {
     const [newsArticles, setNewsArticles] = useState([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState(null);
     const [categoryProducts, setCategoryProducts] = useState([]);
+    const saleListRef = useRef(null);
+
+    const handleSlideSale = (direction) => {
+        if (!saleListRef.current) return;
+        const container = saleListRef.current;
+        const card = container.querySelector('.product-sale-item-level2');
+        const scrollAmount = card ? card.offsetWidth : (container.clientWidth / 2);
+
+        if (direction === 'prev') {
+            if (container.scrollLeft <= 10) {
+                container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
+            } else {
+                container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            }
+        } else {
+            const isEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 15;
+            if (isEnd) {
+                container.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            }
+        }
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -109,7 +132,7 @@ const HomePage = () => {
         const tonkhoChitiet = product.TONKHO_CHITIET || "[]";
 
         return (
-            <li key={index} data-masp={masp} data-soluong={soluong} data-tonkho-chitiet={tonkhoChitiet} className="product-sale-item-level2 col-custom col-lg-3 col-md-3 col-2 ">
+            <li key={index} data-masp={masp} data-soluong={soluong} data-tonkho-chitiet={tonkhoChitiet} className="product-sale-item-level2 col-custom col-lg-3 col-md-4 col-6">
                 <div 
                     className="product-sale-item__img product-sale-item__img-js"
                     style={{ cursor: "pointer" }}
@@ -396,11 +419,6 @@ const HomePage = () => {
                                                     <img src={item.img} alt="" className="category_1-img" />
                                                     <ul className="category-des-list">
                                                         <li className="category-des-item">{item.title}</li>
-                                                        <li className="category-des-item">
-                                                            <a href="" className="category-des-item-link">
-                                                                Xem ngay
-                                                            </a>
-                                                        </li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -433,15 +451,28 @@ const HomePage = () => {
                                             )}
                                         </li>
                                         <li className="product-sale-item">
-                                            <ul className="crollBtn crollBtn-js">
-                                                <li className="prevBtn prevBtn-js">
+                                            <ul className="crollBtn crollBtn-js" style={{ pointerEvents: 'none' }}>
+                                                <li
+                                                    className="prevBtn prevBtn-js"
+                                                    onClick={() => handleSlideSale('prev')}
+                                                    style={{ pointerEvents: 'auto', cursor: 'pointer', zIndex: 10 }}
+                                                    title="Trượt về trước"
+                                                >
                                                     <i className="prevBtn-icon fa-solid fa-chevron-left"></i>
                                                 </li>
-                                                <li className="nextBtn nextBtn-js">
+                                                <li
+                                                    className="nextBtn nextBtn-js"
+                                                    onClick={() => handleSlideSale('next')}
+                                                    style={{ pointerEvents: 'auto', cursor: 'pointer', zIndex: 10 }}
+                                                    title="Trượt tiếp theo"
+                                                >
                                                     <i className="nextBtn-icon fa-solid fa-chevron-right"></i>
                                                 </li>
                                             </ul>
-                                            <ul className="product-sale-list-level-2 product-sale-list-level-2-js">
+                                            <ul
+                                                ref={saleListRef}
+                                                className="product-sale-list-level-2 product-sale-list-level-2-js"
+                                            >
                                                 {discountedProducts.map((product, index) => renderSaleProduct(product, index))}
                                             </ul>
                                         </li>
