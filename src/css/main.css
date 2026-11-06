@@ -265,7 +265,6 @@
     flex-wrap: nowrap;
     list-style: none;
     overflow-x: auto;
-    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     width: 100%;
@@ -273,6 +272,35 @@
 
 .product-sale-list-level-2::-webkit-scrollbar {
     display: none;
+}
+
+.product-sale-item-level2 {
+    flex: 0 0 25% !important;
+    max-width: 25% !important;
+    min-width: 25% !important;
+    width: 25% !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+}
+
+@media (max-width: 992px) {
+    .product-sale-item-level2 {
+        flex: 0 0 33.333% !important;
+        max-width: 33.333% !important;
+        min-width: 33.333% !important;
+        width: 33.333% !important;
+        flex-shrink: 0 !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .product-sale-item-level2 {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+        min-width: 50% !important;
+        width: 50% !important;
+        flex-shrink: 0 !important;
+    }
 }
 
 .product-sale-item:nth-child(2) {
@@ -284,38 +312,58 @@
 }
 
 .crollBtn {
-    height: 30px;
+    height: 40px;
     width: 100%;
-    top: 30%;
+    top: 35%;
+    left: 0;
+    right: 0;
     list-style: none;
-    z-index: 999;
+    z-index: 50;
     position: absolute;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px;
+    padding: 0 4px;
     pointer-events: none;
+    box-sizing: border-box;
 }
 
 .prevBtn,
 .nextBtn {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 1.6rem;
-    border-radius: 4px;
-    text-align: center;
-    line-height: 30px;
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-    background-color: rgba(255, 255, 255, 0.85);
-    pointer-events: auto;
+    border-radius: 6px;
+    color: #fff;
+    border: none;
+    background-color: rgba(204, 153, 51, 0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    pointer-events: auto !important;
     cursor: pointer;
+    z-index: 51;
+    transition: all 0.2s ease;
+    outline: none;
+    padding: 0;
 }
 
 .prevBtn:hover,
 .nextBtn:hover {
     color: #fff;
-    background-color: var(--primary-color);
+    background-color: #d97706;
+    transform: scale(1.08);
+}
+
+.prevBtn:active,
+.nextBtn:active {
+    transform: scale(0.95);
+}
+
+.prevBtn-icon,
+.nextBtn-icon {
+    pointer-events: none;
 }
 
 

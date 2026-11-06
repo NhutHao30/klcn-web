@@ -19,26 +19,56 @@ const HomePage = () => {
     const [categoryProducts, setCategoryProducts] = useState([]);
     const saleListRef = useRef(null);
 
+    const smoothScrollTo = (element, target, duration = 350) => {
+        if (!element) return;
+        const start = element.scrollLeft;
+        const change = target - start;
+        if (Math.abs(change) < 1) return;
+        const startTime = performance.now();
+
+        const animateScroll = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // easeInOutCubic
+            const ease = progress < 0.5
+                ? 4 * progress * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+            element.scrollLeft = start + change * ease;
+            if (progress < 1) {
+                requestAnimationFrame(animateScroll);
+            }
+        };
+        requestAnimationFrame(animateScroll);
+    };
+
     const handleSlideSale = (direction) => {
         if (!saleListRef.current) return;
         const container = saleListRef.current;
         const card = container.querySelector('.product-sale-item-level2');
-        const scrollAmount = card ? card.offsetWidth : (container.clientWidth / 2);
+        const cardWidth = card ? card.getBoundingClientRect().width : (container.clientWidth / 2);
+        const scrollAmount = Math.max(cardWidth, 160);
+        const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
 
-        if (direction === 'prev') {
-            if (container.scrollLeft <= 10) {
-                container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
+        if (maxScroll <= 5) {
+            return;
+        }
+
+        let targetLeft;
+        if (direction === 'next') {
+            if (container.scrollLeft >= maxScroll - 15) {
+                targetLeft = 0; // Quay về đầu danh sách
             } else {
-                container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                targetLeft = Math.min(container.scrollLeft + scrollAmount, maxScroll);
             }
         } else {
-            const isEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 15;
-            if (isEnd) {
-                container.scrollTo({ left: 0, behavior: 'smooth' });
+            if (container.scrollLeft <= 15) {
+                targetLeft = maxScroll; // Đến cuối danh sách
             } else {
-                container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                targetLeft = Math.max(container.scrollLeft - scrollAmount, 0);
             }
         }
+
+        smoothScrollTo(container, targetLeft, 350);
     };
 
     useEffect(() => {
@@ -451,24 +481,34 @@ const HomePage = () => {
                                             )}
                                         </li>
                                         <li className="product-sale-item">
-                                            <ul className="crollBtn crollBtn-js" style={{ pointerEvents: 'none' }}>
-                                                <li
+                                            <div className="crollBtn crollBtn-js">
+                                                <button
+                                                    type="button"
                                                     className="prevBtn prevBtn-js"
-                                                    onClick={() => handleSlideSale('prev')}
-                                                    style={{ pointerEvents: 'auto', cursor: 'pointer', zIndex: 10 }}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleSlideSale('prev');
+                                                    }}
                                                     title="Trượt về trước"
+                                                    aria-label="Trượt về trước"
                                                 >
                                                     <i className="prevBtn-icon fa-solid fa-chevron-left"></i>
-                                                </li>
-                                                <li
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     className="nextBtn nextBtn-js"
-                                                    onClick={() => handleSlideSale('next')}
-                                                    style={{ pointerEvents: 'auto', cursor: 'pointer', zIndex: 10 }}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleSlideSale('next');
+                                                    }}
                                                     title="Trượt tiếp theo"
+                                                    aria-label="Trượt tiếp theo"
                                                 >
                                                     <i className="nextBtn-icon fa-solid fa-chevron-right"></i>
-                                                </li>
-                                            </ul>
+                                                </button>
+                                            </div>
                                             <ul
                                                 ref={saleListRef}
                                                 className="product-sale-list-level-2 product-sale-list-level-2-js"
