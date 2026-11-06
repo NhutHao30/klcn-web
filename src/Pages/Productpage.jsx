@@ -25,6 +25,26 @@ function ProductPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
+  const [mobileSortOpen, setMobileSortOpen] = useState(false);
+
+  const categoryOptions = [
+    { label: "Tất cả bánh", value: null },
+    { label: "Bánh kem", value: 1 },
+    { label: "Bánh ngọt", value: 2 },
+    { label: "Bánh mì", value: 3 },
+    { label: "Bánh khô", value: 4 },
+    { label: "Bánh tráng miệng", value: 5 },
+    { label: "Bánh theo mùa", value: 6 },
+  ];
+
+  const sortOptions = [
+    { label: "Tên A - Z", value: "az" },
+    { label: "Tên Z - A", value: "za" },
+    { label: "Hàng mới", value: "new" },
+    { label: "Giá thấp đến cao", value: "price-asc" },
+    { label: "Giá cao đến thấp", value: "price-desc" },
+  ];
 
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -307,7 +327,71 @@ function ProductPage() {
 
                 {/* DANH SÁCH SẢN PHẨM */}
                 <div className="product-all__item col-lg-9 col-md-8 col-12">
-                  <div className="product-all__item-filter">
+
+                  {/* MOBILE FILTER DROPDOWNS - chỉ hiển thị trên mobile */}
+                  <div className="mobile-filter-bar">
+                    {/* Dropdown Danh mục */}
+                    <div className="mobile-filter-dropdown">
+                      <button
+                        className="mobile-filter-btn"
+                        onClick={() => { setMobileCategoryOpen(o => !o); setMobileSortOpen(false); }}
+                      >
+                        <i className="fa-solid fa-layer-group"></i>
+                        {categoryOptions.find(c => c.value === selectedCategory)?.label || "Danh mục"}
+                        <i className={`fa-solid fa-chevron-${mobileCategoryOpen ? "up" : "down"}`} style={{ marginLeft: "auto" }}></i>
+                      </button>
+                      {mobileCategoryOpen && (
+                        <ul className="mobile-filter-options">
+                          {categoryOptions.map(opt => (
+                            <li
+                              key={opt.value}
+                              className={`mobile-filter-option ${selectedCategory === opt.value ? "active" : ""}`}
+                              onClick={() => { setSelectedCategory(opt.value); setMobileCategoryOpen(false); }}
+                            >
+                              {opt.label}
+                              {selectedCategory === opt.value && <i className="fa-solid fa-check"></i>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    {/* Dropdown Sắp xếp */}
+                    <div className="mobile-filter-dropdown">
+                      <button
+                        className="mobile-filter-btn"
+                        onClick={() => { setMobileSortOpen(o => !o); setMobileCategoryOpen(false); }}
+                      >
+                        <i className="fa-solid fa-arrow-down-a-z"></i>
+                        {sortOptions.find(s => s.value === sortType)?.label || "Sắp xếp"}
+                        <i className={`fa-solid fa-chevron-${mobileSortOpen ? "up" : "down"}`} style={{ marginLeft: "auto" }}></i>
+                      </button>
+                      {mobileSortOpen && (
+                        <ul className="mobile-filter-options">
+                          <li
+                            className={`mobile-filter-option ${!sortType ? "active" : ""}`}
+                            onClick={() => { setSortType(null); setMobileSortOpen(false); }}
+                          >
+                            Mặc định
+                            {!sortType && <i className="fa-solid fa-check"></i>}
+                          </li>
+                          {sortOptions.map(opt => (
+                            <li
+                              key={opt.value}
+                              className={`mobile-filter-option ${sortType === opt.value ? "active" : ""}`}
+                              onClick={() => { setSortType(opt.value); setMobileSortOpen(false); }}
+                            >
+                              {opt.label}
+                              {sortType === opt.value && <i className="fa-solid fa-check"></i>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* DESKTOP SORT FILTER - ẩn trên mobile */}
+                  <div className="product-all__item-filter desktop-filter">
                     <ul className="product-all__item-filter-list">
                       <li className="product-all__item-filter-item col-3 col-md-3 col-lg-2 col-custom">
                         <i className="fa-solid fa-arrow-down-a-z"></i>

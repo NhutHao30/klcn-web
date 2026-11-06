@@ -799,3 +799,163 @@
     word-break: break-word;
     margin: 8px 0 4px 0 !important;
 }
+
+
+/* =============================================
+   MOBILE FILTER DROPDOWN - Trang sản phẩm
+   ============================================= */
+
+/* Ẩn desktop sort filter trên mobile, hiện mobile filter bar */
+.mobile-filter-bar {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    /* Ẩn sort filter dạng horizontal tabs */
+    .desktop-filter {
+        display: none !important;
+    }
+
+    /* Hiện mobile filter bar */
+    .mobile-filter-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .mobile-filter-dropdown {
+        position: relative;
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .mobile-filter-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: #fff;
+        border: 1.5px solid var(--primary-color);
+        border-radius: 8px;
+        font-size: 1.3rem;
+        font-weight: 500;
+        color: #333;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mobile-filter-btn:active {
+        background-color: #fff8f0;
+    }
+
+    .mobile-filter-btn i:first-child {
+        color: var(--primary-color);
+        flex-shrink: 0;
+    }
+
+    .mobile-filter-options {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1.5px solid var(--primary-color);
+        border-radius: 8px;
+        list-style: none;
+        z-index: 9999;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        overflow: hidden;
+    }
+
+    .mobile-filter-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 11px 16px;
+        font-size: 1.3rem;
+        color: #333;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.15s;
+    }
+
+    .mobile-filter-option:last-child {
+        border-bottom: none;
+    }
+
+    .mobile-filter-option:active,
+    .mobile-filter-option:hover {
+        background-color: #fff8f0;
+    }
+
+    .mobile-filter-option.active {
+        color: var(--primary-color);
+        font-weight: 600;
+        background-color: #fff4e8;
+    }
+
+    .mobile-filter-option i {
+        color: var(--primary-color);
+        font-size: 1.1rem;
+    }
+}
+
+/* =============================================
+   FIX: "Khách hàng nói gì" card không tràn text
+   ============================================= */
+
+/* Mobile: cho card auto height, tăng padding hợp lý */
+@media (max-width: 767px) {
+    .feedback-customer__content {
+        height: auto !important;
+        min-height: unset !important;
+        padding: 20px 16px !important;
+        margin-bottom: 12px;
+        word-break: break-word;
+        overflow: visible !important;
+    }
+
+    .feedback-customer__content::after {
+        top: 10px;
+        left: 10px;
+        bottom: 10px;
+        right: 10px;
+    }
+
+    .feedback-customer__cmt {
+        font-size: 1.3rem !important;
+        line-height: 1.6 !important;
+        margin-top: 10px;
+        word-break: break-word;
+        overflow: visible !important;
+        display: block !important;
+        white-space: normal !important;
+    }
+
+    .content-feedback__customer-info-block {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .content-feedback-background {
+        height: auto !important;
+        min-height: unset !important;
+        padding-bottom: 24px;
+    }
+
+    .content-feedback-customer {
+        position: relative !important;
+        height: auto !important;
+        padding: 24px 0 20px 0 !important;
+    }
+
+    .content-feedback__customer-info {
+        height: auto !important;
+        min-height: unset !important;
+        position: static !important;
+    }
+}
