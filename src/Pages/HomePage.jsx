@@ -18,6 +18,38 @@ const HomePage = () => {
     const [selectedCategoryId, setSelectedCategoryId] = useState(null);
     const [categoryProducts, setCategoryProducts] = useState([]);
     const saleListRef = useRef(null);
+    const saleDragRef = useRef({ isDown: false, startX: 0, scrollLeft: 0, moved: false });
+
+    const handleSaleMouseDown = (e) => {
+        if (!saleListRef.current) return;
+        saleDragRef.current.isDown = true;
+        saleDragRef.current.moved = false;
+        saleDragRef.current.startX = e.pageX - saleListRef.current.offsetLeft;
+        saleDragRef.current.scrollLeft = saleListRef.current.scrollLeft;
+    };
+
+    const handleSaleMouseMove = (e) => {
+        if (!saleDragRef.current.isDown || !saleListRef.current) return;
+        const x = e.pageX - saleListRef.current.offsetLeft;
+        const walk = x - saleDragRef.current.startX;
+        if (Math.abs(walk) > 5) {
+            saleDragRef.current.moved = true;
+            e.preventDefault();
+            saleListRef.current.scrollLeft = saleDragRef.current.scrollLeft - walk;
+        }
+    };
+
+    const handleSaleMouseUpOrLeave = () => {
+        saleDragRef.current.isDown = false;
+    };
+
+    const handleSaleClickCapture = (e) => {
+        if (saleDragRef.current.moved) {
+            e.preventDefault();
+            e.stopPropagation();
+            saleDragRef.current.moved = false;
+        }
+    };
 
     const smoothScrollTo = (element, target, duration = 350) => {
         if (!element) return;
@@ -175,7 +207,8 @@ const HomePage = () => {
                     <img 
                         src={img} 
                         alt={name} 
-                        className=" product-sale_img product-sale_img-js" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} 
+                        draggable={false}
+                        className=" product-sale_img product-sale_img-js" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px", userSelect: "none" }} 
                         onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/category_1.webp"; }}
                     />
                     <ul className="product-bestSale-tag-list">
@@ -306,7 +339,8 @@ const HomePage = () => {
                     <img 
                         src={img} 
                         alt={name} 
-                        className=" product-sale_img product-sale_img-js" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} 
+                        draggable={false}
+                        className=" product-sale_img product-sale_img-js" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px", userSelect: "none" }} 
                         onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/category_1.webp"; }}
                     />
                     <ul className="product-bestSale-tag-list">
@@ -512,6 +546,11 @@ const HomePage = () => {
                                             <ul
                                                 ref={saleListRef}
                                                 className="product-sale-list-level-2 product-sale-list-level-2-js"
+                                                onMouseDown={handleSaleMouseDown}
+                                                onMouseMove={handleSaleMouseMove}
+                                                onMouseUp={handleSaleMouseUpOrLeave}
+                                                onMouseLeave={handleSaleMouseUpOrLeave}
+                                                onClickCapture={handleSaleClickCapture}
                                             >
                                                 {discountedProducts.map((product, index) => renderSaleProduct(product, index))}
                                             </ul>
