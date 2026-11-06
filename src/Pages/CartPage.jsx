@@ -75,6 +75,7 @@ const CartPage = () => {
     const [bestVoucher, setBestVoucher] = useState(null);
     const [availableVouchers, setAvailableVouchers] = useState([]);
     const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+    const [isConfirmOrderModalOpen, setIsConfirmOrderModalOpen] = useState(false);
 
     const [receiptFile, setReceiptFile] = useState(null);
     const [receiptPreview, setReceiptPreview] = useState(null);
@@ -501,60 +502,73 @@ const CartPage = () => {
             return;
         }
 
+        // Mở mini window xác nhận đặt hàng thay cho hộp thoại browser alert/confirm
+        setIsConfirmOrderModalOpen(true);
+    };
+
+    const handleConfirmOrder = async () => {
+        const provName = provinces.find(p => String(p.ProvinceID) === String(selectedProvince))?.ProvinceName || '';
+        const wardObj = wards.find(w => String(w.WardCode) === String(selectedWard));
+        const wardName = wardObj?.WardName || '';
+        const distId = wardObj?.DistrictID || selectedDistrict || 1444;
+
+        // Định dạng địa chỉ mới: Không còn quận nữa theo đúng yêu cầu gộp tỉnh thành của người dùng
+        const fullAddress = `${addressDetail}, ${wardName}, ${provName}`;
+
+        const paymentMethodLabel = paymentMethod === 'VIETQR' ? 'Chuyển khoản VietQR' : paymentMethod === 'MOMO' ? 'Ví MoMo' : 'Tiền mặt (COD)';
         const currentShippingFee = shippingFee || 30000;
 
-        if (window.confirm(`Xác nhận đặt hàng với hình thức "${paymentMethodLabel}"? Phí vận chuyển: ${currentShippingFee.toLocaleString('vi-VN')}đ`)) {
-            setIsProcessing(true);
-            try {
-                // Tự sinh mã đơn hàng độc nhất tránh trùng lặp
-                const currentOrderCode = "HD" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 90 + 10);
+        setIsProcessing(true);
+        try {
+            // Tự sinh mã đơn hàng độc nhất tránh trùng lặp
+            const currentOrderCode = "HD" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 90 + 10);
 
-                const itemsPayload = cartItems.map(item => ({
-                    sanPhamId: getItemMasp(item),
-                    soLuong: getItemQty(item),
-                    donGia: getItemPrice(item),
-                    tenSanPham: getItemName(item)
-                }));
+            const itemsPayload = cartItems.map(item => ({
+                sanPhamId: getItemMasp(item),
+                soLuong: getItemQty(item),
+                donGia: getItemPrice(item),
+                tenSanPham: getItemName(item)
+            }));
 
-                const payload = {
-                    mahd: currentOrderCode,
-                    paymentMethod: paymentMethod,
-                    address: fullAddress,
-                    note: `Khách tự đặt Online (${paymentMethodLabel}).`,
-                    shippingFee: currentShippingFee,
-                    to_ward_code: selectedWard,
-                    to_district_id: distId ? parseInt(distId) : 1444,
-                    saveAddress: saveAsDefault ? 1 : 0,
-                    isDefault: saveAsDefault ? 1 : 0,
-                    maTinh: selectedProvince ? parseInt(selectedProvince) : null,
-                    maHuyen: distId ? parseInt(distId) : null,
-                    maXa: selectedWard,
-                    diaChiChiTiet: addressDetail,
-                    items: itemsPayload,
-                    CHI_TIET: itemsPayload,
-                    voucher_code: appliedVoucherCode || null
-                };
+            const payload = {
+                mahd: currentOrderCode,
+                paymentMethod: paymentMethod,
+                address: fullAddress,
+                note: `Khách tự đặt Online (${paymentMethodLabel}).`,
+                shippingFee: currentShippingFee,
+                to_ward_code: selectedWard,
+                to_district_id: distId ? parseInt(distId) : 1444,
+                saveAddress: saveAsDefault ? 1 : 0,
+                isDefault: saveAsDefault ? 1 : 0,
+                maTinh: selectedProvince ? parseInt(selectedProvince) : null,
+                maHuyen: distId ? parseInt(distId) : null,
+                maXa: selectedWard,
+                diaChiChiTiet: addressDetail,
+                items: itemsPayload,
+                CHI_TIET: itemsPayload,
+                voucher_code: appliedVoucherCode || null
+            };
 
-                await checkout(payload);
+            await checkout(payload);
 
-                toast.success("🎉 Đặt hàng thành công! Đơn hàng của bạn đã được tiếp nhận.");
-                setCartItems([]);
-                setTotal(0);
-                document.dispatchEvent(new Event('cartUpdated'));
+            toast.success("🎉 Đặt hàng thành công! Đơn hàng của bạn đã được tiếp nhận.");
+            setCartItems([]);
+            setTotal(0);
+            setIsConfirmOrderModalOpen(false);
+            document.dispatchEvent(new Event('cartUpdated'));
 
-                // Hiển thị thông báo thành công và chuyển hướng linh hoạt
-                window.location.href = "/gio-hang?success=1";
-            } catch (error) {
-                console.error("Lỗi thanh toán:", error);
-                const errorMsg = error.response?.data?.error 
-                    || error.response?.data?.message 
-                    || (error.response?.data?.errors ? Object.values(error.response.data.errors).flat().join(', ') : null)
-                    || error.message 
-                    || "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!";
-                toast.error(errorMsg);
-            } finally {
-                setIsProcessing(false);
-            }
+            // Hiển thị thông báo thành công và chuyển hướng linh hoạt
+            window.location.href = "/gio-hang?success=1";
+        } catch (error) {
+            console.error("Lỗi thanh toán:", error);
+            const errorMsg = error.response?.data?.error 
+                || error.response?.data?.message 
+                || (error.response?.data?.errors ? Object.values(error.response.data.errors).flat().join(', ') : null)
+                || error.message 
+                || "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!";
+            toast.error(errorMsg);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -1557,6 +1571,278 @@ const CartPage = () => {
                     )}
                 </div>
             </main>
+
+            {/* Mini Window: Modal Xác Nhận Đặt Hàng */}
+            {isConfirmOrderModalOpen && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0, 0, 0, 0.6)",
+                        backdropFilter: "blur(4px)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 10000,
+                        padding: "16px"
+                    }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget && !isProcessing) {
+                            setIsConfirmOrderModalOpen(false);
+                        }
+                    }}
+                >
+                    <div
+                        style={{
+                            backgroundColor: "#fff",
+                            borderRadius: "14px",
+                            width: "100%",
+                            maxWidth: "480px",
+                            overflow: "hidden",
+                            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.22)",
+                            border: "1px solid #ebd9b8"
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header Mini Window */}
+                        <div style={{
+                            background: "linear-gradient(135deg, #c89968 0%, #b38253 100%)",
+                            padding: "16px 20px",
+                            color: "#fff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between"
+                        }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <div style={{
+                                    width: "36px",
+                                    height: "36px",
+                                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                    borderRadius: "50%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "18px"
+                                }}>
+                                    <i className="fa-solid fa-clipboard-check"></i>
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#fff" }}>
+                                        Xác nhận đặt mua hàng
+                                    </h3>
+                                    <p style={{ margin: "2px 0 0 0", fontSize: "12px", opacity: 0.9 }}>
+                                        Givral Bakery - Kiểm tra thông tin đơn hàng
+                                    </p>
+                                </div>
+                            </div>
+                            {!isProcessing && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsConfirmOrderModalOpen(false)}
+                                    style={{
+                                        background: "rgba(255, 255, 255, 0.2)",
+                                        border: "none",
+                                        color: "#fff",
+                                        width: "28px",
+                                        height: "28px",
+                                        borderRadius: "50%",
+                                        cursor: "pointer",
+                                        fontSize: "16px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        transition: "background 0.2s"
+                                    }}
+                                    onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.35)"}
+                                    onMouseOut={e => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Body Mini Window */}
+                        <div style={{ padding: "18px 20px", maxHeight: "70vh", overflowY: "auto" }}>
+                            {/* Khối Thông tin giao hàng */}
+                            <div style={{
+                                backgroundColor: "#fdfaf7",
+                                border: "1px solid #ebd9b8",
+                                borderRadius: "8px",
+                                padding: "12px 14px",
+                                marginBottom: "14px",
+                                fontSize: "13px"
+                            }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                    <span style={{ color: "#777", display: "flex", alignItems: "center", gap: "6px" }}>
+                                        <i className="fa-solid fa-money-bill-wave" style={{ color: "#c89968" }}></i>
+                                        Phương thức:
+                                    </span>
+                                    <span style={{ fontWeight: "700", color: "#222" }}>
+                                        {paymentMethod === 'COD' ? 'Tiền mặt khi nhận hàng (COD)' : paymentMethod === 'VIETQR' ? 'Chuyển khoản VietQR' : 'Ví MoMo'}
+                                    </span>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                    <span style={{ color: "#777", display: "flex", alignItems: "center", gap: "6px" }}>
+                                        <i className="fa-solid fa-truck-fast" style={{ color: "#c89968" }}></i>
+                                        Phí vận chuyển:
+                                    </span>
+                                    <span style={{ fontWeight: "700", color: "#222" }}>
+                                        {(shippingFee || 30000).toLocaleString('vi-VN')} đ
+                                    </span>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                    <span style={{ color: "#777", display: "flex", alignItems: "center", gap: "6px", minWidth: "120px" }}>
+                                        <i className="fa-solid fa-location-dot" style={{ color: "#c89968" }}></i>
+                                        Địa chỉ nhận:
+                                    </span>
+                                    <span style={{ fontWeight: "600", color: "#333", textAlign: "right", wordBreak: "break-word" }}>
+                                        {[addressDetail, wards.find(w => String(w.WardCode) === String(selectedWard))?.WardName, provinces.find(p => String(p.ProvinceID) === String(selectedProvince))?.ProvinceName].filter(Boolean).join(", ")}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Danh sách tóm tắt các món */}
+                            <div style={{ marginBottom: "14px" }}>
+                                <div style={{ fontSize: "12px", fontWeight: "700", color: "#666", marginBottom: "8px", display: "flex", justifyContent: "space-between" }}>
+                                    <span>Sản phẩm trong giỏ ({cartItems.length})</span>
+                                    <span style={{ color: "#999", fontWeight: "normal" }}>
+                                        Tổng {cartItems.reduce((acc, it) => acc + (getItemQty(it) || 1), 0)} chiếc
+                                    </span>
+                                </div>
+                                <div style={{
+                                    maxHeight: "120px",
+                                    overflowY: "auto",
+                                    border: "1px solid #f0e6dc",
+                                    borderRadius: "6px",
+                                    padding: "6px 10px",
+                                    backgroundColor: "#fff"
+                                }}>
+                                    {cartItems.map((item, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                padding: "5px 0",
+                                                borderBottom: idx !== cartItems.length - 1 ? "1px dashed #f0f0f0" : "none",
+                                                fontSize: "12px"
+                                            }}
+                                        >
+                                            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "68%" }}>
+                                                <span style={{ fontWeight: "600", color: "#333" }}>{getItemName(item)}</span>
+                                                <span style={{ color: "#888", marginLeft: "4px" }}>x{getItemQty(item)}</span>
+                                            </div>
+                                            <span style={{ fontWeight: "600", color: "#7a5230" }}>
+                                                {(getItemPrice(item) * getItemQty(item)).toLocaleString('vi-VN')} đ
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Tóm tắt tiền thanh toán */}
+                            <div style={{
+                                backgroundColor: "#faf8f5",
+                                borderRadius: "8px",
+                                padding: "10px 14px",
+                                fontSize: "13px",
+                                border: "1px solid #f0e6dc"
+                            }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px", color: "#666" }}>
+                                    <span>Tiền hàng:</span>
+                                    <span>{total.toLocaleString('vi-VN')} đ</span>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px", color: "#666" }}>
+                                    <span>Phí giao hàng:</span>
+                                    <span>+ {(shippingFee || 30000).toLocaleString('vi-VN')} đ</span>
+                                </div>
+                                {voucherDiscount > 0 && (
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px", color: "#16a34a", fontWeight: "600" }}>
+                                        <span>Giảm giá Voucher ({appliedVoucherCode}):</span>
+                                        <span>- {voucherDiscount.toLocaleString('vi-VN')} đ</span>
+                                    </div>
+                                )}
+                                <div style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    borderTop: "1px solid #e5e7eb",
+                                    paddingTop: "8px",
+                                    marginTop: "6px"
+                                }}>
+                                    <span style={{ fontSize: "14px", fontWeight: "700", color: "#222" }}>Tổng thanh toán:</span>
+                                    <span style={{ fontSize: "17px", fontWeight: "800", color: "#b91c1c" }}>
+                                        {finalTotal.toLocaleString('vi-VN')} đ
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Mini Window */}
+                        <div style={{
+                            padding: "12px 20px",
+                            backgroundColor: "#f9fafb",
+                            borderTop: "1px solid #f0f0f0",
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: "10px"
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setIsConfirmOrderModalOpen(false)}
+                                disabled={isProcessing}
+                                style={{
+                                    padding: "9px 18px",
+                                    borderRadius: "6px",
+                                    border: "1px solid #d1d5db",
+                                    backgroundColor: "#fff",
+                                    color: "#4b5563",
+                                    fontSize: "13px",
+                                    fontWeight: "600",
+                                    cursor: isProcessing ? "not-allowed" : "pointer"
+                                }}
+                            >
+                                Huỷ / Xem lại
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmOrder}
+                                disabled={isProcessing}
+                                style={{
+                                    padding: "9px 20px",
+                                    borderRadius: "6px",
+                                    border: "none",
+                                    background: "linear-gradient(135deg, #c89968 0%, #b38253 100%)",
+                                    color: "#fff",
+                                    fontSize: "13px",
+                                    fontWeight: "700",
+                                    cursor: isProcessing ? "not-allowed" : "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    boxShadow: "0 2px 6px rgba(200, 153, 104, 0.35)"
+                                }}
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <i className="fa-solid fa-spinner fa-spin"></i>
+                                        <span>Đang xử lý...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fa-solid fa-check"></i>
+                                        <span>Xác nhận đặt hàng</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal Chọn Voucher */}
             {isVoucherModalOpen && (
