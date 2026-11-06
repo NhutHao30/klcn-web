@@ -85,6 +85,26 @@ const [employees, setEmployees] = useState([]);
     loadUser();
   }, []);
 
+  const normalizeFormRole = (roleStr, maRole) => {
+    const id = Number(maRole);
+    if (id === 1) return 'Quản trị viên';
+    if (id === 2) return 'Quản lý chi nhánh';
+    if (id === 3) return 'Nhân viên bán hàng';
+    if (id === 4) return 'Nhân viên kho';
+    if (id === 5) return 'Nhân viên chăm sóc khách hàng';
+    if (id === 7) return 'Nhân viên kế toán';
+    if (id === 8) return 'Giám đốc';
+
+    const s = String(roleStr || '').toLowerCase();
+    if (s.includes('quản lý') || s.includes('manager')) return 'Quản lý chi nhánh';
+    if (s.includes('kho') || s.includes('warehouse')) return 'Nhân viên kho';
+    if (s.includes('kế toán') || s.includes('accountant') || s.includes('ketoan')) return 'Nhân viên kế toán';
+    if (s.includes('chăm sóc') || s.includes('cskh')) return 'Nhân viên chăm sóc khách hàng';
+    if (s.includes('giám đốc') || s.includes('director')) return 'Giám đốc';
+    if (s.includes('quản trị') || s.includes('admin')) return 'Quản trị viên';
+    return 'Nhân viên bán hàng';
+  };
+
   const handleSearch = () => {
     let result = employees;
     if (searchQuery) {
@@ -96,7 +116,12 @@ const [employees, setEmployees] = useState([]);
       );
     }
     if (searchRole) {
-      result = result.filter(e => e.chucVu === searchRole);
+      const targetRole = searchRole.toLowerCase();
+      result = result.filter(e => {
+        const c1 = (e.chucVu || '').toLowerCase();
+        const norm = normalizeFormRole(e.chucVu, e.maRole).toLowerCase();
+        return c1.includes(targetRole) || norm.includes(targetRole) || targetRole.includes(norm);
+      });
     }
     setFilteredEmployees(result);
   };
@@ -110,12 +135,12 @@ const [employees, setEmployees] = useState([]);
     const { name, value } = e.target;
     if (name === 'chucVu') {
       let role = 3; // Nhân viên bán hàng
-      if (value === 'Quản lý chi nhánh') role = 2;
-      else if (value === 'Quản trị viên' || value === 'Quản lý tổng') role = 1;
-      else if (value === 'Nhân viên kho') role = 4;
-      else if (value === 'Nhân viên chăm sóc khách hàng') role = 5;
-      else if (value === 'Nhân viên kế toán') role = 7;
-      else if (value === 'Giám đốc') role = 8;
+      if (value === 'Quản lý chi nhánh' || value === 'MANAGER') role = 2;
+      else if (value === 'Quản trị viên' || value === 'Quản lý tổng' || value === 'ADMIN') role = 1;
+      else if (value === 'Nhân viên kho' || value === 'WAREHOUSE') role = 4;
+      else if (value === 'Nhân viên chăm sóc khách hàng' || value === 'CSKH') role = 5;
+      else if (value === 'Nhân viên kế toán' || value === 'ACCOUNTANT') role = 7;
+      else if (value === 'Giám đốc' || value === 'DIRECTOR') role = 8;
       
       setFormData({ ...formData, [name]: value, maRole: role });
     } else if (name === 'cccd') {
@@ -170,7 +195,7 @@ const [employees, setEmployees] = useState([]);
       ngaySinh: employee.ngaySinh || '',
       gioiTinh: employee.gioiTinh || '',
       diaChi: employee.diaChi || '',
-      chucVu: employee.chucVu || 'Nhân viên bán hàng',
+      chucVu: normalizeFormRole(employee.chucVu, employee.maRole),
       caLamViec: employee.caLamViec || 'Ca Sáng',
       luong: employee.luong || '',
       trangThai: employee.trangThai || 'Đang làm việc',
@@ -232,7 +257,7 @@ const [employees, setEmployees] = useState([]);
         toast.success('Thêm nhân viên và tạo tài khoản thành công!');
       }
       closeModal();
-      fetchEmployees();
+      await fetchEmployees();
     } catch (error) {
       console.error("Error saving employee:", error);
       if (error.response) {
@@ -371,11 +396,13 @@ const [employees, setEmployees] = useState([]);
             />
             <select className="admin-input" value={searchRole} onChange={(e) => setSearchRole(e.target.value)}>
               <option value="">Tất cả chức vụ</option>
-              <option value="Nhân viên">Nhân viên</option>
-              <option value="Nhân viên chăm sóc khách hàng">Nhân viên chăm sóc khách hàng</option>
               <option value="Quản lý chi nhánh">Quản lý chi nhánh</option>
-              <option value="Quản lý tổng">Quản lý tổng</option>
-              <option value="Thợ làm bánh">Thợ làm bánh</option>
+              <option value="Nhân viên bán hàng">Nhân viên bán hàng</option>
+              <option value="Nhân viên kho">Nhân viên kho</option>
+              <option value="Nhân viên kế toán">Nhân viên kế toán</option>
+              <option value="Nhân viên chăm sóc khách hàng">Nhân viên chăm sóc khách hàng</option>
+              <option value="Giám đốc">Giám đốc</option>
+              <option value="Quản trị viên">Quản trị viên</option>
             </select>
           </div>
         </div>

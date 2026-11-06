@@ -1,5 +1,27 @@
 import axiosClient from './axiosClient';
 
+export const mapRoleName = (roleStr, roleId) => {
+    const id = Number(roleId);
+    if (id === 1) return 'Quản trị viên';
+    if (id === 2) return 'Quản lý chi nhánh';
+    if (id === 3) return 'Nhân viên bán hàng';
+    if (id === 4) return 'Nhân viên kho';
+    if (id === 5) return 'Nhân viên chăm sóc khách hàng';
+    if (id === 7) return 'Nhân viên kế toán';
+    if (id === 8) return 'Giám đốc';
+
+    const upper = String(roleStr || '').toUpperCase();
+    if (upper === 'ADMIN') return 'Quản trị viên';
+    if (upper === 'MANAGER') return 'Quản lý chi nhánh';
+    if (upper === 'CASHIER') return 'Nhân viên bán hàng';
+    if (upper === 'WAREHOUSE') return 'Nhân viên kho';
+    if (upper === 'CSKH') return 'Nhân viên chăm sóc khách hàng';
+    if (upper === 'ACCOUNTANT') return 'Nhân viên kế toán';
+    if (upper === 'DIRECTOR') return 'Giám đốc';
+
+    return roleStr || 'Nhân viên bán hàng';
+};
+
 export const getEmployees = async () => {
     const response = await axiosClient.get('/admin/users');
     const users = Array.isArray(response.data) ? response.data : (response.data?.data || []);
@@ -23,19 +45,22 @@ export const getEmployees = async () => {
         })
         .map(u => {
             const isWorking = (u.trangThai === 1 || u.TRANGTHAI === 'Đang làm việc' || u.nhanvien?.TRANGTHAI === 'Đang làm việc');
+            const roleId = u.vaiTroId !== undefined ? u.vaiTroId : u.MAROLE;
+            const rawChucVu = u.vaitro?.tenVaiTro || u.nhanvien?.CHUCVU || '';
+
             return {
                 userName: u.USERNAME || u.username,
                 email: u.EMAIL || u.email,
-                maRole: u.vaiTroId !== undefined ? u.vaiTroId : u.MAROLE,
+                maRole: roleId,
                 hoTen: u.nhanvien?.HOTEN || u.nguoidung?.hoTen || '',
                 sdt: u.nhanvien?.SDT || u.nguoidung?.soDienThoai || '',
                 ngaySinh: u.nhanvien?.NGAYSINH || u.nguoidung?.ngaySinh || '',
                 gioiTinh: u.nhanvien?.GioiTinh || (u.nguoidung?.gioiTinh === 1 ? 'Nam' : 'Nữ'),
                 diaChi: u.nhanvien?.DIACHI || '',
-                chucVu: u.vaitro?.tenVaiTro || u.nhanvien?.CHUCVU || 'Nhân viên bán hàng',
-                luong: u.nhanvien?.LUONG || 0,
+                chucVu: mapRoleName(rawChucVu, roleId),
+                luong: u.nhanvien?.LUONG || u.nguoidung?.luong || u.nguoidung?.LUONG || 0,
                 trangThai: isWorking ? 'Đang làm việc' : 'Nghỉ việc',
-                caLamViec: u.nhanvien?.CALAMVIEC || 'Ca Sáng',
+                caLamViec: u.nhanvien?.CALAMVIEC || u.nguoidung?.caLamViec || u.nguoidung?.CALAMVIEC || 'Ca Sáng',
                 cccd: u.nhanvien?.CCCD || u.nguoidung?.cccdNumber || '',
                 cccdTruoc: u.nhanvien?.CCCD_TRUOC,
                 cccdSau: u.nhanvien?.CCCD_SAU,
@@ -59,11 +84,15 @@ export const createEmployee = async (employeeData) => {
     formData.append('EMAIL', emailToUse);
     formData.append('HOTEN', employeeData.hoTen);
     formData.append('CHUCVU', employeeData.chucVu);
-    formData.append('LUONG', employeeData.luong);
+    formData.append('LUONG', employeeData.luong !== undefined ? employeeData.luong : 0);
+    formData.append('luong', employeeData.luong !== undefined ? employeeData.luong : 0);
     formData.append('TRANGTHAI', employeeData.trangThai || 'Đang làm việc');
     formData.append('CALAMVIEC', employeeData.caLamViec || 'Ca Sáng');
+    formData.append('caLamViec', employeeData.caLamViec || 'Ca Sáng');
     formData.append('MACUAHANG', employeeData.macuahang !== undefined ? employeeData.macuahang : 1);
-    formData.append('MAROLE', employeeData.maRole !== undefined ? employeeData.maRole : 2);
+    formData.append('MAROLE', employeeData.maRole !== undefined ? employeeData.maRole : 3);
+    formData.append('maRole', employeeData.maRole !== undefined ? employeeData.maRole : 3);
+    formData.append('vaiTroId', employeeData.maRole !== undefined ? employeeData.maRole : 3);
     
     if (employeeData.sdt) formData.append('SDT', employeeData.sdt);
     if (employeeData.diaChi) formData.append('DIACHI', employeeData.diaChi);
@@ -83,18 +112,30 @@ export const createEmployee = async (employeeData) => {
 export const updateEmployee = async (id, employeeData) => {
     const payload = {
         HOTEN: employeeData.hoTen,
+        hoTen: employeeData.hoTen,
         CHUCVU: employeeData.chucVu,
-        LUONG: employeeData.luong,
+        chucVu: employeeData.chucVu,
+        LUONG: employeeData.luong !== undefined ? employeeData.luong : 0,
+        luong: employeeData.luong !== undefined ? employeeData.luong : 0,
         SDT: employeeData.sdt,
+        soDienThoai: employeeData.sdt,
         DIACHI: employeeData.diaChi,
         GioiTinh: employeeData.gioiTinh,
+        gioiTinh: employeeData.gioiTinh,
         NGAYSINH: employeeData.ngaySinh,
+        ngaySinh: employeeData.ngaySinh,
         CCCD: employeeData.cccd,
         TRANGTHAI: employeeData.trangThai,
-        CALAMVIEC: employeeData.caLamViec,
+        trangThai: employeeData.trangThai,
+        CALAMVIEC: employeeData.caLamViec || 'Ca Sáng',
+        caLamViec: employeeData.caLamViec || 'Ca Sáng',
         EMAIL: employeeData.email,
+        email: employeeData.email,
         MACUAHANG: employeeData.macuahang,
-        MAROLE: employeeData.maRole
+        cuaHangId: employeeData.macuahang,
+        MAROLE: employeeData.maRole,
+        maRole: employeeData.maRole,
+        vaiTroId: employeeData.maRole
     };
     const response = await axiosClient.put(`/admin/staff/${id}`, payload);
     return response.data;
