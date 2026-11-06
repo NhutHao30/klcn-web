@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../Layout/AdminLayout';
 import { getRevenueReport, getTopProducts, getUsersForReport, getChamCong, postChamCong } from '../../services/reportService';
 import '../../css/admin.css';
@@ -57,9 +57,41 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
   const currentYear = today.getFullYear();
   const currentDateStr = today.toISOString().split('T')[0];
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     import('../../services/authService').then(({ getCurrentUser }) => {
-      getCurrentUser().then(user => setCurrentUser(user));
+      getCurrentUser().then(user => {
+        setCurrentUser(user);
+        const vtId = Number(user.vaiTroId || user.vai_tro_id || user.role_id || 0);
+        const role = Number(user.MAROLE !== undefined ? user.MAROLE : user.role);
+
+        // Chặn nhân viên kho (vtId 4 / role 7), nhân viên thu ngân (vtId 3 / role 2), CSKH (vtId 5 / role 4)
+        if (vtId === 4 || role === 7) {
+          toast.error("Nhân viên kho không có quyền truy cập vào Báo cáo thống kê!");
+          navigate('/admin/lo-hang', { replace: true });
+          return;
+        }
+        if (vtId === 3 || role === 2) {
+          toast.error("Nhân viên thu ngân không có quyền truy cập vào Báo cáo thống kê!");
+          navigate('/admin/pos', { replace: true });
+          return;
+        }
+        if (vtId === 5 || role === 4) {
+          toast.error("Nhân viên CSKH không có quyền truy cập vào Báo cáo thống kê!");
+          navigate('/admin/chat', { replace: true });
+          return;
+        }
+
+        const isAllowed = [1, 2, 7, 8].includes(vtId) || [0, 1, 5, 6].includes(role);
+        if (!isAllowed) {
+          toast.error("Bạn không có quyền truy cập vào Báo cáo thống kê!");
+          navigate('/', { replace: true });
+          return;
+        }
+      }).catch(() => {
+        navigate('/dang-nhap', { replace: true });
+      });
     });
     fetchData();
   }, [reportType]);

@@ -154,13 +154,12 @@ const DashboardRouter = () => {
   }, []);
 
   if (role === null && vaiTroId === null) return <LoadingFallback />;
-  if (role === 0 || role === 1) return <AdminReportPage />;
-  if (vaiTroId === 4 || role === 7) return <Navigate to="/admin/lo-hang" replace />; // WAREHOUSE -> Lô hàng (Không nhảy vào POS)
+  if (vaiTroId === 4 || role === 7) return <Navigate to="/admin/lo-hang" replace />; // WAREHOUSE -> Lô hàng (Không vào báo cáo)
   if (vaiTroId === 3 || role === 2) return <Navigate to="/admin/pos" replace />; // CASHIER -> Bán hàng POS
-  if (role === 4 || vaiTroId === 5) return <Navigate to="/admin/chat" replace />;
-  if (role === 5 || vaiTroId === 8) return <Navigate to="/admin/lo-hang" replace />;
-  if (role === 6 || vaiTroId === 7) return <Navigate to="/admin/hoa-don" replace />;
-  return <AdminReportPage />;
+  if (role === 4 || vaiTroId === 5) return <Navigate to="/admin/chat" replace />; // CSKH -> Chat
+  if (role === 6 || vaiTroId === 7) return <Navigate to="/admin/hoa-don" replace />; // KẾ TOÁN -> Hóa đơn
+  if (role === 0 || role === 1 || vaiTroId === 1 || vaiTroId === 2 || vaiTroId === 8 || role === 5) return <AdminReportPage />;
+  return <Navigate to="/admin/lo-hang" replace />;
 };
 
 function App() {

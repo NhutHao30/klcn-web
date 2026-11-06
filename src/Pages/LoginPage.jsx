@@ -65,14 +65,22 @@ const [username, setUsername] = useState("");
 
             toast.success("Đăng nhập thành công!");
             
-            // Kiểm tra vai trò: Nếu không phải Khách hàng (vaiTroId 6 / MAROLE 3), chuyển hướng sang /admin
+            // Kiểm tra vai trò: Điều hướng đúng khu vực theo quyền hạn
             const vaiTroId = res.user ? (res.user.vaiTroId !== undefined ? Number(res.user.vaiTroId) : null) : null;
             const marole = res.user ? Number(res.user.MAROLE) : null;
 
             if (vaiTroId === 6 || marole === 3) {
                 window.location.href = "/"; // Trang chủ dành cho Khách hàng
+            } else if (vaiTroId === 4 || marole === 7) {
+                window.location.href = "/admin/lo-hang"; // Nhân viên kho vào thẳng Quản lý lô hàng
+            } else if (vaiTroId === 3 || marole === 2) {
+                window.location.href = "/admin/pos"; // Nhân viên thu ngân vào thẳng POS
+            } else if (vaiTroId === 5 || marole === 4) {
+                window.location.href = "/admin/chat"; // CSKH vào thẳng Chat
+            } else if (vaiTroId === 7 || marole === 6) {
+                window.location.href = "/admin/hoa-don"; // Kế toán vào Hóa đơn
             } else {
-                window.location.href = "/admin"; // Giao diện Admin cho tất cả nhân sự (Quản trị, Quản lý, Kế toán, Kho, CSKH, Bán hàng)
+                window.location.href = "/admin"; // Quản trị viên, Quản lý, Giám đốc
             }
         } catch (e) {
             setError(e.response?.data?.error || "Sai tài khoản hoặc mật khẩu!");

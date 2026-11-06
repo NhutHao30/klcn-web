@@ -167,7 +167,7 @@ const AdminLayout = ({ children }) => {
 
       {/* Sidebar */}
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <Link to="/admin" className="sidebar-logo">
+        <Link to={isWarehouse ? "/admin/lo-hang" : isCashier ? "/admin/pos" : isCskh ? "/admin/chat" : "/admin"} className="sidebar-logo">
           <img src="/assets/IMG/Logo.png" alt="Givral Bakery Logo" style={{ width: '42px', height: '42px', objectFit: 'contain', borderRadius: '6px' }} />
           <span>Givral Bakery</span>
         </Link>
@@ -430,60 +430,62 @@ const AdminLayout = ({ children }) => {
           )}
 
           {/* NHÓM 6: VẬN HÀNH & BÁO CÁO */}
-          <div className="sidebar-group">
-            <button 
-              className={`sidebar-group-header ${openGroups.business ? 'open' : ''} ${isBusinessGroupActive ? 'active-group' : ''}`}
-              onClick={() => toggleGroup('business')}
-            >
-              <span className="header-title">
-                <span className="header-icon-wrapper"><i className="fa-solid fa-chart-line header-icon"></i></span>
-                Vận hành & Báo cáo
-              </span>
-              <i className="fa-solid fa-chevron-down arrow-icon"></i>
-            </button>
+          {(isAdmin || isDirector || isManager || isAccountant || isCashier || isCskh) && (
+            <div className="sidebar-group">
+              <button 
+                className={`sidebar-group-header ${openGroups.business ? 'open' : ''} ${isBusinessGroupActive ? 'active-group' : ''}`}
+                onClick={() => toggleGroup('business')}
+              >
+                <span className="header-title">
+                  <span className="header-icon-wrapper"><i className="fa-solid fa-chart-line header-icon"></i></span>
+                  Vận hành & Báo cáo
+                </span>
+                <i className="fa-solid fa-chevron-down arrow-icon"></i>
+              </button>
 
-            <div className={`sidebar-group-items ${openGroups.business ? 'expanded' : ''}`}>
-              {(isAdmin || isDirector || isManager || isAccountant) && (
-                <Link 
-                  to="/admin/bao-cao" 
-                  className={`nav-link ${location.pathname === '/admin/bao-cao' || location.pathname === '/admin' ? 'active' : ''}`}
-                >
-                  <i className="fa-solid fa-chart-pie"></i>
-                  Báo cáo thống kê
-                </Link>
-              )}
+              <div className={`sidebar-group-items ${openGroups.business ? 'expanded' : ''}`}>
+                {(isAdmin || isDirector || isManager || isAccountant) && (
+                  <Link 
+                    to="/admin/bao-cao" 
+                    className={`nav-link ${location.pathname === '/admin/bao-cao' || location.pathname === '/admin' ? 'active' : ''}`}
+                  >
+                    <i className="fa-solid fa-chart-pie"></i>
+                    Báo cáo thống kê
+                  </Link>
+                )}
 
-              {(isAdmin || isDirector || isManager || isCashier || isCskh) && (
-                <Link 
-                  to="/admin/khach-hang" 
-                  className={`nav-link ${location.pathname === '/admin/khach-hang' ? 'active' : ''}`}
-                >
-                  <i className="fa-solid fa-users"></i>
-                  Quản lý khách hàng
-                </Link>
-              )}
+                {(isAdmin || isDirector || isManager || isCashier || isCskh) && (
+                  <Link 
+                    to="/admin/khach-hang" 
+                    className={`nav-link ${location.pathname === '/admin/khach-hang' ? 'active' : ''}`}
+                  >
+                    <i className="fa-solid fa-users"></i>
+                    Quản lý khách hàng
+                  </Link>
+                )}
 
-              {(isAdmin || isDirector || isManager) && (
-                <Link 
-                  to="/admin/nhan-vien" 
-                  className={`nav-link ${location.pathname === '/admin/nhan-vien' ? 'active' : ''}`}
-                >
-                  <i className="fa-solid fa-user-tie"></i>
-                  Quản lý nhân viên
-                </Link>
-              )}
+                {(isAdmin || isDirector || isManager) && (
+                  <Link 
+                    to="/admin/nhan-vien" 
+                    className={`nav-link ${location.pathname === '/admin/nhan-vien' ? 'active' : ''}`}
+                  >
+                    <i className="fa-solid fa-user-tie"></i>
+                    Quản lý nhân viên
+                  </Link>
+                )}
 
-              {(isAdmin || isDirector) && (
-                <Link 
-                  to="/admin/cua-hang" 
-                  className={`nav-link ${location.pathname === '/admin/cua-hang' ? 'active' : ''}`}
-                >
-                  <i className="fa-solid fa-store"></i>
-                  Quản lý chi nhánh
-                </Link>
-              )}
+                {(isAdmin || isDirector) && (
+                  <Link 
+                    to="/admin/cua-hang" 
+                    className={`nav-link ${location.pathname === '/admin/cua-hang' ? 'active' : ''}`}
+                  >
+                    <i className="fa-solid fa-store"></i>
+                    Quản lý chi nhánh
+                  </Link>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ═══ SECTION: HỆ THỐNG ═══ */}
           <div className="sidebar-section-label">
