@@ -17,6 +17,11 @@ const AdminPOSPage = () => {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const generatePosOrderCode = () => 'POS' + Date.now().toString().slice(-8) + Math.floor(10 + Math.random() * 89);
+  const [posOrderCode, setPosOrderCode] = useState(generatePosOrderCode);
+  const [posSuccessModal, setPosSuccessModal] = useState(null);
+  const [isAutoPaid, setIsAutoPaid] = useState(false);
+  const isCheckingOutRef = useRef(false);
   
   // Customer states
   const [customers, setCustomers] = useState([]);
@@ -355,28 +360,116 @@ const AdminPOSPage = () => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const handleCheckout = async () => {
-    if (cart.length === 0) {
-      toast.warning("Giỏ hàng đang trống!");
+  const handleCheckout = async (autoFromWebhook = false) => {
+    const isAuto = autoFromWebhook === true;
+    if (cart.length === 0 || isCheckingOutRef.current) {
+      if (cart.length === 0 && !isAuto) {
+        toast.warning("Giỏ hàng đang trống!");
+      }
       return;
     }
     
+    isCheckingOutRef.current = true;
+    const totalPaid = getTotal();
+    const currentMethod = paymentMethod;
+    const currentInvoiceCode = posOrderCode;
+    const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+
     try {
       const customerId = selectedCustomer ? (selectedCustomer.id || selectedCustomer.maKH) : null;
       const storeId = activeShift?.cuaHangId || currentUser?.nguoidung?.cuaHangId || currentUser?.macuahang || 1;
       
-      await createPOSInvoice(cart, paymentMethod, customerId, storeId);
-      toast.success(`Thanh toán thành công hóa đơn trị giá ${getTotal().toLocaleString('vi-VN')}₫!`);
+      const res = await createPOSInvoice(cart, currentMethod, customerId, storeId, currentInvoiceCode);
+      const savedInvoiceCode = res?.data?.maDonHang || currentInvoiceCode;
+
+      const methodLabel =
+        currentMethod === 'VIETQR'
+          ? 'Chuyển khoản (VietQR / Ngân hàng)'
+          : currentMethod === 'MOMO'
+          ? 'Ví điện tử MoMo'
+          : 'Tiền mặt tại quầy';
+
+      if (isAuto || currentMethod === 'VIETQR' || currentMethod === 'MOMO') {
+        toast.success(`🎉 Thanh toán chuyển khoản thành công! Hóa đơn #${savedInvoiceCode} (${totalPaid.toLocaleString('vi-VN')}₫)`, 5000);
+      } else {
+        toast.success(`Thanh toán thành công hóa đơn #${savedInvoiceCode} trị giá ${totalPaid.toLocaleString('vi-VN')}₫!`, 4000);
+      }
+
+      setPosSuccessModal({
+        invoiceCode: savedInvoiceCode,
+        total: totalPaid,
+        itemCount,
+        methodLabel,
+        autoFromWebhook: isAuto,
+        customerName: selectedCustomer?.hoTen || 'Khách vãng lai',
+        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      });
+
       setCart([]); // Reset giỏ hàng
       setPaymentMethod('CASH'); // Reset phương thức thanh toán tiền mặt
       setSelectedCustomer(null); // Reset khách hàng
       setCustomerSearch(''); // Reset ô tìm kiếm
+      setPosOrderCode(generatePosOrderCode()); // Sinh mã đơn POS mới
+      setIsAutoPaid(false);
       fetchAllProducts(); // Cập nhật lại số lượng kho sau khi bán
+      fetchActiveShift(); // Cập nhật doanh thu ca hiện tại
     } catch (error) {
       console.error("Lỗi khi thanh toán:", error);
       toast.error("Có lỗi xảy ra khi tạo hóa đơn: " + (error.response?.data?.message || error.response?.data?.error || error.message));
+      setIsAutoPaid(false);
+    } finally {
+      isCheckingOutRef.current = false;
     }
   };
+
+  // Tự động kiểm tra biến động số dư (SePay / Webhook ngân hàng) khi chọn Chuyển khoản VietQR hoặc MoMo tại quầy POS
+  useEffect(() => {
+    let pollInterval = null;
+    const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+    if (cart.length > 0 && (paymentMethod === 'VIETQR' || paymentMethod === 'MOMO') && posOrderCode && !isAutoPaid) {
+      pollInterval = setInterval(async () => {
+        if (isCheckingOutRef.current) return;
+        try {
+          const res = await axiosClient.get(`/payment/check-status/${posOrderCode}`, {
+            params: { amount: totalAmount }
+          });
+          if (res.data && res.data.paid === true) {
+            clearInterval(pollInterval);
+            setIsAutoPaid(true);
+            handleCheckout(true);
+          }
+        } catch (err) {
+          // Bỏ qua lỗi mạng tạm thời khi đang polling
+        }
+      }, 2500);
+    }
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [cart, paymentMethod, posOrderCode, isAutoPaid]);
+
+  // Tự động đóng popup thông báo thành công sau 6 giây
+  useEffect(() => {
+    if (!posSuccessModal) return;
+    const timer = setTimeout(() => {
+      setPosSuccessModal(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [posSuccessModal]);
+
+  // Hỗ trợ phím tắt F9 để thanh toán nhanh tại quầy POS
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'F9') {
+        e.preventDefault();
+        handleCheckout(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, paymentMethod, posOrderCode, selectedCustomer, activeShift, currentUser]);
 
   return (
     <AdminLayout>
@@ -836,30 +929,42 @@ const AdminPOSPage = () => {
             </div>
 
             {paymentMethod === 'VIETQR' && cart.length > 0 && (
-              <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#e6f7ff', borderRadius: '8px', marginBottom: '15px' }}>
+              <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#e6f7ff', borderRadius: '8px', marginBottom: '15px', border: '1px solid #91d5ff' }}>
                 <div style={{ fontWeight: 'bold', color: '#0052cc', marginBottom: '10px' }}>Mã VietQR - MBBank (Mọi App Ngân Hàng)</div>
                 <img 
-                  src={`https://img.vietqr.io/image/MB-0338052164-compact.png?amount=${getTotal()}&addInfo=GivralBakery&accountName=${encodeURIComponent('NGUYEN HUU THIEN')}`} 
+                  src={`https://img.vietqr.io/image/MB-0338052164-compact.png?amount=${getTotal()}&addInfo=${posOrderCode}&accountName=${encodeURIComponent('NGUYEN HUU THIEN')}`} 
                   alt="VietQR" 
                   style={{ width: '200px', height: '200px', border: '3px solid #0052cc', borderRadius: '10px', padding: '5px', backgroundColor: '#fff' }}
                 />
                 <div style={{ fontWeight: 'bold', marginTop: '10px' }}>NGUYEN HUU THIEN</div>
                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#0052cc', marginTop: '2px' }}>MBBank - STK: 0338052164</div>
-                <div style={{ fontSize: '13px', marginTop: '5px', color: '#666' }}>Khách dùng app Ngân hàng (MBBank, VCB...) hoặc MoMo quét đều được</div>
+                <div style={{ fontSize: '12px', marginTop: '6px', backgroundColor: '#fff', padding: '4px 10px', borderRadius: '6px', display: 'inline-block', border: '1px dashed #0052cc', color: '#0052cc', fontWeight: 'bold' }}>
+                  Nội dung CK: {posOrderCode}
+                </div>
+                <div style={{ fontSize: '12px', marginTop: '8px', color: '#096dd9', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 500 }}>
+                  <i className="fa-solid fa-spinner fa-spin"></i>
+                  Đang tự động chờ xác nhận chuyển khoản...
+                </div>
               </div>
             )}
 
             {paymentMethod === 'MOMO' && cart.length > 0 && (
-              <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#ffe6e6', borderRadius: '8px', marginBottom: '15px' }}>
+              <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#ffe6e6', borderRadius: '8px', marginBottom: '15px', border: '1px solid #ffadd2' }}>
                 <div style={{ fontWeight: 'bold', color: '#d82d8b', marginBottom: '10px' }}>Mã Momo P2P (Chỉ quét bằng Momo)</div>
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`2|99|0338052164|NGUYEN HUU THIEN||0|0|${getTotal()}|GivralBakery|transfer_p2p`)}`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`2|99|0338052164|NGUYEN HUU THIEN||0|0|${getTotal()}|${posOrderCode}|transfer_p2p`)}`} 
                   alt="Momo QR" 
                   style={{ width: '200px', height: '200px', border: '3px solid #d82d8b', borderRadius: '10px', padding: '5px', backgroundColor: '#fff' }}
                 />
                 <div style={{ fontWeight: 'bold', marginTop: '10px' }}>NGUYEN HUU THIEN</div>
                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#d82d8b', marginTop: '2px' }}>MoMo: 0338052164</div>
-                <div style={{ fontSize: '13px', marginTop: '5px', color: '#666' }}>Nhân viên nhận được thông báo "Ting ting" ngay lập tức</div>
+                <div style={{ fontSize: '12px', marginTop: '6px', backgroundColor: '#fff', padding: '4px 10px', borderRadius: '6px', display: 'inline-block', border: '1px dashed #d82d8b', color: '#d82d8b', fontWeight: 'bold' }}>
+                  Nội dung CK: {posOrderCode}
+                </div>
+                <div style={{ fontSize: '12px', marginTop: '8px', color: '#c41d7f', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 500 }}>
+                  <i className="fa-solid fa-spinner fa-spin"></i>
+                  Đang tự động chờ xác nhận thanh toán...
+                </div>
               </div>
             )}
 
@@ -871,7 +976,7 @@ const AdminPOSPage = () => {
             <button 
               className="admin-btn admin-btn-primary" 
               style={{ width: '100%', padding: '15px', fontSize: '16px', fontWeight: 'bold', marginTop: '10px' }}
-              onClick={handleCheckout}
+              onClick={() => handleCheckout(false)}
               disabled={cart.length === 0}
             >
               {paymentMethod === 'CASH' ? 'Thanh Toán Tiền Mặt (F9)' : 'Đã nhận được tiền - Tạo hóa đơn (F9)'}
@@ -879,6 +984,124 @@ const AdminPOSPage = () => {
           </div>
         </div>
       </div>
+
+      {/* MODAL THÔNG BÁO THANH TOÁN POS THÀNH CÔNG */}
+      {posSuccessModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            zIndex: 10000,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+          onClick={() => setPosSuccessModal(null)}
+        >
+          <div
+            style={{
+              background: '#fff',
+              padding: '30px',
+              borderRadius: '16px',
+              width: '440px',
+              maxWidth: '92vw',
+              textAlign: 'center',
+              boxShadow: '0 15px 35px rgba(0,0,0,0.25)',
+              borderTop: '6px solid #28a745'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                width: '72px',
+                height: '72px',
+                borderRadius: '50%',
+                backgroundColor: '#e8f5e9',
+                color: '#28a745',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '36px',
+                margin: '0 auto 16px'
+              }}
+            >
+              <i className="fa-solid fa-circle-check"></i>
+            </div>
+
+            <h2 style={{ color: '#28a745', marginBottom: '6px', fontSize: '22px', fontWeight: 700 }}>
+              {posSuccessModal.autoFromWebhook ? 'Nhận Chuyển Khoản Thành Công!' : 'Thanh Toán Thành Công!'}
+            </h2>
+            <p style={{ color: '#666', fontSize: '14px', marginBottom: '18px' }}>
+              {posSuccessModal.autoFromWebhook
+                ? 'Hệ thống ngân hàng đã xác nhận giao dịch và tự động xuất hóa đơn.'
+                : 'Hóa đơn bán hàng tại quầy đã được tạo và ghi nhận vào ca làm việc.'}
+            </p>
+
+            <div
+              style={{
+                backgroundColor: '#f8f9fa',
+                borderRadius: '10px',
+                padding: '15px',
+                textAlign: 'left',
+                marginBottom: '20px',
+                border: '1px solid #e9ecef',
+                fontSize: '14px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#666' }}>Mã hóa đơn:</span>
+                <strong style={{ color: '#333' }}>#{posSuccessModal.invoiceCode}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#666' }}>Khách hàng:</span>
+                <strong>{posSuccessModal.customerName}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#666' }}>Hình thức:</span>
+                <strong style={{ color: '#0052cc' }}>{posSuccessModal.methodLabel}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#666' }}>Thời gian:</span>
+                <span>{posSuccessModal.time}</span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  borderTop: '1px dashed #ccc',
+                  paddingTop: '10px',
+                  marginTop: '6px',
+                  fontSize: '16px'
+                }}
+              >
+                <strong style={{ color: '#333' }}>Tổng thanh toán ({posSuccessModal.itemCount} sp):</strong>
+                <strong style={{ color: '#28a745', fontSize: '18px' }}>
+                  {Number(posSuccessModal.total).toLocaleString('vi-VN')}₫
+                </strong>
+              </div>
+            </div>
+
+            <button
+              className="admin-btn admin-btn-primary"
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '15px',
+                fontWeight: 'bold',
+                backgroundColor: '#28a745',
+                borderColor: '#28a745'
+              }}
+              onClick={() => setPosSuccessModal(null)}
+            >
+              Hoàn tất & Tiếp tục bán hàng
+            </button>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };
