@@ -3,6 +3,7 @@ import AdminLayout from '../../Layout/AdminLayout';
 import { getInvoices, getInvoiceDetails, updateInvoiceStatus } from '../../services/invoiceService';
 import { useToast } from '../../components/Toast/Toast';
 import { formatImageUrl } from '../../utils/imageUtils';
+import { PhieuThanhToanPrintModal } from '../../components/PrintForms';
 
 const AdminInvoicePage = () => {
     const toast = useToast();
@@ -17,6 +18,7 @@ const [invoices, setInvoices] = useState([]);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
   const [editingStatus, setEditingStatus] = useState('');
   const [previewReceiptModalUrl, setPreviewReceiptModalUrl] = useState(null);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   const printRef = useRef(null);
 
@@ -78,37 +80,8 @@ const [invoices, setInvoices] = useState([]);
   };
 
   const handlePrint = () => {
-    const printContent = printRef.current;
-    const windowPrint = window.open('', '', 'width=900,height=650');
-    // Đặt title của cửa sổ in thành mã hóa đơn, khi người dùng "Lưu dưới dạng PDF" thì trình duyệt sẽ lấy title làm tên file mặc định
-    windowPrint.document.write('<html><head><title>' + (viewingInvoice?.maHD || 'Hoa_Don') + '</title>');
-    windowPrint.document.write('<style>');
-    windowPrint.document.write(`
-      body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-      .invoice-header { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 20px; border-bottom: 2px solid #5c3d2e; padding-bottom: 15px; }
-      .invoice-header img { width: 70px; height: 70px; object-fit: contain; border-radius: 6px; }
-      .invoice-header-title { text-align: left; }
-      .invoice-header-title h2 { margin: 0; color: #5c3d2e; font-size: 22px; font-weight: bold; }
-      .invoice-header-title p { margin: 4px 0 0; font-size: 13px; color: #666; }
-      .invoice-info { margin-bottom: 20px; display: flex; justify-content: space-between; }
-      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-      th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-      th { background-color: #f2f2f2; }
-      .total { text-align: right; font-size: 1.2rem; font-weight: bold; }
-      @media print {
-        body { padding: 0; }
-        img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      }
-    `);
-    windowPrint.document.write('</style></head><body>');
-    windowPrint.document.write(printContent.innerHTML);
-    windowPrint.document.write('</body></html>');
-    windowPrint.document.close();
-    windowPrint.focus();
-    setTimeout(() => {
-      windowPrint.print();
-      windowPrint.close();
-    }, 250);
+    if (!viewingInvoice) return;
+    setIsPrintModalOpen(true);
   };
 
   const getStatusBadgeClass = (status) => {
@@ -393,6 +366,13 @@ const [invoices, setInvoices] = useState([]);
           </div>
         </div>
       )}
+
+      {/* MODAL IN PHIẾU THANH TOÁN CHUẨN BIỂU MẪU GIVRAL BAKERY */}
+      <PhieuThanhToanPrintModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        invoice={{ ...viewingInvoice, chiTiets: invoiceDetails }}
+      />
     </AdminLayout>
   );
 };

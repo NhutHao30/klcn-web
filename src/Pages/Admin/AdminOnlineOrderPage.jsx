@@ -4,6 +4,7 @@ import { getInvoices, updateInvoiceStatus, getInvoiceDetails, getGhnTrackingDeta
 import { useToast } from '../../components/Toast/Toast';
 import { formatImageUrl } from '../../utils/imageUtils';
 import axiosClient from '../../services/axiosClient';
+import { DatHangOnlinePrintModal } from '../../components/PrintForms';
 import '../../css/admin.css';
 
 const STATUS_COLUMNS = [
@@ -120,6 +121,7 @@ const AdminOnlineOrderPage = () => {
   const [refundProofPreview, setRefundProofPreview] = useState(null);
   const [isProcessingRefund, setIsProcessingRefund] = useState(false);
   const [copiedStkAdmin, setCopiedStkAdmin] = useState(false);
+  const [isOnlinePrintOpen, setIsOnlinePrintOpen] = useState(false);
 
   // Return & Refund approval states
   const [isProcessingReturnAction, setIsProcessingReturnAction] = useState(false);
@@ -1736,7 +1738,15 @@ const AdminOnlineOrderPage = () => {
               })()}
             </div>
 
-            <div className="admin-modal-footer">
+            <div className="admin-modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="admin-btn admin-btn-primary"
+                style={{ backgroundColor: '#4e1a0f', borderColor: '#4e1a0f', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => setIsOnlinePrintOpen(true)}
+              >
+                <i className="fa-solid fa-print"></i> In Đơn Hàng (Chuẩn Biểu Mẫu)
+              </button>
               <button className="admin-btn admin-btn-secondary" onClick={() => setSelectedOrder(null)}>
                 Đóng
               </button>
@@ -1744,6 +1754,13 @@ const AdminOnlineOrderPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal In Đơn Hàng Trực Tuyến chuẩn biểu mẫu Givral Bakery */}
+      <DatHangOnlinePrintModal
+        isOpen={isOnlinePrintOpen}
+        onClose={() => setIsOnlinePrintOpen(false)}
+        order={{ ...selectedOrder, chiTietDonHangs: orderDetails }}
+      />
 
       {/* Admin GHN Live Tracking Modal */}
       {ghnTrackingCode && (

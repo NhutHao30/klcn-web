@@ -8,6 +8,7 @@ import { getCurrentUser } from '../../services/authService';
 import axiosClient from '../../services/axiosClient';
 import { useToast } from '../../components/Toast/Toast';
 import { formatImageUrl } from '../../utils/imageUtils';
+import { BanHangTaiQuayPrintModal, PhieuOrderPrintModal } from '../../components/PrintForms';
 
 const AdminPOSPage = () => {
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ const AdminPOSPage = () => {
   const [posOrderCode, setPosOrderCode] = useState(generatePosOrderCode);
   const [posSuccessModal, setPosSuccessModal] = useState(null);
   const [isAutoPaid, setIsAutoPaid] = useState(false);
+  const [isPosPrintOpen, setIsPosPrintOpen] = useState(false);
+  const [isOrderPrintOpen, setIsOrderPrintOpen] = useState(false);
   const isCheckingOutRef = useRef(false);
   
   // Customer states
@@ -407,8 +410,21 @@ const AdminPOSPage = () => {
         total: totalPaid,
         itemCount,
         methodLabel,
+        paymentMethod: currentMethod,
         autoFromWebhook: isAuto,
         customerName: selectedCustomer?.hoTen || 'Khách vãng lai',
+        customerPhone: selectedCustomer?.soDienThoai || '',
+        customerAddress: selectedCustomer?.diaChi || '',
+        isVip: selectedCustomer?.diemTichLuy > 0,
+        staffName: currentUser?.nguoidung?.hoTen || currentUser?.username || 'Nhân viên POS',
+        branchName: activeShift?.cuaHang?.tenCuaHang || 'Givral Bakery Center',
+        items: cart.map(it => ({
+          tenSanPham: it.name || it.TENSP,
+          size: it.size || 'Cái',
+          soLuong: it.quantity,
+          donGia: it.price,
+          thanhTien: it.price * it.quantity
+        })),
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
       });
 
@@ -1102,6 +1118,49 @@ const AdminPOSPage = () => {
               </div>
             </div>
 
+            {/* Buttons in phiếu theo biểu mẫu chuẩn Givral Bakery */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+              <button
+                type="button"
+                className="admin-btn"
+                style={{
+                  backgroundColor: '#4e1a0f',
+                  color: '#ffffff',
+                  padding: '10px 8px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  borderRadius: '8px'
+                }}
+                onClick={() => setIsPosPrintOpen(true)}
+              >
+                <i className="fa-solid fa-print"></i> In Phiếu Bán Hàng
+              </button>
+
+              <button
+                type="button"
+                className="admin-btn"
+                style={{
+                  backgroundColor: '#b45309',
+                  color: '#ffffff',
+                  padding: '10px 8px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  borderRadius: '8px'
+                }}
+                onClick={() => setIsOrderPrintOpen(true)}
+              >
+                <i className="fa-solid fa-clipboard-list"></i> In Phiếu Order Bếp
+              </button>
+            </div>
+
             <button
               className="admin-btn admin-btn-primary"
               style={{
@@ -1119,6 +1178,20 @@ const AdminPOSPage = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL IN BIỂU MẪU BÁN HÀNG TẠI QUẦY */}
+      <BanHangTaiQuayPrintModal
+        isOpen={isPosPrintOpen}
+        onClose={() => setIsPosPrintOpen(false)}
+        data={posSuccessModal}
+      />
+
+      {/* MODAL IN BIỂU MẪU PHIẾU ORDER BẾP */}
+      <PhieuOrderPrintModal
+        isOpen={isOrderPrintOpen}
+        onClose={() => setIsOrderPrintOpen(false)}
+        data={posSuccessModal}
+      />
     </AdminLayout>
   );
 };

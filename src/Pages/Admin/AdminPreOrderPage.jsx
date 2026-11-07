@@ -12,6 +12,7 @@ import { lookupCustomerBySdt } from '../../services/customerService';
 import { getProducts } from '../../services/productService';
 import { useToast } from '../../components/Toast/Toast';
 import axiosClient from '../../services/axiosClient';
+import { DatBanhTruocPrintModal } from '../../components/PrintForms';
 
 // ─── Component Chọn địa chỉ & Tính phí ship GHN (2 cấp: Tỉnh/Thành -> Phường/Xã) ─────────────
 const GhnDeliverySelector = ({ form, setForm, formErrors }) => {
@@ -501,6 +502,7 @@ const AdminPreOrderPage = () => {
     const [detail, setDetail]                 = useState(null);
     const [showDetail, setShowDetail]         = useState(false);
     const [detailLoading, setDetailLoading]   = useState(false);
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
     // Trạng thái sửa đơn
     const [editingMaDHT, setEditingMaDHT]     = useState(null);
@@ -740,25 +742,10 @@ const AdminPreOrderPage = () => {
         }
     };
 
-    // ── In phiếu ─────────────────────────────────────────────
+    // ── In phiếu chuẩn biểu mẫu Givral Bakery ──────────────────
     const handlePrint = () => {
-        if (!printRef.current) return;
-        const win = window.open('', '', 'width=900,height=650');
-        win.document.write(`<html><head><title>Phieu_${detail?.maDHT || ''}</title><style>
-            body{font-family:Arial,sans-serif;padding:20px;font-size:15px;color:#222}
-            h2{margin:0 0 4px}p{margin:3px 0;font-size:15px}
-            table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
-            th,td{border:1px solid #ccc;padding:8px;text-align:left}
-            th{background:#f5f5f5;font-size:14px}
-            .total{text-align:right;font-size:17px;font-weight:bold}
-            .section{margin-bottom:14px;padding-bottom:10px;border-bottom:1px dashed #ccc}
-            .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:13px;background:#fef3c7;color:#92400e}
-        </style></head><body>`);
-        win.document.write(printRef.current.innerHTML);
-        win.document.write('</body></html>');
-        win.document.close();
-        win.focus();
-        setTimeout(() => { win.print(); win.close(); }, 300);
+        if (!detail) return;
+        setIsPrintModalOpen(true);
     };
 
     // Tính toán thống kê KPI nhanh
@@ -1624,6 +1611,13 @@ const AdminPreOrderPage = () => {
                     </div>
                 </div>
             )}
+
+            {/* MODAL IN PHIẾU ĐẶT BÁNH TRƯỚC CHUẨN GIVRAL BAKERY */}
+            <DatBanhTruocPrintModal
+                isOpen={isPrintModalOpen}
+                onClose={() => setIsPrintModalOpen(false)}
+                order={detail}
+            />
         </AdminLayout>
     );
 };
