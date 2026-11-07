@@ -65,6 +65,9 @@ const AdminAccountPage = () => {
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'LOCKED'
   const [roleFilter, setRoleFilter] = useState('ALL');
 
+  // View Mode: 'table' (default desktop/tablet) | 'cards' (responsive mobile card view)
+  const [viewMode, setViewMode] = useState('table');
+
   // Edit / Create Account Modal
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
@@ -119,6 +122,20 @@ const AdminAccountPage = () => {
     getCurrentUser()
       .then((u) => setCurrentUser(u))
       .catch(() => {});
+
+    // Tự động chuyển sang chế độ Thẻ (Cards) trên màn hình điện thoại (< 768px)
+    const handleResize = () => {
+      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        setViewMode('cards');
+      }
+    };
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 768) {
+        setViewMode('cards');
+      }
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
   }, []);
 
   // Normalize account helper
@@ -400,8 +417,251 @@ const AdminAccountPage = () => {
 
   return (
     <AdminLayout>
+      {/* Scoped CSS for AdminAccountPage responsiveness and modern UI */}
+      <style>{`
+        /* Action buttons group: strictly single line, no awkward breaking */
+        .admin-account-actions {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 6px !important;
+          flex-wrap: nowrap !important;
+          white-space: nowrap !important;
+        }
+
+        .btn-action-base {
+          padding: 6px 11px !important;
+          font-size: 12px !important;
+          font-weight: 600 !important;
+          border-radius: 6px !important;
+          cursor: pointer !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 5px !important;
+          transition: all 0.18s ease !important;
+          line-height: 1.2 !important;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+          border: 1px solid transparent !important;
+        }
+
+        .btn-action-base:active {
+          transform: scale(0.96) !important;
+        }
+
+        .btn-action-base:disabled {
+          opacity: 0.45 !important;
+          cursor: not-allowed !important;
+          pointer-events: none !important;
+        }
+
+        /* 1. Sửa (Sky Blue Theme) */
+        .btn-action-edit {
+          background-color: #f0f7ff !important;
+          color: #0284c7 !important;
+          border-color: #bae6fd !important;
+        }
+        .btn-action-edit:hover {
+          background-color: #0284c7 !important;
+          color: #ffffff !important;
+          border-color: #0284c7 !important;
+          box-shadow: 0 3px 8px rgba(2, 132, 199, 0.28) !important;
+        }
+
+        /* 2. Đổi MK (Amber Theme) */
+        .btn-action-password {
+          background-color: #fffbeb !important;
+          color: #d97706 !important;
+          border-color: #fde68a !important;
+        }
+        .btn-action-password:hover {
+          background-color: #d97706 !important;
+          color: #ffffff !important;
+          border-color: #d97706 !important;
+          box-shadow: 0 3px 8px rgba(217, 119, 6, 0.28) !important;
+        }
+
+        /* 3. Khóa (Rose/Red Theme) */
+        .btn-action-lock {
+          background-color: #fef2f2 !important;
+          color: #dc2626 !important;
+          border-color: #fecaca !important;
+        }
+        .btn-action-lock:hover {
+          background-color: #dc2626 !important;
+          color: #ffffff !important;
+          border-color: #dc2626 !important;
+          box-shadow: 0 3px 8px rgba(220, 38, 38, 0.28) !important;
+        }
+
+        /* 4. Mở khóa (Emerald/Green Theme) */
+        .btn-action-unlock {
+          background-color: #f0fdf4 !important;
+          color: #16a34a !important;
+          border-color: #bbf7d0 !important;
+        }
+        .btn-action-unlock:hover {
+          background-color: #16a34a !important;
+          color: #ffffff !important;
+          border-color: #16a34a !important;
+          box-shadow: 0 3px 8px rgba(22, 163, 74, 0.28) !important;
+        }
+
+        /* Badges strictly single line */
+        .admin-badge-single-line {
+          white-space: nowrap !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 5px !important;
+          line-height: 1.2 !important;
+        }
+
+        /* View Mode Switcher */
+        .view-mode-toggle {
+          display: inline-flex;
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 3px;
+          gap: 3px;
+        }
+
+        .view-mode-btn {
+          border: none;
+          background: transparent;
+          color: #64748b;
+          padding: 5px 11px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          transition: all 0.15s ease;
+        }
+
+        .view-mode-btn.active {
+          background: #ffffff;
+          color: #0f172a;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+
+        /* Mobile Card Design */
+        .account-card-item {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 16px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+          transition: transform 0.15s, box-shadow 0.15s;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .account-card-item:hover {
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .account-card-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 15px;
+          flex-shrink: 0;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 1024px) {
+          .admin-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .admin-account-table {
+            min-width: 950px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .admin-header-actions {
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .admin-header-actions .admin-btn {
+            width: 100% !important;
+            padding: 8px 10px !important;
+            font-size: 13px !important;
+            justify-content: center !important;
+          }
+          .admin-tab-buttons {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            width: 100% !important;
+            gap: 8px !important;
+          }
+          .admin-tab-btn {
+            justify-content: center !important;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+            width: 100% !important;
+          }
+          .admin-filter-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .admin-filter-inputs {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+            width: 100% !important;
+          }
+          .admin-search-wrapper {
+            grid-column: 1 / -1 !important;
+            max-width: 100% !important;
+            min-width: 100% !important;
+          }
+          .admin-filter-inputs select {
+            width: 100% !important;
+          }
+          .admin-filter-meta {
+            width: 100% !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            margin-top: 4px !important;
+          }
+          .account-form-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .admin-kpi-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .admin-kpi-card {
+            padding: 12px 10px !important;
+          }
+          .admin-kpi-num {
+            font-size: 20px !important;
+          }
+          .admin-kpi-title {
+            font-size: 11px !important;
+          }
+          .admin-filter-inputs {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="admin-flex-between" style={{ marginBottom: '1.25rem', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="admin-flex-between admin-header-wrapper" style={{ marginBottom: '1.25rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 className="admin-title" style={{ marginBottom: '4px' }}>
             <i className="fa-solid fa-users-gear" style={{ marginRight: '10px', color: 'var(--primary-color)' }}></i>
@@ -412,7 +672,7 @@ const AdminAccountPage = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="admin-header-actions" style={{ display: 'flex', gap: '10px' }}>
           <button
             type="button"
             className="admin-btn admin-btn-secondary"
@@ -431,6 +691,7 @@ const AdminAccountPage = () => {
 
       {/* KPI Summary Cards */}
       <div
+        className="admin-kpi-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
@@ -439,7 +700,7 @@ const AdminAccountPage = () => {
         }}
       >
         <div
-          className="admin-card"
+          className="admin-card admin-kpi-card"
           style={{
             marginBottom: 0,
             padding: '16px 18px',
@@ -450,10 +711,10 @@ const AdminAccountPage = () => {
           }}
         >
           <div>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+            <div className="admin-kpi-title" style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
               Tổng tài khoản User
             </div>
-            <div style={{ fontSize: '26px', fontWeight: 800, color: '#1e293b', marginTop: '4px' }}>
+            <div className="admin-kpi-num" style={{ fontSize: '26px', fontWeight: 800, color: '#1e293b', marginTop: '4px' }}>
               {stats.total}
             </div>
             <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '2px' }}>
@@ -478,7 +739,7 @@ const AdminAccountPage = () => {
         </div>
 
         <div
-          className="admin-card"
+          className="admin-card admin-kpi-card"
           onClick={() => setActiveTab('staff')}
           style={{
             marginBottom: 0,
@@ -491,10 +752,10 @@ const AdminAccountPage = () => {
           }}
         >
           <div>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+            <div className="admin-kpi-title" style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
               Tài khoản Nhân viên
             </div>
-            <div style={{ fontSize: '26px', fontWeight: 800, color: '#0f766e', marginTop: '4px' }}>
+            <div className="admin-kpi-num" style={{ fontSize: '26px', fontWeight: 800, color: '#0f766e', marginTop: '4px' }}>
               {stats.staffTotal}
             </div>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
@@ -519,7 +780,7 @@ const AdminAccountPage = () => {
         </div>
 
         <div
-          className="admin-card"
+          className="admin-card admin-kpi-card"
           onClick={() => setActiveTab('customer')}
           style={{
             marginBottom: 0,
@@ -532,10 +793,10 @@ const AdminAccountPage = () => {
           }}
         >
           <div>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+            <div className="admin-kpi-title" style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
               Tài khoản Khách hàng
             </div>
-            <div style={{ fontSize: '26px', fontWeight: 800, color: '#b45309', marginTop: '4px' }}>
+            <div className="admin-kpi-num" style={{ fontSize: '26px', fontWeight: 800, color: '#b45309', marginTop: '4px' }}>
               {stats.custTotal}
             </div>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
@@ -560,7 +821,7 @@ const AdminAccountPage = () => {
         </div>
 
         <div
-          className="admin-card"
+          className="admin-card admin-kpi-card"
           onClick={() => setStatusFilter(statusFilter === 'LOCKED' ? 'ALL' : 'LOCKED')}
           style={{
             marginBottom: 0,
@@ -573,10 +834,10 @@ const AdminAccountPage = () => {
           }}
         >
           <div>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+            <div className="admin-kpi-title" style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
               Tài khoản Đang Khóa
             </div>
-            <div style={{ fontSize: '26px', fontWeight: 800, color: '#dc2626', marginTop: '4px' }}>
+            <div className="admin-kpi-num" style={{ fontSize: '26px', fontWeight: 800, color: '#dc2626', marginTop: '4px' }}>
               {stats.lockedTotal}
             </div>
             <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '2px' }}>
@@ -602,9 +863,10 @@ const AdminAccountPage = () => {
       </div>
 
       {/* Tabs: Tài khoản Nhân viên vs Tài khoản Khách hàng */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+      <div className="admin-tab-buttons" style={{ display: 'flex', gap: '12px', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         <button
           type="button"
+          className="admin-tab-btn"
           onClick={() => {
             setActiveTab('staff');
             setRoleFilter('ALL');
@@ -642,6 +904,7 @@ const AdminAccountPage = () => {
 
         <button
           type="button"
+          className="admin-tab-btn"
           onClick={() => {
             setActiveTab('customer');
             setRoleFilter('ALL');
@@ -678,10 +941,11 @@ const AdminAccountPage = () => {
         </button>
       </div>
 
-      {/* Main Table Card */}
+      {/* Main Container Card */}
       <div className="admin-card">
         {/* Filter Bar */}
         <div
+          className="admin-filter-bar"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -693,8 +957,8 @@ const AdminAccountPage = () => {
             borderBottom: '1px solid #f1f5f9',
           }}
         >
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
-            <div style={{ position: 'relative', minWidth: '280px', flex: '1 1 280px', maxWidth: '420px' }}>
+          <div className="admin-filter-inputs" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
+            <div className="admin-search-wrapper" style={{ position: 'relative', minWidth: '240px', flex: '1 1 240px', maxWidth: '420px' }}>
               <i
                 className="fa-solid fa-magnifying-glass"
                 style={{
@@ -710,8 +974,8 @@ const AdminAccountPage = () => {
                 className="admin-input"
                 placeholder={
                   activeTab === 'staff'
-                    ? 'Tìm theo Username, Họ tên nhân viên, Email, SĐT...'
-                    : 'Tìm theo Username, Họ tên khách hàng, Email, SĐT...'
+                    ? 'Tìm Username, Họ tên nhân viên, Email, SĐT...'
+                    : 'Tìm Username, Họ tên khách hàng, Email, SĐT...'
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -724,7 +988,7 @@ const AdminAccountPage = () => {
                 className="admin-input"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                style={{ width: '230px', marginBottom: 0 }}
+                style={{ width: '220px', marginBottom: 0 }}
               >
                 <option value="ALL">-- Tất cả vai trò nhân sự --</option>
                 {ROLE_OPTIONS.filter((r) => r.group === 'staff').map((r) => (
@@ -739,7 +1003,7 @@ const AdminAccountPage = () => {
               className="admin-input"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ width: '190px', marginBottom: 0 }}
+              style={{ width: '175px', marginBottom: 0 }}
             >
               <option value="ALL">Tất cả trạng thái</option>
               <option value="ACTIVE">🟢 Đang hoạt động</option>
@@ -755,230 +1019,491 @@ const AdminAccountPage = () => {
                   setStatusFilter('ALL');
                   setRoleFilter('ALL');
                 }}
+                style={{ padding: '0.5rem 0.9rem', fontSize: '13px' }}
               >
                 Xóa bộ lọc
               </button>
             )}
           </div>
 
-          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
-            Hiển thị <b>{displayedAccounts.length}</b> tài khoản
+          <div className="admin-filter-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
+              Hiển thị <b>{displayedAccounts.length}</b> tài khoản
+            </div>
+
+            {/* View Mode Toggle Button Group */}
+            <div className="view-mode-toggle" title="Chuyển đổi giao diện hiển thị">
+              <button
+                type="button"
+                className={`view-mode-btn ${viewMode === 'table' ? 'active' : ''}`}
+                onClick={() => setViewMode('table')}
+                title="Xem dạng Bảng"
+              >
+                <i className="fa-solid fa-table-list"></i>
+                <span>Bảng</span>
+              </button>
+              <button
+                type="button"
+                className={`view-mode-btn ${viewMode === 'cards' ? 'active' : ''}`}
+                onClick={() => setViewMode('cards')}
+                title="Xem dạng Thẻ (Cards)"
+              >
+                <i className="fa-solid fa-grip"></i>
+                <span>Thẻ</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="admin-table-container">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th style={{ width: '60px' }}>ID</th>
-                <th>Tên đăng nhập (Username)</th>
-                <th>{activeTab === 'staff' ? 'Họ tên Nhân viên' : 'Họ tên Khách hàng'}</th>
-                <th>Email & SĐT</th>
-                {activeTab === 'staff' ? (
-                  <>
-                    <th>Vai trò hệ thống</th>
-                    <th>Chi nhánh</th>
-                  </>
+        {/* View Mode: TABLE */}
+        {viewMode === 'table' ? (
+          <div className="admin-table-container">
+            <table className="admin-table admin-account-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '60px', whiteSpace: 'nowrap' }}>ID</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Tên đăng nhập (Username)</th>
+                  <th style={{ minWidth: '160px' }}>{activeTab === 'staff' ? 'Họ tên Nhân viên' : 'Họ tên Khách hàng'}</th>
+                  <th style={{ minWidth: '180px' }}>Email & SĐT</th>
+                  {activeTab === 'staff' ? (
+                    <>
+                      <th style={{ whiteSpace: 'nowrap' }}>Vai trò hệ thống</th>
+                      <th style={{ minWidth: '150px' }}>Chi nhánh</th>
+                    </>
+                  ) : (
+                    <th style={{ whiteSpace: 'nowrap' }}>Điểm & Hạng TV</th>
+                  )}
+                  <th style={{ whiteSpace: 'nowrap' }}>Ngày tạo</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Trạng thái</th>
+                  <th style={{ textAlign: 'center', whiteSpace: 'nowrap', minWidth: '220px', width: '1%' }}>
+                    Thao tác quản trị
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={activeTab === 'staff' ? 9 : 8} style={{ textAlign: 'center', padding: '32px' }}>
+                      <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
+                      Đang tải danh sách tài khoản...
+                    </td>
+                  </tr>
+                ) : displayedAccounts.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={activeTab === 'staff' ? 9 : 8}
+                      style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}
+                    >
+                      Không tìm thấy tài khoản nào phù hợp với bộ lọc hiện tại.
+                    </td>
+                  </tr>
                 ) : (
-                  <th>Điểm & Hạng TV</th>
+                  displayedAccounts.map((acc) => {
+                    const isSelf =
+                      currentUser &&
+                      (Number(currentUser.id) === Number(acc.id) ||
+                        String(currentUser.username).toLowerCase() === String(acc.username).toLowerCase());
+                    const rankInfo = getCustomerRank(acc.diemTichLuy);
+
+                    return (
+                      <tr
+                        key={acc.id || acc.username}
+                        style={{
+                          backgroundColor: !acc.isActive ? '#fff5f5' : 'transparent',
+                          opacity: !acc.isActive ? 0.85 : 1,
+                        }}
+                      >
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 700, color: '#64748b' }}>#{acc.id}</span>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <code
+                              style={{
+                                backgroundColor: '#f1f5f9',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                fontWeight: 700,
+                                color: '#0f172a',
+                                fontSize: '13px',
+                              }}
+                            >
+                              {acc.username}
+                            </code>
+                            {isSelf && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  background: '#dbeafe',
+                                  color: '#1d4ed8',
+                                  padding: '2px 6px',
+                                  borderRadius: '10px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                Bạn
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 700, color: '#1e293b' }}>{acc.hoTen}</div>
+                          {acc.cccdNumber && (
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>CCCD: {acc.cccdNumber}</div>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ fontSize: '13px', color: '#334155' }}>
+                            <i className="fa-regular fa-envelope" style={{ marginRight: '5px', color: '#94a3b8' }}></i>
+                            {acc.email || '—'}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                            <i className="fa-solid fa-phone" style={{ marginRight: '5px', color: '#94a3b8' }}></i>
+                            {acc.soDienThoai || 'Chưa cập nhật'}
+                          </div>
+                        </td>
+
+                        {activeTab === 'staff' ? (
+                          <>
+                            <td style={{ whiteSpace: 'nowrap' }}>
+                              <span className={`admin-badge ${getRoleBadgeClass(acc.vaiTroId)} admin-badge-single-line`}>
+                                {acc.roleLabel}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: '13px', color: '#334155', fontWeight: 500 }}>
+                              {acc.tenCuaHang}
+                            </td>
+                          </>
+                        ) : (
+                          <td style={{ whiteSpace: 'nowrap' }}>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '3px 10px',
+                                borderRadius: '12px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                backgroundColor: rankInfo.bg,
+                                color: rankInfo.color,
+                                marginRight: '6px',
+                              }}
+                            >
+                              {rankInfo.name}
+                            </span>
+                            <span style={{ fontSize: '12px', color: '#64748b' }}>
+                              ({Number(acc.diemTichLuy || 0).toLocaleString('vi-VN')} điểm)
+                            </span>
+                          </td>
+                        )}
+
+                        <td style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                          {formatDateStr(acc.createdAt)}
+                        </td>
+
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          {acc.isActive ? (
+                            <span className="admin-badge admin-badge-success admin-badge-single-line">
+                              <i className="fa-solid fa-circle-check"></i>
+                              <span>Hoạt động</span>
+                            </span>
+                          ) : (
+                            <span className="admin-badge admin-badge-danger admin-badge-single-line">
+                              <i className="fa-solid fa-lock"></i>
+                              <span>Đã khóa</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Thao tác quản trị: Thiết kế gọn gàng, không bị ngắt dòng */}
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap', width: '1%' }}>
+                          <div className="admin-account-actions">
+                            <button
+                              type="button"
+                              className="btn-action-base btn-action-edit"
+                              title="Chỉnh sửa thông tin tài khoản & phân quyền"
+                              onClick={() => handleOpenEditModal(acc)}
+                            >
+                              <i className="fa-solid fa-pen-to-square"></i>
+                              <span>Sửa</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn-action-base btn-action-password"
+                              title="Thay đổi hoặc cấp lại mật khẩu"
+                              onClick={() => handleOpenPasswordModal(acc)}
+                            >
+                              <i className="fa-solid fa-key"></i>
+                              <span>Đổi MK</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className={`btn-action-base ${acc.isActive ? 'btn-action-lock' : 'btn-action-unlock'}`}
+                              disabled={isSelf}
+                              title={
+                                isSelf
+                                  ? 'Không thể tự khóa tài khoản của chính mình'
+                                  : acc.isActive
+                                  ? 'Khóa tài khoản này'
+                                  : 'Mở khóa tài khoản này'
+                              }
+                              onClick={() => handleToggleLock(acc)}
+                            >
+                              <i className={`fa-solid ${acc.isActive ? 'fa-lock' : 'fa-lock-open'}`}></i>
+                              <span>{acc.isActive ? 'Khóa' : 'Mở khóa'}</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
-                <th>Ngày tạo</th>
-                <th>Trạng thái</th>
-                <th style={{ textAlign: 'center', minWidth: '250px' }}>Thao tác quản trị</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={activeTab === 'staff' ? 9 : 8} style={{ textAlign: 'center', padding: '32px' }}>
-                    <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
-                    Đang tải danh sách tài khoản...
-                  </td>
-                </tr>
-              ) : displayedAccounts.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={activeTab === 'staff' ? 9 : 8}
-                    style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}
-                  >
-                    Không tìm thấy tài khoản nào phù hợp với bộ lọc hiện tại.
-                  </td>
-                </tr>
-              ) : (
-                displayedAccounts.map((acc) => {
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* View Mode: CARDS (Responsive cho Mobile & Tablet) */
+          <div className="admin-account-cards">
+            {isLoading ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
+                Đang tải danh sách tài khoản...
+              </div>
+            ) : displayedAccounts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#64748b', background: '#f8fafc', borderRadius: '12px' }}>
+                Không tìm thấy tài khoản nào phù hợp với bộ lọc hiện tại.
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
+                  gap: '14px',
+                }}
+              >
+                {displayedAccounts.map((acc) => {
                   const isSelf =
                     currentUser &&
                     (Number(currentUser.id) === Number(acc.id) ||
                       String(currentUser.username).toLowerCase() === String(acc.username).toLowerCase());
                   const rankInfo = getCustomerRank(acc.diemTichLuy);
+                  const initialLetter = (acc.hoTen || acc.username || '?').trim().charAt(0).toUpperCase();
 
                   return (
-                    <tr
+                    <div
                       key={acc.id || acc.username}
+                      className="account-card-item"
                       style={{
-                        backgroundColor: !acc.isActive ? '#fff5f5' : 'transparent',
-                        opacity: !acc.isActive ? 0.85 : 1,
+                        borderLeft: !acc.isActive ? '4px solid #ef4444' : '4px solid #22c55e',
+                        backgroundColor: !acc.isActive ? '#fffafa' : '#ffffff',
                       }}
                     >
-                      <td>
-                        <span style={{ fontWeight: 700, color: '#64748b' }}>#{acc.id}</span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <code
+                      {/* Card Top: Avatar, Name, Username, Status */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                          <div
+                            className="account-card-avatar"
                             style={{
-                              backgroundColor: '#f1f5f9',
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              fontWeight: 700,
-                              color: '#0f172a',
-                              fontSize: '13px',
+                              backgroundColor: !acc.isActive ? '#fee2e2' : activeTab === 'staff' ? '#dbeafe' : '#fef3c7',
+                              color: !acc.isActive ? '#dc2626' : activeTab === 'staff' ? '#1d4ed8' : '#b45309',
                             }}
                           >
-                            {acc.username}
-                          </code>
-                          {isSelf && (
-                            <span
+                            {initialLetter}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div
                               style={{
-                                fontSize: '10px',
-                                background: '#dbeafe',
-                                color: '#1d4ed8',
-                                padding: '2px 6px',
-                                borderRadius: '10px',
                                 fontWeight: 700,
+                                fontSize: '15px',
+                                color: '#1e293b',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
                               }}
+                              title={acc.hoTen}
                             >
-                              Bạn
+                              {acc.hoTen}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                              <code
+                                style={{
+                                  backgroundColor: '#f1f5f9',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontWeight: 700,
+                                  fontSize: '11px',
+                                  color: '#0f172a',
+                                }}
+                              >
+                                @{acc.username}
+                              </code>
+                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>#{acc.id}</span>
+                              {isSelf && (
+                                <span
+                                  style={{
+                                    fontSize: '10px',
+                                    background: '#dbeafe',
+                                    color: '#1d4ed8',
+                                    padding: '1px 5px',
+                                    borderRadius: '8px',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  Bạn
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div style={{ flexShrink: 0 }}>
+                          {acc.isActive ? (
+                            <span className="admin-badge admin-badge-success admin-badge-single-line" style={{ fontSize: '11px', padding: '3px 8px' }}>
+                              <i className="fa-solid fa-circle-check"></i>
+                              <span>Hoạt động</span>
+                            </span>
+                          ) : (
+                            <span className="admin-badge admin-badge-danger admin-badge-single-line" style={{ fontSize: '11px', padding: '3px 8px' }}>
+                              <i className="fa-solid fa-lock"></i>
+                              <span>Đã khóa</span>
                             </span>
                           )}
                         </div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 700, color: '#1e293b' }}>{acc.hoTen}</div>
-                        {acc.cccdNumber && (
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>CCCD: {acc.cccdNumber}</div>
-                        )}
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '13px', color: '#334155' }}>
-                          <i className="fa-regular fa-envelope" style={{ marginRight: '5px', color: '#94a3b8' }}></i>
-                          {acc.email || '—'}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                          <i className="fa-solid fa-phone" style={{ marginRight: '5px', color: '#94a3b8' }}></i>
-                          {acc.soDienThoai || 'Chưa cập nhật'}
-                        </div>
-                      </td>
+                      </div>
 
-                      {activeTab === 'staff' ? (
-                        <>
-                          <td>
-                            <span className={`admin-badge ${getRoleBadgeClass(acc.vaiTroId)}`}>
-                              {acc.roleLabel}
-                            </span>
-                          </td>
-                          <td style={{ fontSize: '13px', color: '#334155', fontWeight: 500 }}>
-                            {acc.tenCuaHang}
-                          </td>
-                        </>
-                      ) : (
-                        <td>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              padding: '3px 10px',
-                              borderRadius: '12px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              backgroundColor: rankInfo.bg,
-                              color: rankInfo.color,
-                              marginRight: '6px',
-                            }}
-                          >
-                            {rankInfo.name}
-                          </span>
-                          <span style={{ fontSize: '12px', color: '#64748b' }}>
-                            ({Number(acc.diemTichLuy || 0).toLocaleString('vi-VN')} điểm)
-                          </span>
-                        </td>
-                      )}
-
-                      <td style={{ fontSize: '12px', color: '#64748b' }}>{formatDateStr(acc.createdAt)}</td>
-
-                      <td>
-                        {acc.isActive ? (
-                          <span className="admin-badge admin-badge-success">
-                            <i className="fa-solid fa-circle-check" style={{ marginRight: '4px' }}></i>
-                            Hoạt động
-                          </span>
+                      {/* Card Details Body */}
+                      <div
+                        style={{
+                          backgroundColor: '#f8fafc',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        {activeTab === 'staff' ? (
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: '#64748b' }}>Vai trò:</span>
+                              <span className={`admin-badge ${getRoleBadgeClass(acc.vaiTroId)} admin-badge-single-line`} style={{ fontSize: '11px' }}>
+                                {acc.roleLabel}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: '#64748b' }}>Chi nhánh:</span>
+                              <span style={{ fontWeight: 600, color: '#334155' }}>{acc.tenCuaHang}</span>
+                            </div>
+                          </>
                         ) : (
-                          <span className="admin-badge admin-badge-danger">
-                            <i className="fa-solid fa-lock" style={{ marginRight: '4px' }}></i>
-                            Đã khóa
-                          </span>
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: '#64748b' }}>Hạng TV:</span>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '2px 8px',
+                                  borderRadius: '10px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  backgroundColor: rankInfo.bg,
+                                  color: rankInfo.color,
+                                }}
+                              >
+                                {rankInfo.name}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: '#64748b' }}>Điểm tích lũy:</span>
+                              <span style={{ fontWeight: 700, color: '#b45309' }}>
+                                {Number(acc.diemTichLuy || 0).toLocaleString('vi-VN')} điểm
+                              </span>
+                            </div>
+                          </>
                         )}
-                      </td>
 
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <button
-                            type="button"
-                            className="admin-btn admin-btn-info"
-                            style={{ padding: '5px 10px', fontSize: '12px' }}
-                            title="Chỉnh sửa thông tin tài khoản & phân quyền"
-                            onClick={() => handleOpenEditModal(acc)}
-                          >
-                            <i className="fa-solid fa-pen-to-square" style={{ marginRight: '4px' }}></i>
-                            Sửa
-                          </button>
+                        {acc.cccdNumber && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#64748b' }}>CCCD:</span>
+                            <span style={{ fontWeight: 500, color: '#334155' }}>{acc.cccdNumber}</span>
+                          </div>
+                        )}
 
-                          <button
-                            type="button"
-                            className="admin-btn admin-btn-warning"
-                            style={{
-                              padding: '5px 10px',
-                              fontSize: '12px',
-                              backgroundColor: '#f59e0b',
-                              color: '#fff',
-                              border: 'none',
-                            }}
-                            title="Thay đổi hoặc cấp lại mật khẩu"
-                            onClick={() => handleOpenPasswordModal(acc)}
-                          >
-                            <i className="fa-solid fa-key" style={{ marginRight: '4px' }}></i>
-                            Đổi MK
-                          </button>
-
-                          <button
-                            type="button"
-                            className={`admin-btn ${acc.isActive ? 'admin-btn-danger' : 'admin-btn-success'}`}
-                            style={{ padding: '5px 10px', fontSize: '12px' }}
-                            disabled={isSelf}
-                            title={
-                              isSelf
-                                ? 'Không thể tự khóa tài khoản của chính mình'
-                                : acc.isActive
-                                ? 'Khóa tài khoản này'
-                                : 'Mở khóa tài khoản này'
-                            }
-                            onClick={() => handleToggleLock(acc)}
-                          >
-                            <i
-                              className={`fa-solid ${acc.isActive ? 'fa-lock' : 'fa-lock-open'}`}
-                              style={{ marginRight: '4px' }}
-                            ></i>
-                            {acc.isActive ? 'Khóa' : 'Mở khóa'}
-                          </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Email:</span>
+                          <span style={{ color: '#334155', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={acc.email}>
+                            {acc.email || '—'}
+                          </span>
                         </div>
-                      </td>
-                    </tr>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>SĐT:</span>
+                          <span style={{ fontWeight: 600, color: '#0f172a' }}>{acc.soDienThoai || 'Chưa cập nhật'}</span>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Ngày tạo:</span>
+                          <span style={{ color: '#64748b' }}>{formatDateStr(acc.createdAt)}</span>
+                        </div>
+                      </div>
+
+                      {/* Card Actions Footer */}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr 1fr',
+                          gap: '6px',
+                          marginTop: 'auto',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="btn-action-base btn-action-edit"
+                          style={{ justifyContent: 'center', width: '100%' }}
+                          title="Chỉnh sửa thông tin tài khoản"
+                          onClick={() => handleOpenEditModal(acc)}
+                        >
+                          <i className="fa-solid fa-pen-to-square"></i>
+                          <span>Sửa</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-action-base btn-action-password"
+                          style={{ justifyContent: 'center', width: '100%' }}
+                          title="Đổi mật khẩu tài khoản"
+                          onClick={() => handleOpenPasswordModal(acc)}
+                        >
+                          <i className="fa-solid fa-key"></i>
+                          <span>Đổi MK</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`btn-action-base ${acc.isActive ? 'btn-action-lock' : 'btn-action-unlock'}`}
+                          style={{ justifyContent: 'center', width: '100%' }}
+                          disabled={isSelf}
+                          title={isSelf ? 'Không thể tự khóa tài khoản' : (acc.isActive ? 'Khóa tài khoản' : 'Mở khóa')}
+                          onClick={() => handleToggleLock(acc)}
+                        >
+                          <i className={`fa-solid ${acc.isActive ? 'fa-lock' : 'fa-lock-open'}`}></i>
+                          <span>{acc.isActive ? 'Khóa' : 'Mở'}</span>
+                        </button>
+                      </div>
+                    </div>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* MODAL 1: TẠO / CHỈNH SỬA TÀI KHOẢN USER */}
@@ -1024,7 +1549,7 @@ const AdminAccountPage = () => {
             </div>
 
             <form onSubmit={handleSaveAccount}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <div className="account-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
                   <label className="admin-label">Tên đăng nhập (Username) *</label>
                   <input
