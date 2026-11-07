@@ -7,6 +7,7 @@ import {
     updatePreOrder,
     updatePreOrderStatus,
     completePreOrderPayment,
+    createPreOrderGhn,
 } from '../../services/preOrderService';
 import { lookupCustomerBySdt } from '../../services/customerService';
 import { getProducts } from '../../services/productService';
@@ -96,12 +97,14 @@ const GhnDeliverySelector = ({ form, setForm, formErrors }) => {
 
                     return {
                         ...f,
+                        to_ward_code: String(selWard),
+                        to_district_id: districtId,
                         phi_giao_hang: newPhiGiao,
                         tien_coc: f.tien_coc ? f.tien_coc : (minTotalCoc > 0 ? minTotalCoc : '')
                     };
                 });
             }).catch(() => {
-                setForm(f => ({ ...f, phi_giao_hang: 30000 }));
+                setForm(f => ({ ...f, to_ward_code: String(selWard), to_district_id: districtId, phi_giao_hang: 30000 }));
             }).finally(() => setCalculatingFee(false));
         }
     }, [selWard, selProvince, wards, setForm]);
@@ -168,6 +171,7 @@ const TRANG_THAI_OPTIONS = [
     { value: 'cho_xac_nhan', label: 'Chờ xác nhận' },
     { value: 'da_coc',       label: 'Đã đặt cọc' },
     { value: 'san_sang',     label: 'Sẵn sàng' },
+    { value: 'dang_giao',    label: 'Đang giao (GHN)' },
     { value: 'da_giao',      label: 'Đã giao' },
     { value: 'da_huy',       label: 'Đã hủy' },
 ];
@@ -176,6 +180,7 @@ const BADGE_MAP = {
     cho_xac_nhan: { cls: 'admin-badge-secondary', label: 'Chờ xác nhận' },
     da_coc:       { cls: 'admin-badge-warning',   label: 'Đã cọc' },
     san_sang:     { cls: 'admin-badge-info',       label: 'Sẵn sàng' },
+    dang_giao:    { cls: 'admin-badge-primary',    label: 'Đang giao (GHN)' },
     da_giao:      { cls: 'admin-badge-success',    label: 'Đã giao' },
     da_huy:       { cls: 'admin-badge-danger',     label: 'Đã hủy' },
 };
@@ -716,12 +721,29 @@ const AdminPreOrderPage = () => {
     // ── Cập nhật trạng thái ──────────────────────────────────
     const handleUpdateStatus = async (maDHT, trangThai) => {
         try {
-            await updatePreOrderStatus(maDHT, trangThai);
-            toast.success('Cập nhật trạng thái thành công!');
+            const res = await updatePreOrderStatus(maDHT, trangThai);
+            toast.success(res?.message || 'Cập nhật trạng thái thành công!');
             setShowDetail(false);
             fetchOrders();
         } catch (err) {
             toast.error(err?.response?.data?.message || 'Lỗi cập nhật trạng thái.');
+        }
+    };
+
+    // ── Tạo vận đơn GHN cho đơn giao tận nơi ──────────────────
+    const handleCreateGhnOrder = async (maDHT) => {
+        try {
+            const res = await createPreOrderGhn(maDHT);
+            if (res?.order_code || res?.success) {
+                toast.success(res?.message || `Tạo đơn GHN thành công! Mã: ${res?.order_code}`);
+                const updated = await getPreOrderById(maDHT);
+                setDetail(updated);
+                fetchOrders();
+            } else {
+                toast.error(res?.message || 'Không thể tạo đơn GHN');
+            }
+        } catch (err) {
+            toast.error(err?.response?.data?.error || err?.response?.data?.message || 'Lỗi khi tạo vận đơn GHN');
         }
     };
 
@@ -731,12 +753,12 @@ const AdminPreOrderPage = () => {
         setPaying(true);
         try {
             const res = await completePreOrderPayment(detail.maDHT, paymentMethod);
-            toast.success(`Hoàn tất! Hóa đơn ${res.mahd} đã được tạo.`);
+            toast.success(res?.message || `Hoàn tất thu tiền còn lại thành công!`);
             setShowPayment(false);
             setShowDetail(false);
             fetchOrders();
         } catch (err) {
-            toast.error(err?.response?.data?.error || 'Lỗi thanh toán.');
+            toast.error(err?.response?.data?.message || err?.response?.data?.error || 'Lỗi thanh toán.');
         } finally {
             setPaying(false);
         }
@@ -907,7 +929,22 @@ const AdminPreOrderPage = () => {
                                 const badge = BADGE_MAP[o.trangThai] || { cls: 'admin-badge-secondary', label: o.trangThai };
                                 return (
                                     <tr key={o.maDHT} style={{ transition: 'background-color 0.15s ease' }}>
-                                        <td style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{o.maDHT}</td>
+                                        <td style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                                            <div>{o.maDHT}</div>
+                                            {o.hinhThucNhan === 'giao_tan_noi' ? (
+                                                <div style={{ marginTop: '3px' }}>
+                                                    <span style={{ fontSize: '11px', color: '#0369a1', backgroundColor: '#e0f2fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                        🚚 GHN {o.maVanDonGhn ? `(${o.maVanDonGhn})` : ''}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <div style={{ marginTop: '3px' }}>
+                                                    <span style={{ fontSize: '11px', color: '#15803d', backgroundColor: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                                                        🏢 Tại tiệm
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </td>
                                         <td style={{ fontSize: '14px', fontWeight: 600 }}>{o.hoTenKH}</td>
                                         <td style={{ fontSize: '14px', color: '#0284c7' }}>📞 {o.sdtKH}</td>
                                         <td style={{ fontSize: '13px', color: '#64748b' }}>{o.ngayDat ? new Date(o.ngayDat).toLocaleString('vi-VN') : '-'}</td>
@@ -1455,6 +1492,26 @@ const AdminPreOrderPage = () => {
                                                         <span style={styles.infoLabel}>Phí vận chuyển:</span>
                                                         <span style={styles.infoValue}>{fmt(detail.phiGiaoHang)}</span>
                                                     </div>
+                                                    <div style={styles.infoRow}>
+                                                        <span style={styles.infoLabel}>Vận chuyển GHN:</span>
+                                                        <span style={styles.infoValue}>
+                                                            {detail.maVanDonGhn ? (
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                                                    <b style={{ color: '#d82d8b', fontSize: '14px' }}>{detail.maVanDonGhn}</b>
+                                                                    <span className="admin-badge admin-badge-info" style={{ fontSize: '11px' }}>GHN Express</span>
+                                                                </span>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    className="admin-btn admin-btn-sm"
+                                                                    style={{ backgroundColor: '#f97316', color: '#fff', border: 'none', padding: '3px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                                                                    onClick={() => handleCreateGhnOrder(detail.maDHT)}
+                                                                >
+                                                                    🚀 Tạo đơn GHN ngay
+                                                                </button>
+                                                            )}
+                                                        </span>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -1528,12 +1585,17 @@ const AdminPreOrderPage = () => {
                         {detail && (
                             <div style={styles.modalFooter}>
                                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                    {detail.trangThai === 'da_coc' && (
+                                    {['cho_xac_nhan', 'da_coc'].includes(detail.trangThai) && (
                                         <button className="admin-btn" style={styles.btnInfo} onClick={() => handleUpdateStatus(detail.maDHT, 'san_sang')}>
-                                            ✅ Đánh dấu Sẵn sàng
+                                            ✅ Đánh dấu Sẵn sàng {detail.hinhThucNhan === 'giao_tan_noi' ? '(Tự tạo đơn GHN)' : ''}
                                         </button>
                                     )}
-                                    {['cho_xac_nhan', 'da_coc', 'san_sang'].includes(detail.trangThai) && (
+                                    {detail.hinhThucNhan === 'giao_tan_noi' && ['san_sang', 'dang_giao'].includes(detail.trangThai) && (
+                                        <button className="admin-btn" style={{ ...styles.btnSuccess, backgroundColor: '#0284c7' }} onClick={() => handleUpdateStatus(detail.maDHT, 'da_giao')}>
+                                            📦 Xác nhận khách đã nhận hàng
+                                        </button>
+                                    )}
+                                    {['cho_xac_nhan', 'da_coc', 'san_sang', 'dang_giao'].includes(detail.trangThai) && detail.tienConLai > 0 && (
                                         <button className="admin-btn" style={styles.btnSuccess} onClick={() => { setPaymentMethod('Tiền mặt'); setShowPayment(true); }}>
                                             💰 Thu tiền còn lại ({fmt(detail.tienConLai)})
                                         </button>
@@ -1591,6 +1653,15 @@ const AdminPreOrderPage = () => {
                                     <span>{fmt(detail.tienConLai)}</span>
                                 </div>
                             </div>
+                            {detail.hinhThucNhan === 'giao_tan_noi' ? (
+                                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '10px', fontSize: '13px', color: '#1e40af', marginBottom: '12px', lineHeight: 1.5 }}>
+                                    🚚 <b>Đơn giao tận nơi:</b> Khách thanh toán nốt tiền còn lại. Đơn hàng tiếp tục theo dõi giao qua GHN (không tự động đổi thành "Đã giao" cho tới khi giao thành công).
+                                </div>
+                            ) : (
+                                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px', fontSize: '13px', color: '#166534', marginBottom: '12px', lineHeight: 1.5 }}>
+                                    🏢 <b>Đơn nhận tại cửa hàng:</b> Khách thanh toán nốt tiền và nhận bánh tại quầy &rarr; Đơn hàng chuyển sang <b>Đã giao</b> hoàn tất.
+                                </div>
+                            )}
                             <Field label="Hình thức thanh toán nhận tiền">
                                 <select className="admin-input" style={styles.inp} value={paymentMethod}
                                     onChange={e => setPaymentMethod(e.target.value)}>

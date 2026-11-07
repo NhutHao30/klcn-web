@@ -45,3 +45,9 @@ export const completePreOrderPayment = async (maDHT, phuongThucThanhToan) => {
     });
     return response.data;
 };
+
+/** Tạo đơn vận chuyển GHN cho đơn đặt trước */
+export const createPreOrderGhn = async (maDHT) => {
+    const response = await axiosClient.post(`${API_URL}/${maDHT}/ghn-order`);
+    return response.data;
+};

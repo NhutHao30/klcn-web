@@ -280,3 +280,4 @@ const PhieuTonKhoPrintModal = ({ isOpen, onClose, reportData }) => {
 };
 
 export default PhieuTonKhoPrintModal;
+

@@ -417,12 +417,14 @@ const MyOrdersPage = () => {
     (isPendingStatus || [1, 2, 7].includes(Number(viewingOrder.trangThaiDonHang)))
   );
 
-  // Cho phép hoàn hàng khi nhận hàng (3: Đang giao đến tay khách / 4, 5: Đã giao / Đã hoàn thành)
+  // Quy định: CHỈ KHI NÀO ĐÃ GIAO (4, 5: Đã giao / Đã hoàn thành) mới cho phép hoàn hàng
+  // Trạng thái Đang giao (3) hoặc Chờ lấy hàng (7) tuyệt đối KHÔNG cho phép hoàn hàng
   const isReturnable = Boolean(
     viewingOrder &&
-    ([3, 4, 5].includes(Number(viewingOrder.trangThaiDonHang)) || ['Đang giao', 'Đã hoàn thành', 'Đã giao'].includes(viewingOrder.trangThai)) &&
+    ([4, 5].includes(Number(viewingOrder.trangThaiDonHang)) || ['Đã hoàn thành', 'Đã giao'].includes(viewingOrder.trangThai)) &&
+    !['Đang giao', 'Đang chuẩn bị', 'Chờ lấy hàng', 'Chờ xử lý', 'Chờ xác nhận'].includes(viewingOrder.trangThai) &&
     !viewingOrder.trangThaiHoanHang &&
-    ![0, 6, 8].includes(Number(viewingOrder.trangThaiDonHang))
+    ![0, 1, 2, 3, 6, 7, 8].includes(Number(viewingOrder.trangThaiDonHang))
   );
 
   return (

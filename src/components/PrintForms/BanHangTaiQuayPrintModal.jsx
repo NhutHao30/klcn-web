@@ -302,3 +302,4 @@ const BanHangTaiQuayPrintModal = ({ isOpen, onClose, data }) => {
 };
 
 export default BanHangTaiQuayPrintModal;
+

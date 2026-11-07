@@ -319,3 +319,4 @@ const PhieuThanhToanPrintModal = ({ isOpen, onClose, invoice }) => {
 };
 
 export default PhieuThanhToanPrintModal;
+

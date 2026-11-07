@@ -66,3 +66,4 @@ export const readVietnameseCurrency = (num) => {
   if (!result) return 'Không đồng chẵn.';
   return result.charAt(0).toUpperCase() + result.slice(1) + ' đồng chẵn.';
 };
+

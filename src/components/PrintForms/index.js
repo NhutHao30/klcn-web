@@ -6,3 +6,4 @@ export { default as PhieuThanhToanPrintModal } from './PhieuThanhToanPrintModal'
 export { default as PhieuTonKhoPrintModal } from './PhieuTonKhoPrintModal';
 export { default as PhieuNhapKhoPrintModal } from '../PhieuNhapKhoPrintModal';
 export { readVietnameseCurrency } from './numberToWords';
+
