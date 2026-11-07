@@ -343,13 +343,13 @@ const AdminNhapLoPage = () => {
   };
 
   // ==========================================
-  // XỬ LÝ TẠO ĐƠN NHẬP HÀNG MỚI CỦA QUẢN LÝ CHI NHÁNH
+  // XỬ LÝ TẠO ĐƠN NHẬP HÀNG MỚI CỦA QUẢN LÝ CHI NHÁNH / NHÂN VIÊN KHO
   // ==========================================
   const handleBranchManagerCreateImport = async (e) => {
     e.preventDefault();
 
-    if (!isBranchManager) {
-      toast.error('Chỉ Quản lý chi nhánh mới được phép trực tiếp tạo đơn nhập hàng mới cho chi nhánh của mình!');
+    if (!isBranchManager && !isWarehouse) {
+      toast.error('Chỉ Quản lý chi nhánh hoặc Nhân viên kho mới được phép tạo đơn nhập hàng cho chi nhánh của mình!');
       return;
     }
 
@@ -364,11 +364,9 @@ const AdminNhapLoPage = () => {
       return;
     }
 
-    const finalKyQuanLy = kyQuanLyData || savedSignature;
-    if (signImmediately && !finalKyQuanLy) {
-      toast.warning('Vui lòng vẽ Chữ Ký Quản Lý Chi Nhánh (hoặc lưu sẵn chữ ký tại Thông tin cá nhân) để ký duyệt hoàn tất ngay, hoặc bỏ chọn "Ký duyệt ngay" để chuyển sang cho Nhân viên kho & Kế toán ký!');
-      return;
-    }
+    // Nếu người tạo là Quản lý chi nhánh -> tự động hoàn tất luôn, không cần phải duyệt nữa
+    const autoCompleteByManager = isBranchManager;
+    const finalKyQuanLy = kyQuanLyData || savedSignature || (isBranchManager ? 'BRANCH_MANAGER_AUTO_APPROVED' : null);
 
     for (let i = 0; i < nhapForm.items.length; i++) {
       const item = nhapForm.items[i];
@@ -391,8 +389,8 @@ const AdminNhapLoPage = () => {
       MACUAHANG_NHAP: targetStoreId,
       GHICHU: nhapForm.GHICHU,
       yeuCauId: selectedYeuCauId,
-      auto_sign_all: signImmediately,
-      ky_quan_ly: signImmediately ? finalKyQuanLy : null,
+      auto_sign_all: autoCompleteByManager,
+      ky_quan_ly: autoCompleteByManager ? finalKyQuanLy : null,
       chi_tiet: nhapForm.items.map(item => ({
         MASP: item.MASP,
         SOLUONGTCT: parseInt(item.SOLUONGTCT) || 0,
@@ -410,10 +408,8 @@ const AdminNhapLoPage = () => {
         const maPhieu = res.data?.maHoaDonNhap || res.data?.MAHDNHAP || res.data?.hdnhap?.MAHDNHAP || '';
         if (isWarehouse) {
           toast.success(`Nhân viên kho đã tạo yêu cầu nhập lô hàng mới ${maPhieu} thành công! Đang chờ Quản lý chi nhánh phê duyệt.`);
-        } else if (signImmediately && finalKyQuanLy) {
-          toast.success(`Quản lý chi nhánh đã tạo và ký duyệt hoàn tất Đơn Nhập Hàng ${maPhieu}! Tồn kho chi nhánh đã được cộng ngay (không cần các role khác ký thêm).`);
         } else {
-          toast.success(`Đã tạo Đơn Nhập Hàng ${maPhieu} ở trạng thái chờ duyệt! Cần chữ ký của Nhân viên kho và Nhân viên kế toán (hoặc Quản lý chi nhánh) tại mục Duyệt & Ký số.`);
+          toast.success(`Quản lý chi nhánh đã tạo Đơn Nhập Hàng ${maPhieu} thành công! Đơn được hoàn tất và cộng tồn kho ngay lập tức, không cần phải duyệt lại.`);
         }
 
         setNhapForm({
@@ -995,47 +991,14 @@ const AdminNhapLoPage = () => {
                   </div>
                 </div>
 
-                {/* TÙY CHỌN HÌNH THỨC KÝ DUYỆT CỦA QUẢN LÝ CHI NHÁNH */}
+                {/* THÔNG BÁO TỰ ĐỘNG HOÀN TẤT KHI QUẢN LÝ CHI NHÁNH LÀ NGƯỜI TẠO ĐƠN */}
                 {isBranchManager && (
-                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#1e40af', fontSize: '14px' }}>
-                      <input
-                        type="checkbox"
-                        checked={signImmediately}
-                        onChange={e => setSignImmediately(e.target.checked)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                      />
-                      <span>Quản lý chi nhánh ký duyệt ngay trên đơn nhập hàng này (Hoàn tất & cộng kho ngay, không cần các role khác ký)</span>
-                    </label>
-                  </div>
-
-                  {signImmediately ? (
-                    <>
-                      <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#1e3a8a' }}>
-                        Khi Quản lý chi nhánh ký duyệt trực tiếp ở dưới đây, đơn nhập hàng sẽ được phê duyệt hoàn tất ngay lập tức mà <b>không cần Nhân viên kho và Nhân viên kế toán ký nữa</b>.
-                      </p>
-                      {(kyQuanLyData || savedSignature) && (
-                        <div style={{ backgroundColor: '#dcfce7', border: '1px solid #86efac', color: '#166534', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', marginBottom: '10px', fontWeight: 600 }}>
-                          <i className="fa-solid fa-circle-check" style={{ marginRight: '6px' }}></i>
-                          Đã tự động nạp chữ ký số đã lưu của bạn. Bạn có thể bấm nút <b>Ký Duyệt & Hoàn Tất</b> ngay bên dưới mà không cần ký lại (hoặc xóa để vẽ mới nếu muốn).
-                        </div>
-                      )}
-                      <SignatureCanvas
-                        key={sigManagerKey}
-                        height={190}
-                        initialSignature={kyQuanLyData || savedSignature}
-                        onSave={(base64Img) => setKyQuanLyData(base64Img)}
-                        onClear={() => setKyQuanLyData(null)}
-                      />
-                    </>
-                  ) : (
-                    <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', padding: '10px 14px', borderRadius: '6px', color: '#92400e', fontSize: '13px' }}>
-                      <i className="fa-solid fa-circle-info" style={{ marginRight: '6px' }}></i>
-                      Bạn đang chọn <b>Tạo đơn nhập hàng chưa có chữ ký của Quản lý chi nhánh</b>. Sau khi tạo, đơn sẽ ở trạng thái chờ duyệt và cần chữ ký của cả <b>Nhân viên kho</b> VÀ <b>Nhân viên kế toán</b> (hoặc Quản lý chi nhánh ký sau) tại trang <b>Duyệt & Ký số</b>.
+                  <div style={{ backgroundColor: '#dcfce7', border: '1px solid #86efac', borderRadius: '8px', padding: '12px 16px', marginBottom: '1.5rem', color: '#166534', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <i className="fa-solid fa-circle-check" style={{ fontSize: '18px', color: '#16a34a' }}></i>
+                    <div>
+                      <strong>Quyền Quản lý chi nhánh:</strong> Vì bạn là <b>Quản lý chi nhánh</b> trực tiếp tạo đơn nhập hàng này, hệ thống sẽ <b>tự động hoàn tất đơn và cộng tồn kho ngay lập tức</b> mà không cần phải qua bước chờ duyệt nữa.
                     </div>
-                  )}
-                </div>
+                  </div>
                 )}
 
                 <div style={{ textAlign: 'right' }}>
@@ -1047,9 +1010,7 @@ const AdminNhapLoPage = () => {
                     <i className="fa-solid fa-stamp" style={{ marginRight: '8px' }}></i>
                     {isWarehouse
                       ? 'Gửi Yêu Cầu Nhập Lô Hàng Mới (Chờ Quản Lý Duyệt)'
-                      : (signImmediately
-                        ? 'Ký Duyệt (Quản Lý Chi Nhánh) & Hoàn Tất Nhập Kho Ngay'
-                        : 'Tạo Đơn Nhập Hàng (Chuyển Sang Chờ Kho & Kế Toán Ký)')}
+                      : 'Tạo Đơn Nhập Hàng & Hoàn Tất Nhập Kho Ngay'}
                   </button>
                 </div>
               </form>
