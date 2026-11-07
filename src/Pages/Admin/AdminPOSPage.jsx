@@ -837,14 +837,15 @@ const AdminPOSPage = () => {
 
             {paymentMethod === 'VIETQR' && cart.length > 0 && (
               <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#e6f7ff', borderRadius: '8px', marginBottom: '15px' }}>
-                <div style={{ fontWeight: 'bold', color: '#0052cc', marginBottom: '10px' }}>Mã VietQR (Mọi App Ngân Hàng)</div>
+                <div style={{ fontWeight: 'bold', color: '#0052cc', marginBottom: '10px' }}>Mã VietQR - MBBank (Mọi App Ngân Hàng)</div>
                 <img 
-                  src={`https://img.vietqr.io/image/momo-0353144481-compact.png?amount=${getTotal()}&addInfo=GivralBakery&accountName=TRUONG%20NHUT%20HAO`} 
+                  src={`https://img.vietqr.io/image/MB-0338052164-compact.png?amount=${getTotal()}&addInfo=GivralBakery&accountName=${encodeURIComponent('NGUYEN HUU THIEN')}`} 
                   alt="VietQR" 
                   style={{ width: '200px', height: '200px', border: '3px solid #0052cc', borderRadius: '10px', padding: '5px', backgroundColor: '#fff' }}
                 />
-                <div style={{ fontWeight: 'bold', marginTop: '10px' }}>TRƯƠNG NHỰT HÀO</div>
-                <div style={{ fontSize: '13px', marginTop: '5px', color: '#666' }}>Khách dùng app Ngân hàng (VCB, MB...) hoặc Momo quét đều được</div>
+                <div style={{ fontWeight: 'bold', marginTop: '10px' }}>NGUYEN HUU THIEN</div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#0052cc', marginTop: '2px' }}>MBBank - STK: 0338052164</div>
+                <div style={{ fontSize: '13px', marginTop: '5px', color: '#666' }}>Khách dùng app Ngân hàng (MBBank, VCB...) hoặc MoMo quét đều được</div>
               </div>
             )}
 
@@ -852,11 +853,12 @@ const AdminPOSPage = () => {
               <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#ffe6e6', borderRadius: '8px', marginBottom: '15px' }}>
                 <div style={{ fontWeight: 'bold', color: '#d82d8b', marginBottom: '10px' }}>Mã Momo P2P (Chỉ quét bằng Momo)</div>
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`2|99|0353144481|TRUONG NHUT HAO||0|0|${getTotal()}`)}`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`2|99|0338052164|NGUYEN HUU THIEN||0|0|${getTotal()}|GivralBakery|transfer_p2p`)}`} 
                   alt="Momo QR" 
                   style={{ width: '200px', height: '200px', border: '3px solid #d82d8b', borderRadius: '10px', padding: '5px', backgroundColor: '#fff' }}
                 />
-                <div style={{ fontWeight: 'bold', marginTop: '10px' }}>TRƯƠNG NHỰT HÀO</div>
+                <div style={{ fontWeight: 'bold', marginTop: '10px' }}>NGUYEN HUU THIEN</div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#d82d8b', marginTop: '2px' }}>MoMo: 0338052164</div>
                 <div style={{ fontSize: '13px', marginTop: '5px', color: '#666' }}>Nhân viên nhận được thông báo "Ting ting" ngay lập tức</div>
               </div>
             )}
