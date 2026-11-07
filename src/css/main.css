@@ -1774,9 +1774,9 @@
 .product-all-page-item.active,
 .product-all-page a.active,
 .product-all-page button.active {
-    color: #fff;
-    border-color: var(--primary-color);
-    background-color: var(--primary-color);
+    color: #fff !important;
+    border-color: var(--primary-color) !important;
+    background-color: var(--primary-color) !important;
     font-weight: 600;
 }
 

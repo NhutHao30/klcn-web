@@ -205,7 +205,8 @@ header {
     border-bottom: 1px solid var(--primary-color);
 }
 
-.active {
+.header .active,
+.nav-item__link.active {
     color: var(--primary-color) !important;
     border-bottom: 1px solid var(--primary-color);
 }

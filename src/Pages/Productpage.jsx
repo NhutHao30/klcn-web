@@ -584,7 +584,7 @@ function ProductPage() {
                               window.scrollTo({ top: 0, behavior: "smooth" });
                             }}
                           >
-                            {i + 1}
+                            <span style={{ color: isActive ? "#fff" : "#333", fontWeight: isActive ? "600" : "normal" }}>{i + 1}</span>
                           </button>
                         );
                       })}
