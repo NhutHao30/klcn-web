@@ -22,11 +22,30 @@ function ProductPage() {
   const [Products, setProducts] = useState([]);
   const [sortType, setSortType] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
   const [mobileSortOpen, setMobileSortOpen] = useState(false);
+
+  const PRICE_RANGES = [
+    { id: "under_10k", label: "Dưới 10.000đ", min: 0, max: 10000 },
+    { id: "10k_50k", label: "Từ 10.000đ - 50.000đ", min: 10000, max: 50000 },
+    { id: "50k_100k", label: "Từ 50.000đ - 100.000đ", min: 50000, max: 100000 },
+    { id: "100k_200k", label: "Từ 100.000đ - 200.000đ", min: 100000, max: 200000 },
+    { id: "200k_300k", label: "Từ 200.000đ - 300.000đ", min: 200000, max: 300000 },
+    { id: "300k_1m", label: "Từ 300.000đ - 1 triệu", min: 300000, max: 1000000 },
+    { id: "over_1m", label: "Trên 1 triệu", min: 1000000, max: Infinity },
+  ];
+
+  const handleTogglePriceRange = (rangeId) => {
+    setSelectedPriceRanges(prev =>
+      prev.includes(rangeId)
+        ? prev.filter(id => id !== rangeId)
+        : [...prev, rangeId]
+    );
+  };
 
   const categoryOptions = [
     { label: "Tất cả bánh", value: null },
@@ -52,23 +71,26 @@ function ProductPage() {
 
   useEffect(() => {
     setCurrentPage(0);
-  }, [searchQuery, selectedCategory, sortType]);
+  }, [searchQuery, selectedCategory, sortType, selectedPriceRanges]);
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
+        const useClientFilterOrSort = selectedPriceRanges.length > 0 || Boolean(sortType);
         const params = {
-          page: currentPage,
-          size: 12
+          page: useClientFilterOrSort ? 1 : (currentPage + 1),
+          size: useClientFilterOrSort ? 500 : 12
         };
 
         if (searchQuery) params.keyword = searchQuery;
         if (selectedCategory) params.category = selectedCategory;
+        if (selectedPriceRanges.length > 0) params.price_ranges = selectedPriceRanges.join(",");
 
         if (sortType) {
           if (sortType === "az") { params.sortBy = "TenSP"; params.direction = "asc"; }
           if (sortType === "za") { params.sortBy = "TenSP"; params.direction = "desc"; }
+          if (sortType === "new") { params.sortBy = "new"; params.direction = "desc"; }
           if (sortType === "price-asc") { params.sortBy = "GIABAN"; params.direction = "asc"; }
           if (sortType === "price-desc") { params.sortBy = "GIABAN"; params.direction = "desc"; }
         }
@@ -76,11 +98,7 @@ function ProductPage() {
         const data = await getProducts(params);
         const productList = data.data || (Array.isArray(data) ? data : []);
 
-        if (data.last_page !== undefined) {
-          setTotalPages(data.last_page);
-        }
-
-        const formattedProducts = productList.map(p => {
+        let formattedProducts = productList.map(p => {
           const maSP = p.id || p.maSP || p.MaSP || p.MASP;
           const name = p.tenSP || p.TenSP || p.TENSP || p.tenSanPham || "Sản phẩm";
           const price = Number(p.giaban || p.GIABAN || p.giaBan || 0);
@@ -108,11 +126,47 @@ function ProductPage() {
             Image: formatImageUrl(image),
             Category: category,
             rawPrice: price,
+            finalPrice: finalPrice,
             soluong: p.TONKHO_THUCTE !== undefined ? p.TONKHO_THUCTE : (p.soluong || p.SOLUONG || 0),
             tonkhoChitiet: p.TONKHO_CHITIET || "[]"
           };
         });
-        setProducts(formattedProducts);
+
+        if (selectedPriceRanges.length > 0) {
+          formattedProducts = formattedProducts.filter(item => {
+            const pVal = Number(item.finalPrice ?? item.rawPrice ?? 0);
+            return selectedPriceRanges.some(rangeId => {
+              const range = PRICE_RANGES.find(r => r.id === rangeId);
+              if (!range) return false;
+              if (range.id === "under_10k") return pVal < range.max;
+              if (range.id === "over_1m") return pVal >= range.min;
+              return pVal >= range.min && pVal <= range.max;
+            });
+          });
+        }
+
+        if (sortType) {
+          formattedProducts = [...formattedProducts].sort((a, b) => {
+            if (sortType === "az") return String(a.Name).localeCompare(String(b.Name), "vi");
+            if (sortType === "za") return String(b.Name).localeCompare(String(a.Name), "vi");
+            if (sortType === "new") return (Number(Boolean(b.isNew)) - Number(Boolean(a.isNew))) || (Number(b.id || 0) - Number(a.id || 0));
+            if (sortType === "price-asc") return Number(a.finalPrice ?? a.rawPrice) - Number(b.finalPrice ?? b.rawPrice);
+            if (sortType === "price-desc") return Number(b.finalPrice ?? b.rawPrice) - Number(a.finalPrice ?? a.rawPrice);
+            return 0;
+          });
+        }
+
+        if (useClientFilterOrSort) {
+          const computedPages = Math.max(1, Math.ceil(formattedProducts.length / 12));
+          setTotalPages(computedPages);
+          const startIdx = currentPage * 12;
+          setProducts(formattedProducts.slice(startIdx, startIdx + 12));
+        } else {
+          if (data.last_page !== undefined) {
+            setTotalPages(data.last_page);
+          }
+          setProducts(formattedProducts);
+        }
       } catch (error) {
         console.error("Error fetching products:", error);
       } finally {
@@ -121,7 +175,7 @@ function ProductPage() {
     };
 
     fetchProducts();
-  }, [currentPage, searchQuery, selectedCategory, sortType]);
+  }, [currentPage, searchQuery, selectedCategory, sortType, selectedPriceRanges]);
 
   const handleAddToCart = async (e, product) => {
     e.preventDefault();
@@ -216,7 +270,7 @@ function ProductPage() {
                     <p className="product-new-title product-sale-title-js">
                       <span
                         style={{ cursor: "pointer" }}
-                        onClick={() => { setSelectedCategory(null); setSortType(null); }}
+                        onClick={() => { setSelectedCategory(null); setSortType(null); setSelectedPriceRanges([]); }}
                       >
                         Tất cả sản phẩm
                       </span>
@@ -272,38 +326,50 @@ function ProductPage() {
                   </div>
 
                   <div className="product-filter-container">
-                    <div className="product-filter-container-title">
-                      Chọn mức giá
+                    <div className="product-filter-container-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>Chọn mức giá</span>
+                      {selectedPriceRanges.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPriceRanges([])}
+                          style={{
+                            background: "rgba(255,255,255,0.25)",
+                            border: "1px solid rgba(255,255,255,0.6)",
+                            color: "#fff",
+                            fontSize: "11px",
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontWeight: "600"
+                          }}
+                        >
+                          Bỏ chọn ({selectedPriceRanges.length})
+                        </button>
+                      )}
                     </div>
                     <ul className="product-filter-container-list">
-                      <li className="product-filter-container-item">
-                        <input type="checkbox" className="product-filter-container-item__check" />
-                        <span>Dưới 10.000đ</span>
-                      </li>
-                      <li className="product-filter-container-item">
-                        <input type="checkbox" className="product-filter-container-item__check" />
-                        <span>Từ 10.000đ - 50.000đ</span>
-                      </li>
-                      <li className="product-filter-container-item">
-                        <input type="checkbox" className="product-filter-container-item__check" />
-                        <span>Từ 50.000đ - 100.000đ</span>
-                      </li>
-                      <li className="product-filter-container-item">
-                        <input type="checkbox" className="product-filter-container-item__check" />
-                        <span>Từ 100.000đ - 200.000đ</span>
-                      </li>
-                      <li className="product-filter-container-item">
-                        <input type="checkbox" className="product-filter-container-item__check" />
-                        <span>Từ 200.000đ - 300.000đ</span>
-                      </li>
-                      <li className="product-filter-container-item">
-                        <input type="checkbox" className="product-filter-container-item__check" />
-                        <span>Từ 300.000đ - 1 triệu</span>
-                      </li>
-                      <li className="product-filter-container-item">
-                        <input type="checkbox" className="product-filter-container-item__check" />
-                        <span>Trên 1 triệu</span>
-                      </li>
+                      {PRICE_RANGES.map((range) => {
+                        const isChecked = selectedPriceRanges.includes(range.id);
+                        return (
+                          <li
+                            key={range.id}
+                            className="product-filter-container-item"
+                            onClick={() => handleTogglePriceRange(range.id)}
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                          >
+                            <input
+                              type="checkbox"
+                              className="product-filter-container-item__check"
+                              checked={isChecked}
+                              onChange={() => {}}
+                              style={{ cursor: "pointer" }}
+                            />
+                            <span style={{ fontWeight: isChecked ? "700" : "normal", color: isChecked ? "var(--primary-color)" : undefined }}>
+                              {range.label}
+                            </span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 </div>
@@ -416,11 +482,11 @@ function ProductPage() {
                         Không có sản phẩm nào khả dụng
                       </h3>
                       <p style={{ color: "#777", fontSize: "14px", marginBottom: "20px" }}>
-                        {selectedCategory || searchQuery
-                          ? "Hiện tại không tìm thấy sản phẩm phù hợp với danh mục hoặc từ khóa bạn chọn."
+                        {selectedCategory || searchQuery || selectedPriceRanges.length > 0
+                          ? "Hiện tại không tìm thấy sản phẩm phù hợp với danh mục, mức giá hoặc từ khóa bạn chọn."
                           : "Hiện tại chưa có sản phẩm nào trong hệ thống."}
                       </p>
-                      {(selectedCategory || searchQuery || sortType) && (
+                      {(selectedCategory || searchQuery || sortType || selectedPriceRanges.length > 0) && (
                         <button
                           style={{
                             padding: "9px 22px",
@@ -436,6 +502,7 @@ function ProductPage() {
                           onClick={() => {
                             setSelectedCategory(null);
                             setSortType(null);
+                            setSelectedPriceRanges([]);
                             if (searchQuery) navigate("/san-pham");
                           }}
                         >
