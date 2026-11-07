@@ -162,14 +162,15 @@ const [employees, setEmployees] = useState([]);
 
   const openAddModal = () => {
     setEditingEmployee(null);
+    const defaultUser = 'NV' + Math.floor(100000 + Math.random() * 900000);
     setFormData({
-      userName: '',
-      password: '',
-      email: '',
+      userName: defaultUser,
+      password: defaultUser,
+      email: `${defaultUser}@dolabakery.com`,
       hoTen: '',
       sdt: '',
       ngaySinh: '',
-      gioiTinh: '',
+      gioiTinh: 'Nam',
       diaChi: '',
       chucVu: 'Nhân viên bán hàng',
       caLamViec: 'Ca Sáng',
@@ -299,6 +300,7 @@ const [employees, setEmployees] = useState([]);
       if (response.success && response.parsed_data) {
         const data = response.parsed_data;
         const cccdVal = data.cccd || '';
+        const userNameVal = data.userName || cccdVal || ('NV' + Math.floor(100000 + Math.random() * 900000));
         const hoTenVal = data.hoTen || '';
         const ngaySinhVal = data.ngaySinh || '';
         const gioiTinhVal = data.gioiTinh || 'Nam';
@@ -306,17 +308,18 @@ const [employees, setEmployees] = useState([]);
 
         setFormData(prev => ({
           ...prev,
-          userName: cccdVal || prev.userName || ('NV' + Math.floor(100000 + Math.random() * 900000)),
-          password: cccdVal || prev.password || cccdVal,
+          userName: userNameVal,
+          password: cccdVal || userNameVal || prev.password,
           cccd: cccdVal || prev.cccd,
           hoTen: hoTenVal || prev.hoTen,
+          sdt: prev.sdt || '0908123456',
           ngaySinh: ngaySinhVal || prev.ngaySinh,
-          gioiTinh: gioiTinhVal || prev.gioiTinh,
+          gioiTinh: gioiTinhVal || prev.gioiTinh || 'Nam',
           diaChi: diaChiVal || prev.diaChi,
-          email: prev.email || (cccdVal ? `${cccdVal}@dolabakery.com` : prev.email),
+          email: `${userNameVal}@dolabakery.com`,
           cccdTruoc: file
         }));
-        toast.success(`Đã quét CCCD [${cccdVal || 'Số CCCD'}] và tự động điền thông tin thành công!`);
+        toast.success(`Đã quét CCCD [${cccdVal || userNameVal}] và tự động điền thông tin thành công!`);
       } else {
         toast.error('Không thể nhận diện thông tin từ ảnh này. Vui lòng thử lại với ảnh rõ nét hơn!');
       }
@@ -499,8 +502,8 @@ const [employees, setEmployees] = useState([]);
                     onChange={handleInputChange} 
                     className="admin-input" 
                     required 
-                    disabled={true} 
-                    placeholder="Mã nhân viên phát sinh tự động"
+                    disabled={!!editingEmployee} 
+                    placeholder="Mã nhân viên / Số CCCD"
                   />
                 </div>
                 {!editingEmployee ? (
@@ -508,10 +511,11 @@ const [employees, setEmployees] = useState([]);
                     <label>Mật khẩu khởi tạo (Hãy lưu lại) *</label>
                     <input 
                       type="text" 
+                      name="password"
                       value={formData.password} 
+                      onChange={handleInputChange}
                       className="admin-input" 
                       style={{ fontWeight: 'bold', color: 'var(--admin-primary)', backgroundColor: '#fdf2f8' }}
-                      disabled={true}
                     />
                   </div>
                 ) : (

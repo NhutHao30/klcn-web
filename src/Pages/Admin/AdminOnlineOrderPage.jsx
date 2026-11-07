@@ -3,6 +3,7 @@ import AdminLayout from '../../Layout/AdminLayout';
 import { getInvoices, updateInvoiceStatus, getInvoiceDetails, getGhnTrackingDetail, updateOrderItemsApi, refundOrderApi, approveReturnOrderApi, rejectReturnOrderApi } from '../../services/invoiceService';
 import { useToast } from '../../components/Toast/Toast';
 import { formatImageUrl } from '../../utils/imageUtils';
+import axiosClient from '../../services/axiosClient';
 import '../../css/admin.css';
 
 const STATUS_COLUMNS = [
@@ -792,7 +793,7 @@ const AdminOnlineOrderPage = () => {
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                               <span style={{ fontSize: '11px', color: '#94a3b8' }}>Chưa phát sinh</span>
-                              {['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(normStatus) && (
+                              {['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(normSt) && (
                                 <button
                                   type="button"
                                   onClick={() => handleCreateGhnOrder(orderId)}

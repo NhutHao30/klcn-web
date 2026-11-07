@@ -80,8 +80,12 @@ const AdminSignatureApprovalPage = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const u = await getCurrentUser();
+      const u = await getCurrentUser(true);
       setCurrentUser(u);
+      const uSig = u?.nguoidung?.chuKySo || u?.nguoidung?.chuKy || u?.nhanvien?.chuKySo || u?.chuKySo || u?.chuKy || null;
+      if (uSig) {
+        setDrawnSignature(prev => prev || uSig);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -125,6 +129,7 @@ const AdminSignatureApprovalPage = () => {
   };
 
   const roleSummary = getMyRoleSummary();
+  const savedSignature = currentUser?.nguoidung?.chuKySo || currentUser?.nguoidung?.chuKy || currentUser?.nhanvien?.chuKySo || currentUser?.chuKySo || currentUser?.chuKy || null;
 
   const handleSign = async (vaitroKy) => {
     if (!selectedDoc) return;
@@ -138,7 +143,7 @@ const AdminSignatureApprovalPage = () => {
         loai_phieu: docType,
         id: docType === 'hdnhap' ? selectedDoc.MAHDNHAP : selectedDoc.id,
         vaitro_ky: vaitroKy,
-        signature_data: drawnSignature || null,
+        signature_data: drawnSignature || savedSignature || null,
       });
 
       if (res.data?.status) {
@@ -397,7 +402,7 @@ const AdminSignatureApprovalPage = () => {
                           onClick={() => {
                             setSelectedDoc(item);
                             setDocType(activeTab);
-                            setDrawnSignature(null);
+                            setDrawnSignature(savedSignature || null);
                             setSigCanvasKey(prev => prev + 1);
                             setShowModal(true);
                           }}
@@ -510,11 +515,18 @@ const AdminSignatureApprovalPage = () => {
                     <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px', marginBottom: '15px' }}>
                       <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e293b', marginBottom: '6px' }}>
                         <i className="fa-solid fa-pen-nib" style={{ marginRight: '6px', color: '#0284c7' }}></i>
-                        Vẽ chữ ký tay của bạn ({roleSummary.label}) trước khi bấm Ký Xác Nhận (Tùy chọn — nếu để trống hệ thống sẽ đóng dấu chữ ký số điện tử):
+                        Chữ ký phê duyệt của bạn ({roleSummary.label}):
                       </div>
+                      {(drawnSignature || savedSignature) && (
+                        <div style={{ backgroundColor: '#dcfce7', border: '1px solid #86efac', color: '#166534', padding: '7px 10px', borderRadius: '6px', fontSize: '12px', marginBottom: '8px', fontWeight: 600 }}>
+                          <i className="fa-solid fa-circle-check" style={{ marginRight: '6px' }}></i>
+                          Đã tự động nạp chữ ký số đã lưu của bạn. Bạn có thể bấm nút <b>Ký Duyệt</b> ngay bên dưới mà không cần ký lại (hoặc xóa để vẽ mới nếu muốn).
+                        </div>
+                      )}
                       <SignatureCanvas
                         key={sigCanvasKey}
                         height={140}
+                        initialSignature={drawnSignature || savedSignature}
                         onSave={(img) => setDrawnSignature(img)}
                         onClear={() => setDrawnSignature(null)}
                       />

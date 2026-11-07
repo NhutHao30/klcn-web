@@ -100,6 +100,7 @@ const AdminNhapLoPage = () => {
 
   // Chi nhánh của người dùng hiện tại
   const userStoreId = currentUser?.nguoidung?.cuaHangId || currentUser?.cuaHangId || currentUser?.cuahang?.id || null;
+  const savedSignature = currentUser?.nguoidung?.chuKySo || currentUser?.nguoidung?.chuKy || currentUser?.nhanvien?.chuKySo || currentUser?.chuKySo || currentUser?.chuKy || null;
   const currentStoreObj = stores.find(s => String(s.id ?? s.MACUAHANG) === String(userStoreId));
   const currentStoreName = currentStoreObj
     ? (currentStoreObj.tenCuaHang || currentStoreObj.TENCUAHANG || currentStoreObj.ten_cuahang)
@@ -163,7 +164,7 @@ const AdminNhapLoPage = () => {
     setIsLoading(true);
     try {
       const [resUser, resNcc, resStores, resProds, resLo] = await Promise.allSettled([
-        getCurrentUser(),
+        getCurrentUser(true),
         getNhaCungCaps(),
         getStores(),
         getProducts({ page: 1, size: 100 }),
@@ -174,6 +175,11 @@ const AdminNhapLoPage = () => {
         const u = resUser.value;
         setCurrentUser(u);
         setTenNguoiNhan(u?.nguoidung?.hoTen || u?.username || '');
+        const uSig = u?.nguoidung?.chuKySo || u?.nguoidung?.chuKy || u?.nhanvien?.chuKySo || u?.chuKySo || u?.chuKy || null;
+        if (uSig) {
+          setKyQuanLyData(prev => prev || uSig);
+          setKyNguoiNhanData(prev => prev || uSig);
+        }
       }
 
       if (resNcc.status === 'fulfilled') {
@@ -358,8 +364,9 @@ const AdminNhapLoPage = () => {
       return;
     }
 
-    if (signImmediately && !kyQuanLyData) {
-      toast.warning('Vui lòng vẽ Chữ Ký Quản Lý Chi Nhánh để ký duyệt hoàn tất ngay, hoặc bỏ chọn "Ký duyệt ngay" để chuyển sang cho Nhân viên kho & Kế toán ký!');
+    const finalKyQuanLy = kyQuanLyData || savedSignature;
+    if (signImmediately && !finalKyQuanLy) {
+      toast.warning('Vui lòng vẽ Chữ Ký Quản Lý Chi Nhánh (hoặc lưu sẵn chữ ký tại Thông tin cá nhân) để ký duyệt hoàn tất ngay, hoặc bỏ chọn "Ký duyệt ngay" để chuyển sang cho Nhân viên kho & Kế toán ký!');
       return;
     }
 
@@ -384,7 +391,8 @@ const AdminNhapLoPage = () => {
       MACUAHANG_NHAP: targetStoreId,
       GHICHU: nhapForm.GHICHU,
       yeuCauId: selectedYeuCauId,
-      ky_quan_ly: signImmediately ? kyQuanLyData : null,
+      auto_sign_all: signImmediately,
+      ky_quan_ly: signImmediately ? finalKyQuanLy : null,
       chi_tiet: nhapForm.items.map(item => ({
         MASP: item.MASP,
         SOLUONGTCT: parseInt(item.SOLUONGTCT) || 0,
@@ -402,7 +410,7 @@ const AdminNhapLoPage = () => {
         const maPhieu = res.data?.maHoaDonNhap || res.data?.MAHDNHAP || res.data?.hdnhap?.MAHDNHAP || '';
         if (isWarehouse) {
           toast.success(`Nhân viên kho đã tạo yêu cầu nhập lô hàng mới ${maPhieu} thành công! Đang chờ Quản lý chi nhánh phê duyệt.`);
-        } else if (signImmediately && kyQuanLyData) {
+        } else if (signImmediately && finalKyQuanLy) {
           toast.success(`Quản lý chi nhánh đã tạo và ký duyệt hoàn tất Đơn Nhập Hàng ${maPhieu}! Tồn kho chi nhánh đã được cộng ngay (không cần các role khác ký thêm).`);
         } else {
           toast.success(`Đã tạo Đơn Nhập Hàng ${maPhieu} ở trạng thái chờ duyệt! Cần chữ ký của Nhân viên kho và Nhân viên kế toán (hoặc Quản lý chi nhánh) tại mục Duyệt & Ký số.`);
@@ -424,7 +432,7 @@ const AdminNhapLoPage = () => {
           ]
         });
         setSelectedYeuCauId(null);
-        setKyQuanLyData(null);
+        setKyQuanLyData(savedSignature || null);
         setSigManagerKey(prev => prev + 1);
         fetchBranchRequests();
         fetchStoreInvoices();
@@ -484,7 +492,7 @@ const AdminNhapLoPage = () => {
       setCheckItems(preparedItems);
       setGhiChuKiemDem('');
       setKyVanChuyenData(null);
-      setKyNguoiNhanData(null);
+      setKyNguoiNhanData(savedSignature || null);
       setSigCarrierKey(prev => prev + 1);
       setSigReceiverKey(prev => prev + 1);
 
@@ -532,8 +540,9 @@ const AdminNhapLoPage = () => {
       return;
     }
 
-    if (!kyNguoiNhanData) {
-      toast.warning('Vui lòng vẽ Chữ ký xác nhận của bạn trước khi gửi!');
+    const finalKyNguoiNhan = kyNguoiNhanData || savedSignature;
+    if (!finalKyNguoiNhan) {
+      toast.warning('Vui lòng vẽ Chữ ký xác nhận của bạn trước khi gửi (hoặc lưu sẵn chữ ký tại Thông tin cá nhân)!');
       return;
     }
 
@@ -541,7 +550,7 @@ const AdminNhapLoPage = () => {
       ten_van_chuyen: tenVanChuyen,
       ky_van_chuyen: kyVanChuyenData,
       ten_nguoi_nhan: tenNguoiNhan,
-      ky_nguoi_nhan: kyNguoiNhanData,
+      ky_nguoi_nhan: finalKyNguoiNhan,
       ghi_chu: ghiChuKiemDem || 'Đã kiểm đếm số lượng thực tế',
       items: checkItems.map(item => ({
         loHangId: item.loHangId,
@@ -1006,9 +1015,16 @@ const AdminNhapLoPage = () => {
                       <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#1e3a8a' }}>
                         Khi Quản lý chi nhánh ký duyệt trực tiếp ở dưới đây, đơn nhập hàng sẽ được phê duyệt hoàn tất ngay lập tức mà <b>không cần Nhân viên kho và Nhân viên kế toán ký nữa</b>.
                       </p>
+                      {(kyQuanLyData || savedSignature) && (
+                        <div style={{ backgroundColor: '#dcfce7', border: '1px solid #86efac', color: '#166534', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', marginBottom: '10px', fontWeight: 600 }}>
+                          <i className="fa-solid fa-circle-check" style={{ marginRight: '6px' }}></i>
+                          Đã tự động nạp chữ ký số đã lưu của bạn. Bạn có thể bấm nút <b>Ký Duyệt & Hoàn Tất</b> ngay bên dưới mà không cần ký lại (hoặc xóa để vẽ mới nếu muốn).
+                        </div>
+                      )}
                       <SignatureCanvas
                         key={sigManagerKey}
                         height={190}
+                        initialSignature={kyQuanLyData || savedSignature}
                         onSave={(base64Img) => setKyQuanLyData(base64Img)}
                         onClear={() => setKyQuanLyData(null)}
                       />
@@ -1339,9 +1355,16 @@ const AdminNhapLoPage = () => {
                   <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#1e3a8a' }}>
                     Hệ thống sẽ tự động ghi nhận chữ ký vào đúng vị trí role của bạn (Quản lý chi nhánh / Nhân viên kho / Nhân viên kế toán).
                   </p>
+                  {(kyNguoiNhanData || savedSignature) && (
+                    <div style={{ backgroundColor: '#dcfce7', border: '1px solid #86efac', color: '#166534', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', marginBottom: '10px', fontWeight: 600 }}>
+                      <i className="fa-solid fa-circle-check" style={{ marginRight: '6px' }}></i>
+                      Đã tự động nạp chữ ký số đã lưu của bạn. Bạn có thể bấm <b>Xác Nhận Kiểm Đếm & Ký Duyệt</b> ngay mà không cần ký lại.
+                    </div>
+                  )}
                   <SignatureCanvas
                     key={sigReceiverKey}
                     height={180}
+                    initialSignature={kyNguoiNhanData || savedSignature}
                     onSave={(base64Img) => setKyNguoiNhanData(base64Img)}
                     onClear={() => setKyNguoiNhanData(null)}
                   />

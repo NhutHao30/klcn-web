@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
-import { getCurrentUser, updateProfile } from '../../services/authService';
+import { getCurrentUser, updateProfile, clearUserCache } from '../../services/authService';
 import axiosClient from '../../services/axiosClient';
 import { useToast } from '../../components/Toast/Toast';
 import SignatureCanvas from '../../components/Signature/SignatureCanvas';
@@ -39,12 +39,16 @@ const AdminProfilePage = () => {
     fetchProfile();
   }, []);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (force = false) => {
     setIsLoading(true);
     try {
-      const userData = await getCurrentUser();
+      const userData = await getCurrentUser(force);
       setUser(userData);
       const nv = userData.nguoidung || userData.nhanvien || userData.khachhang || {};
+      const existingSig = nv.chuKy || nv.chuKySo || nv.CHU_KY || userData.chuKy || userData.chuKySo || null;
+      if (existingSig) {
+        setSignatureData(existingSig);
+      }
       setFormData({
         HOTEN: nv.hoTen || nv.HOTEN || userData.hoTen || userData.HOTEN || '',
         SDT: nv.soDienThoai || nv.SDT || userData.soDienThoai || userData.SDT || '',
@@ -115,9 +119,10 @@ const AdminProfilePage = () => {
     try {
       const res = await axiosClient.post('/profile/chu-ky', { chu_ky: signatureData, signature_data: signatureData });
       if (res.data?.status || res.data?.message) {
+        clearUserCache();
         toast.success('Đã lưu chữ ký số cá nhân thành công!');
         document.dispatchEvent(new Event('authUpdated'));
-      fetchProfile();
+        fetchProfile(true);
       }
     } catch (e) {
       toast.error('Lỗi khi lưu chữ ký: ' + (e.response?.data?.error || e.message));

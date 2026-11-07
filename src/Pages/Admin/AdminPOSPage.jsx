@@ -4,6 +4,7 @@ import AdminLayout from '../../Layout/AdminLayout';
 import { getProducts } from '../../services/productService';
 import { createPOSInvoice } from '../../services/productService';
 import { getCustomers, createCustomer } from '../../services/customerService';
+import { getCurrentUser } from '../../services/authService';
 import axiosClient from '../../services/axiosClient';
 import { useToast } from '../../components/Toast/Toast';
 import { formatImageUrl } from '../../utils/imageUtils';
@@ -25,6 +26,7 @@ const AdminPOSPage = () => {
   const [newCustomer, setNewCustomer] = useState({ HoTen: '', Sdt: '' });
 
   // POS Shift states
+  const [currentUser, setCurrentUser] = useState(null);
   const [activeShift, setActiveShift] = useState(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
@@ -130,6 +132,9 @@ const AdminPOSPage = () => {
   const lastScanTimeRef = useRef(0);
 
   useEffect(() => {
+    getCurrentUser().then((u) => {
+      if (u) setCurrentUser(u);
+    }).catch(() => {});
     fetchActiveShift();
     fetchAllProducts();
     fetchAllCustomers();
@@ -358,8 +363,9 @@ const AdminPOSPage = () => {
     
     try {
       const customerId = selectedCustomer ? (selectedCustomer.id || selectedCustomer.maKH) : null;
+      const storeId = activeShift?.cuaHangId || currentUser?.nguoidung?.cuaHangId || currentUser?.macuahang || 1;
       
-      await createPOSInvoice(cart, paymentMethod, customerId);
+      await createPOSInvoice(cart, paymentMethod, customerId, storeId);
       toast.success(`Thanh toán thành công hóa đơn trị giá ${getTotal().toLocaleString('vi-VN')}₫!`);
       setCart([]); // Reset giỏ hàng
       setPaymentMethod('CASH'); // Reset phương thức thanh toán tiền mặt

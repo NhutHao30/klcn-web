@@ -36,8 +36,8 @@ export const createProduct = async (productData) => {
   return response.data;
 };
 
-export const createPOSInvoice = async (cart, paymentMethod = 'CASH', customerId = null) => {
-  const response = await axiosClient.post('/admin/pos/checkout', { cart, paymentMethod, customerId });
+export const createPOSInvoice = async (cart, paymentMethod = 'CASH', customerId = null, cuaHangId = null) => {
+  const response = await axiosClient.post('/admin/pos/checkout', { cart, paymentMethod, customerId, cuaHangId });
   return response.data;
 };
 
