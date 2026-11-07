@@ -886,30 +886,30 @@ const AdminNhapLoPage = () => {
                   </div>
 
                   <div style={{ overflowX: 'auto' }}>
-                    <table className="admin-table" style={{ minWidth: '1050px', fontSize: '13px' }}>
+                    <table className="admin-table" style={{ minWidth: '1150px', width: '100%', fontSize: '13px' }}>
                       <thead>
                         <tr style={{ backgroundColor: '#f1f5f9' }}>
-                          <th style={{ width: '40px' }}>STT</th>
-                          <th style={{ width: '240px' }}>Sản Phẩm Bánh *</th>
-                          <th style={{ width: '130px' }}>Số Lượng Nhập *</th>
-                          <th style={{ width: '130px' }}>Đơn Giá Nhập (đ) *</th>
-                          <th style={{ width: '135px' }}>Ngày Sản Xuất</th>
-                          <th style={{ width: '135px' }}>Hạn Sử Dụng *</th>
-                          <th style={{ minWidth: '180px', width: '220px' }}>Ghi Chú</th>
-                          <th style={{ width: '50px', textAlign: 'center' }}>Xóa</th>
+                          <th style={{ width: '45px', textAlign: 'center', whiteSpace: 'nowrap' }}>STT</th>
+                          <th style={{ minWidth: '230px', width: '250px', whiteSpace: 'nowrap' }}>Sản Phẩm Bánh *</th>
+                          <th style={{ minWidth: '135px', width: '145px', whiteSpace: 'nowrap', textAlign: 'center' }}>Số Lượng Nhập *</th>
+                          <th style={{ minWidth: '175px', width: '190px', whiteSpace: 'nowrap' }}>Đơn Giá Nhập (đ) *</th>
+                          <th style={{ minWidth: '145px', width: '150px', whiteSpace: 'nowrap' }}>Ngày Sản Xuất</th>
+                          <th style={{ minWidth: '145px', width: '150px', whiteSpace: 'nowrap' }}>Hạn Sử Dụng *</th>
+                          <th style={{ minWidth: '180px', width: '200px', whiteSpace: 'nowrap' }}>Ghi Chú</th>
+                          <th style={{ width: '55px', textAlign: 'center', whiteSpace: 'nowrap' }}>Xóa</th>
                         </tr>
                       </thead>
                       <tbody>
                         {nhapForm.items.map((item, idx) => (
                           <tr key={idx}>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#64748b' }}>{idx + 1}</td>
-                            <td>
+                            <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#64748b', verticalAlign: 'middle' }}>{idx + 1}</td>
+                            <td style={{ minWidth: '230px', verticalAlign: 'middle' }}>
                               <select
                                 className="admin-select"
                                 value={item.MASP}
                                 onChange={e => handleItemChange(idx, 'MASP', e.target.value)}
                                 required
-                                style={{ padding: '6px 8px' }}
+                                style={{ padding: '8px 10px', width: '100%', minWidth: '210px', fontSize: '14px', marginBottom: 0, boxSizing: 'border-box' }}
                               >
                                 <option value="">-- Chọn Bánh --</option>
                                 {products.map(p => {
@@ -921,7 +921,7 @@ const AdminNhapLoPage = () => {
                                 })}
                               </select>
                             </td>
-                            <td>
+                            <td style={{ minWidth: '135px', verticalAlign: 'middle' }}>
                               <input
                                 type="number"
                                 className="admin-input"
@@ -929,10 +929,20 @@ const AdminNhapLoPage = () => {
                                 value={item.SOLUONGTCT}
                                 onChange={e => handleItemChange(idx, 'SOLUONGTCT', e.target.value)}
                                 required
-                                style={{ padding: '6px 8px', fontWeight: 'bold', color: '#0369a1' }}
+                                style={{
+                                  padding: '8px 10px',
+                                  width: '100%',
+                                  minWidth: '120px',
+                                  fontSize: '15px',
+                                  fontWeight: 'bold',
+                                  color: '#0369a1',
+                                  textAlign: 'center',
+                                  marginBottom: 0,
+                                  boxSizing: 'border-box'
+                                }}
                               />
                             </td>
-                            <td>
+                            <td style={{ minWidth: '175px', verticalAlign: 'middle' }}>
                               <input
                                 type="number"
                                 className="admin-input"
@@ -941,43 +951,55 @@ const AdminNhapLoPage = () => {
                                 value={item.DONGIANHAP}
                                 onChange={e => handleItemChange(idx, 'DONGIANHAP', e.target.value)}
                                 required
-                                style={{ padding: '6px 8px' }}
+                                style={{
+                                  padding: '8px 10px',
+                                  width: '100%',
+                                  minWidth: '160px',
+                                  fontSize: '15px',
+                                  fontWeight: 'bold',
+                                  color: '#b45309',
+                                  marginBottom: 0,
+                                  boxSizing: 'border-box'
+                                }}
                               />
+                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', fontWeight: 600 }}>
+                                {Number(item.DONGIANHAP || 0).toLocaleString('vi-VN')} ₫ / cái
+                              </div>
                             </td>
-                            <td>
+                            <td style={{ minWidth: '145px', verticalAlign: 'middle' }}>
                               <input
                                 type="date"
                                 className="admin-input"
                                 value={item.NGAYSX}
                                 onChange={e => handleItemChange(idx, 'NGAYSX', e.target.value)}
-                                style={{ padding: '6px 8px' }}
+                                style={{ padding: '8px 10px', width: '100%', minWidth: '135px', fontSize: '13px', marginBottom: 0, boxSizing: 'border-box' }}
                               />
                             </td>
-                            <td>
+                            <td style={{ minWidth: '145px', verticalAlign: 'middle' }}>
                               <input
                                 type="date"
                                 className="admin-input"
                                 value={item.HSD_LO}
                                 onChange={e => handleItemChange(idx, 'HSD_LO', e.target.value)}
                                 required
-                                style={{ padding: '6px 8px', borderColor: item.HSD_LO < todayStr ? '#ef4444' : '' }}
+                                style={{ padding: '8px 10px', width: '100%', minWidth: '135px', fontSize: '13px', marginBottom: 0, boxSizing: 'border-box', borderColor: item.HSD_LO < todayStr ? '#ef4444' : '' }}
                               />
                             </td>
-                            <td style={{ minWidth: '180px' }}>
+                            <td style={{ minWidth: '180px', verticalAlign: 'middle' }}>
                               <input
                                 type="text"
                                 className="admin-input"
                                 placeholder="Ghi chú quy cách..."
                                 value={item.GHICHU}
                                 onChange={e => handleItemChange(idx, 'GHICHU', e.target.value)}
-                                style={{ padding: '6px 8px', width: '100%', minWidth: '160px' }}
+                                style={{ padding: '8px 10px', width: '100%', minWidth: '165px', fontSize: '13px', marginBottom: 0, boxSizing: 'border-box' }}
                               />
                             </td>
-                            <td style={{ textAlign: 'center' }}>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               <button
                                 type="button"
                                 className="admin-btn admin-btn-danger"
-                                style={{ padding: '3px 8px', fontSize: '11px' }}
+                                style={{ padding: '5px 10px', fontSize: '12px' }}
                                 onClick={() => handleRemoveItem(idx)}
                                 title="Xóa dòng này"
                               >
