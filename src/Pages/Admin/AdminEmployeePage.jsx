@@ -380,15 +380,6 @@ const [employees, setEmployees] = useState([]);
         const gioiTinhVal = data.gioiTinh || 'Nam';
         const diaChiVal = data.diaChi || '';
 
-        // Chuẩn hóa số CCCD thật của TRƯƠNG NHỰT HÀO nếu server trả về mã fallback ngẫu nhiên 089204xxxxxx
-        if (
-          hoTenVal.toUpperCase().includes('TRƯƠNG NHỰT HÀO') ||
-          hoTenVal.toUpperCase().includes('TRUONG NHUT HAO') ||
-          (ngaySinhVal === '2004-10-30' && cccdVal.startsWith('089204'))
-        ) {
-          cccdVal = '089204017978';
-        }
-
         const userNameVal = cccdVal || data.userName || ('NV' + Math.floor(100000 + Math.random() * 900000));
 
         setFormData(prev => ({
