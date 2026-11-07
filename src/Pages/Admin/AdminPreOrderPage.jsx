@@ -13,75 +13,79 @@ import { getProducts } from '../../services/productService';
 import { useToast } from '../../components/Toast/Toast';
 import axiosClient from '../../services/axiosClient';
 
-// ─── Component Chọn địa chỉ & Tính phí ship GHN ─────────────
+// ─── Component Chọn địa chỉ & Tính phí ship GHN (2 cấp: Tỉnh/Thành -> Phường/Xã) ─────────────
 const GhnDeliverySelector = ({ form, setForm, formErrors }) => {
     const [provinces, setProvinces] = useState([]);
-    const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
+    const [loadingWards, setLoadingWards] = useState(false);
 
     const [selProvince, setSelProvince] = useState('');
-    const [selDistrict, setSelDistrict] = useState('');
     const [selWard, setSelWard] = useState('');
     const [detailAddress, setDetailAddress] = useState('');
     const [calculatingFee, setCalculatingFee] = useState(false);
 
-    // Fetch Provinces on mount
+    // Fetch Provinces on mount (lọc bỏ các tỉnh test của GHN Sandbox)
     useEffect(() => {
         axiosClient.get('/ghn/provinces').then(res => {
-            if (res.data?.data) setProvinces(res.data.data);
+            if (res.data?.data) {
+                const cleanList = res.data.data.filter(p => {
+                    const id = Number(p.ProvinceID);
+                    const name = String(p.ProvinceName || '').toLowerCase();
+                    return id !== 298 && id !== 2002 && !/test|alert|demo|fake|hà nội 02/i.test(name);
+                });
+                setProvinces(cleanList);
+            }
         }).catch(() => {});
     }, []);
 
-    // Fetch Districts when Province changes
+    // Khi Tỉnh/Thành thay đổi -> Nạp trực tiếp toàn bộ Phường/Xã thuộc Tỉnh/Thành (bỏ qua Quận/Huyện)
     useEffect(() => {
         if (selProvince) {
-            axiosClient.get(`/ghn/districts?province_id=${selProvince}`).then(res => {
-                if (res.data?.data) setDistricts(res.data.data);
-                else setDistricts([]);
-            }).catch(() => setDistricts([]));
+            setLoadingWards(true);
             setWards([]);
-            setSelDistrict('');
             setSelWard('');
+            axiosClient.get(`/ghn/wards-by-province?province_id=${selProvince}`).then(res => {
+                if (res.data?.data) setWards(res.data.data);
+                else setWards([]);
+            }).catch(() => setWards([])).finally(() => setLoadingWards(false));
         } else {
-            setDistricts([]);
             setWards([]);
+            setSelWard('');
         }
     }, [selProvince]);
 
-    // Fetch Wards when District changes
+    // Tự động ghép chuỗi địa chỉ mới (Số nhà/Đường, Phường/Xã, Tỉnh/Thành)
     useEffect(() => {
-        if (selDistrict) {
-            axiosClient.get(`/ghn/wards?district_id=${selDistrict}`).then(res => {
-                if (res.data?.data) setWards(res.data.data);
-                else setWards([]);
-            }).catch(() => setWards([]));
-            setSelWard('');
-        } else {
-            setWards([]);
-        }
-    }, [selDistrict]);
+        if (!selProvince && !selWard && !detailAddress.trim()) return;
 
-    // Calculate GHN fee & update full address string
+        const pObj = provinces.find(p => String(p.ProvinceID) === String(selProvince));
+        const wObj = wards.find(w => String(w.WardCode) === String(selWard));
+
+        const fullAddr = [
+            detailAddress.trim(),
+            wObj?.WardName,
+            pObj?.ProvinceName
+        ].filter(Boolean).join(', ');
+
+        setForm(f => ({
+            ...f,
+            dia_chi_giao: fullAddr
+        }));
+    }, [detailAddress, selWard, selProvince, provinces, wards, setForm]);
+
+    // Tính phí ship GHN tự động khi chọn Phường/Xã (tự ánh xạ DistrictID ngầm)
     useEffect(() => {
-        if (selDistrict && selWard) {
+        if (selProvince && selWard) {
+            const wObj = wards.find(w => String(w.WardCode) === String(selWard));
+            const districtId = parseInt(wObj?.DistrictID) || 1444;
+
             setCalculatingFee(true);
             axiosClient.post('/ghn/fee', {
                 to_ward_code: String(selWard),
-                to_district_id: parseInt(selDistrict),
+                to_district_id: districtId,
                 weight: 1000
             }).then(res => {
                 const fee = res.data?.code === 200 && res.data?.data?.total ? res.data.data.total : 30000;
-                
-                const pObj = provinces.find(p => String(p.ProvinceID) === String(selProvince));
-                const dObj = districts.find(d => String(d.DistrictID) === String(selDistrict));
-                const wObj = wards.find(w => String(w.WardCode) === String(selWard));
-
-                const fullAddr = [
-                    detailAddress.trim(),
-                    wObj?.WardName,
-                    dObj?.DistrictName,
-                    pObj?.ProvinceName
-                ].filter(Boolean).join(', ');
 
                 setForm(f => {
                     const newPhiGiao = fee;
@@ -92,7 +96,6 @@ const GhnDeliverySelector = ({ form, setForm, formErrors }) => {
                     return {
                         ...f,
                         phi_giao_hang: newPhiGiao,
-                        dia_chi_giao: fullAddr,
                         tien_coc: f.tien_coc ? f.tien_coc : (minTotalCoc > 0 ? minTotalCoc : '')
                     };
                 });
@@ -100,7 +103,7 @@ const GhnDeliverySelector = ({ form, setForm, formErrors }) => {
                 setForm(f => ({ ...f, phi_giao_hang: 30000 }));
             }).finally(() => setCalculatingFee(false));
         }
-    }, [selWard, selDistrict, detailAddress, provinces, districts, wards, selProvince, setForm]);
+    }, [selWard, selProvince, wards, setForm]);
 
     return (
         <div style={{ backgroundColor: '#f0f9ff', padding: '14px 16px', borderRadius: '8px', border: '1px solid #bae6fd', marginBottom: '16px' }}>
@@ -108,12 +111,12 @@ const GhnDeliverySelector = ({ form, setForm, formErrors }) => {
                 🚚 Địa chỉ giao hàng (Tích hợp Giao Hàng Nhanh GHN):
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '10px' }}>
                 <div>
-                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Tỉnh / Thành *</label>
-                    <select className="admin-input" style={{ width: '100%', padding: '6px 8px', fontSize: '14px' }}
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Tỉnh / Thành phố *</label>
+                    <select className="admin-input" style={{ width: '100%', padding: '7px 10px', fontSize: '14px' }}
                         value={selProvince} onChange={e => setSelProvince(e.target.value)}>
-                        <option value="">-- Chọn Tỉnh/Thành --</option>
+                        <option value="">-- Chọn Tỉnh/Thành phố --</option>
                         {provinces.map(p => (
                             <option key={p.ProvinceID} value={p.ProvinceID}>{p.ProvinceName}</option>
                         ))}
@@ -121,21 +124,12 @@ const GhnDeliverySelector = ({ form, setForm, formErrors }) => {
                 </div>
 
                 <div>
-                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Quận / Huyện *</label>
-                    <select className="admin-input" style={{ width: '100%', padding: '6px 8px', fontSize: '14px' }}
-                        disabled={!selProvince} value={selDistrict} onChange={e => setSelDistrict(e.target.value)}>
-                        <option value="">-- Chọn Quận/Huyện --</option>
-                        {districts.map(d => (
-                            <option key={d.DistrictID} value={d.DistrictID}>{d.DistrictName}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div>
                     <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Phường / Xã *</label>
-                    <select className="admin-input" style={{ width: '100%', padding: '6px 8px', fontSize: '14px' }}
-                        disabled={!selDistrict} value={selWard} onChange={e => setSelWard(e.target.value)}>
-                        <option value="">-- Chọn Phường/Xã --</option>
+                    <select className="admin-input" style={{ width: '100%', padding: '7px 10px', fontSize: '14px' }}
+                        disabled={!selProvince || loadingWards} value={selWard} onChange={e => setSelWard(e.target.value)}>
+                        <option value="">
+                            {loadingWards ? '⏳ Đang tải danh sách Phường/Xã...' : '-- Chọn Phường/Xã --'}
+                        </option>
                         {wards.map(w => (
                             <option key={w.WardCode} value={w.WardCode}>{w.WardName}</option>
                         ))}
@@ -145,7 +139,7 @@ const GhnDeliverySelector = ({ form, setForm, formErrors }) => {
 
             <div style={{ marginBottom: '10px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Số nhà, tên đường *</label>
-                <input className="admin-input" style={{ width: '100%', padding: '6px 10px', fontSize: '14px' }}
+                <input className="admin-input" style={{ width: '100%', padding: '7px 10px', fontSize: '14px' }}
                     placeholder="VD: 123 Lê Hồng Phong..."
                     value={detailAddress}
                     onChange={e => setDetailAddress(e.target.value)} />
