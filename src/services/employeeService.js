@@ -137,7 +137,42 @@ export const updateEmployee = async (id, employeeData) => {
         maRole: employeeData.maRole,
         vaiTroId: employeeData.maRole
     };
+    if (employeeData.password && String(employeeData.password).trim() !== '') {
+        payload.PASSWORD = String(employeeData.password).trim();
+        payload.password = String(employeeData.password).trim();
+    }
     const response = await axiosClient.put(`/admin/staff/${id}`, payload);
+    return response.data;
+};
+
+export const getAllUserAccounts = async () => {
+    const response = await axiosClient.get('/admin/users');
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+};
+
+export const createUserAccount = async (payload) => {
+    const response = await axiosClient.post('/admin/users', payload);
+    return response.data;
+};
+
+export const updateUserAccount = async (id, payload) => {
+    const response = await axiosClient.put(`/admin/users/${encodeURIComponent(id)}`, payload);
+    return response.data;
+};
+
+export const resetUserPassword = async (id, payload) => {
+    const response = await axiosClient.put(`/admin/users/${encodeURIComponent(id)}/password`, payload);
+    return response.data;
+};
+
+export const toggleUserAccountStatus = async (id, explicitStatus = null) => {
+    const payload = explicitStatus !== null ? { trangThai: explicitStatus } : {};
+    const response = await axiosClient.put(`/admin/users/${encodeURIComponent(id)}/toggle-status`, payload);
+    return response.data;
+};
+
+export const updateUserAccountRole = async (id, vaiTroId) => {
+    const response = await axiosClient.put(`/admin/users/${encodeURIComponent(id)}/role`, { vaiTroId });
     return response.data;
 };
 

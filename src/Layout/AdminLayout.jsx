@@ -118,7 +118,7 @@ const AdminLayout = ({ children }) => {
       setOpenGroups(prev => ({ ...prev, business: true }));
     } else if (['/admin/chat', '/admin/chat-noi-bo', '/admin/tin-tuc'].includes(path)) {
       setOpenGroups(prev => ({ ...prev, communication: true }));
-    } else if (['/admin/nhat-ky-nang-cao', '/admin/bao-tri-he-thong', '/admin/giam-sat-he-thong', '/admin/phan-tich-nguoi-dung'].includes(path)) {
+    } else if (['/admin/nhat-ky-nang-cao', '/admin/bao-tri-he-thong', '/admin/giam-sat-he-thong', '/admin/phan-tich-nguoi-dung', '/admin/tai-khoan'].includes(path)) {
       setOpenGroups(prev => ({ ...prev, system: true }));
     }
   }, [location.pathname]);
@@ -155,7 +155,7 @@ const AdminLayout = ({ children }) => {
   const isApprovalGroupActive = ['/admin/duyet-ky-so', '/admin/bien-ban-huy'].includes(location.pathname);
   const isBusinessGroupActive = ['/admin/bao-cao', '/admin', '/admin/khach-hang', '/admin/nhan-vien', '/admin/cua-hang'].includes(location.pathname);
   const isCommGroupActive = ['/admin/chat', '/admin/chat-noi-bo', '/admin/tin-tuc'].includes(location.pathname);
-  const isSystemGroupActive = ['/admin/nhat-ky-nang-cao', '/admin/bao-tri-he-thong', '/admin/giam-sat-he-thong', '/admin/phan-tich-nguoi-dung'].includes(location.pathname);
+  const isSystemGroupActive = ['/admin/nhat-ky-nang-cao', '/admin/bao-tri-he-thong', '/admin/giam-sat-he-thong', '/admin/phan-tich-nguoi-dung', '/admin/tai-khoan'].includes(location.pathname);
 
   return (
     <div className="admin-dashboard">
@@ -563,6 +563,15 @@ const AdminLayout = ({ children }) => {
               </button>
 
               <div className={`sidebar-group-items ${openGroups.system ? 'expanded' : ''}`}>
+                <Link 
+                  to="/admin/tai-khoan" 
+                  className={`nav-link ${location.pathname === '/admin/tai-khoan' ? 'active' : ''}`}
+                >
+                  <i className="fa-solid fa-users-gear"></i>
+                  Quản lý tài khoản User
+                  <span className="nav-badge nav-badge-hot">Users</span>
+                </Link>
+
                 <Link 
                   to="/admin/giam-sat-he-thong" 
                   className={`nav-link ${location.pathname === '/admin/giam-sat-he-thong' ? 'active' : ''}`}

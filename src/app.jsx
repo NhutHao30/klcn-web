@@ -55,6 +55,7 @@ const AdminOnlineOrderPage = lazy(() => import("./Pages/Admin/AdminOnlineOrderPa
 const AdminReviewPage = lazy(() => import("./Pages/Admin/AdminReviewPage"));
 const AdminSystemMonitorPage = lazy(() => import("./Pages/Admin/AdminSystemMonitorPage"));
 const AdminAnalyticsPage = lazy(() => import("./Pages/Admin/AdminAnalyticsPage"));
+const AdminAccountPage = lazy(() => import("./Pages/Admin/AdminAccountPage"));
 
 import CookieSpinner from "./components/CookieSpinner";
 
@@ -247,6 +248,7 @@ function App() {
             <Route path="/admin/danh-gia" element={<AdminReviewPage />} />
             <Route path="/admin/giam-sat-he-thong" element={<AdminSystemMonitorPage />} />
             <Route path="/admin/phan-tich-nguoi-dung" element={<AdminAnalyticsPage />} />
+            <Route path="/admin/tai-khoan" element={<AdminAccountPage />} />
           </Routes>
           </Suspense>
           <Modal />

@@ -591,48 +591,36 @@ const [employees, setEmployees] = useState([]);
                     placeholder="Mã nhân viên / Số CCCD"
                   />
                 </div>
-                {!editingEmployee ? (
-                  <div className="admin-form-group">
-                    <label>Mật khẩu khởi tạo (Hãy lưu lại) *</label>
-                    <input 
-                      type="text" 
-                      name="password"
-                      value={formData.password} 
-                      onChange={handleInputChange}
-                      className="admin-input" 
-                      style={{ fontWeight: 'bold', color: 'var(--admin-primary)', backgroundColor: '#fdf2f8' }}
-                    />
-                  </div>
-                ) : (
-                  <div className="admin-form-group">
-                    <label>Email cá nhân *</label>
-                    <input 
-                      type="email" 
-                      name="email" 
-                      value={formData.email} 
-                      onChange={handleInputChange} 
-                      className="admin-input" 
-                      required 
-                      placeholder="nhanvien@gmail.com" 
-                    />
-                  </div>
-                )}
-              </div>
-
-              {!editingEmployee && (
                 <div className="admin-form-group">
-                  <label>Email cá nhân (Để lấy lại mật khẩu) *</label>
+                  <label>
+                    {editingEmployee
+                      ? 'Đổi mật khẩu mới (Để trống nếu giữ nguyên)'
+                      : 'Mật khẩu khởi tạo (Hãy lưu lại) *'}
+                  </label>
                   <input 
-                    type="email" 
-                    name="email" 
-                    value={formData.email} 
-                    onChange={handleInputChange} 
+                    type="text" 
+                    name="password"
+                    value={formData.password} 
+                    onChange={handleInputChange}
                     className="admin-input" 
-                    required 
-                    placeholder="nhanvien@gmail.com" 
+                    placeholder={editingEmployee ? 'Nhập mật khẩu mới nếu muốn đổi...' : ''}
+                    style={{ fontWeight: 'bold', color: 'var(--admin-primary)', backgroundColor: '#fdf2f8' }}
                   />
                 </div>
-              )}
+              </div>
+
+              <div className="admin-form-group">
+                <label>Email cá nhân (Để lấy lại mật khẩu) *</label>
+                <input 
+                  type="email" 
+                  name="email" 
+                  value={formData.email} 
+                  onChange={handleInputChange} 
+                  className="admin-input" 
+                  required 
+                  placeholder="nhanvien@gmail.com" 
+                />
+              </div>
               <div className="admin-form-group">
                 <label>Họ tên nhân viên *</label>
                 <input type="text" name="hoTen" value={formData.hoTen} onChange={handleInputChange} className="admin-input" required />
