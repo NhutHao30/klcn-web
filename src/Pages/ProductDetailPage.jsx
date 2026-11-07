@@ -200,7 +200,11 @@ const ProductDetailPage = () => {
 
   const productName = product.tenSanPham || product.ten_san_pham || product.TENSP || "Sản phẩm Givral Bakery";
   const productPrice = Number(product.giaBan || product.gia_ban || product.GIABAN || 0);
-  const formattedPrice = productPrice > 0 ? `${productPrice.toLocaleString('vi-VN')} đ` : "Liên hệ";
+  const discountPct = Number(product.PHAN_TRAM_GIAM ?? product.phanTramGiam ?? 0);
+  const salePrice = discountPct > 0 && discountPct <= 100
+    ? Math.round(productPrice * (1 - discountPct / 100))
+    : productPrice;
+  const formattedPrice = salePrice > 0 ? `${salePrice.toLocaleString('vi-VN')} đ` : "Liên hệ";
   const rawImage = product.hinhAnh || product.hinh_anh || product.HINHANH;
   const productImage = formatImageUrl(rawImage);
 
@@ -319,13 +323,37 @@ const ProductDetailPage = () => {
               </div>
 
               <div style={{
-                fontFamily: "'Dancing Script', 'Playfair Display', cursive, serif",
-                fontSize: '34px',
-                fontWeight: 'bold',
-                color: '#d39e00',
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: '14px',
+                flexWrap: 'wrap',
                 marginBottom: '20px'
               }}>
-                {formattedPrice}
+                <span style={{
+                  fontFamily: "'Dancing Script', 'Playfair Display', cursive, serif",
+                  fontSize: '34px',
+                  fontWeight: 'bold',
+                  color: discountPct > 0 ? '#e53935' : '#d39e00'
+                }}>
+                  {formattedPrice}
+                </span>
+                {discountPct > 0 && productPrice > salePrice && (
+                  <>
+                    <span style={{ fontSize: '18px', color: '#999', textDecoration: 'line-through' }}>
+                      {productPrice.toLocaleString('vi-VN')} đ
+                    </span>
+                    <span style={{
+                      backgroundColor: '#ef4444',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      padding: '3px 10px',
+                      borderRadius: '20px'
+                    }}>
+                      Giảm {discountPct}%
+                    </span>
+                  </>
+                )}
               </div>
 
               {/* TÌNH TRẠNG THEO CỬA HÀNG (CHỈ HIỂN THỊ TRẠNG THÁI, KHÔNG HIỂN THỊ SỐ LƯỢNG TỒN) */}

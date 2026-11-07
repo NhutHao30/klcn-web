@@ -95,7 +95,8 @@ const AdminVoucherPage = () => {
         // Pre-fill row discount inputs from product data
         const initialRowInputs = {};
         arr.forEach(p => {
-          initialRowInputs[p.MASP] = p.PHAN_TRAM_GIAM !== undefined && p.PHAN_TRAM_GIAM !== null ? p.PHAN_TRAM_GIAM : 10;
+          const currentPct = Number(p.PHAN_TRAM_GIAM ?? p.phanTramGiam ?? 0);
+          initialRowInputs[p.MASP] = currentPct > 0 ? currentPct : 10;
         });
         setRowDiscountInputs(initialRowInputs);
       }
@@ -146,18 +147,29 @@ const AdminVoucherPage = () => {
   };
 
   const openEditVoucherModal = (v) => {
-    setEditingVoucher(v);
+    const code = v.MA_VOUCHER || v.ma_voucher || v.maVoucher || '';
+    const name = v.TEN_VOUCHER || v.ten_voucher || v.tenVoucher || code;
+    const type = v.LOAI_GIAM || v.loai_giam || 'PHAN_TRAM';
+    const val = v.GIA_TRI ?? v.gia_tri ?? '';
+    const minOrder = v.DON_TOI_THIEU ?? v.don_toi_thieu ?? 0;
+    const maxDisc = v.GIAM_TOI_DA ?? v.giam_toi_da ?? '';
+    const limitQty = v.SO_LUONG_GIOI_HAN ?? v.so_luong_gioi_han ?? 100;
+    const startAt = v.NGAY_BAT_DAU || v.ngay_bat_dau || '';
+    const endAt = v.NGAY_KET_THUC || v.ngay_ket_thuc || '';
+    const status = v.TRANG_THAI ?? v.trang_thai ?? true;
+
+    setEditingVoucher({ ...v, MA_VOUCHER: code });
     setVoucherForm({
-      MA_VOUCHER: v.MA_VOUCHER || '',
-      TEN_VOUCHER: v.TEN_VOUCHER || '',
-      LOAI_GIAM: v.LOAI_GIAM || 'PHAN_TRAM',
-      GIA_TRI: v.GIA_TRI || '',
-      DON_TOI_THIEU: v.DON_TOI_THIEU || 0,
-      GIAM_TOI_DA: v.GIAM_TOI_DA || '',
-      SO_LUONG_GIOI_HAN: v.SO_LUONG_GIOI_HAN || 100,
-      NGAY_BAT_DAU: v.NGAY_BAT_DAU ? new Date(v.NGAY_BAT_DAU).toISOString().slice(0, 16) : '',
-      NGAY_KET_THUC: v.NGAY_KET_THUC ? new Date(v.NGAY_KET_THUC).toISOString().slice(0, 16) : '',
-      TRANG_THAI: !!v.TRANG_THAI
+      MA_VOUCHER: code,
+      TEN_VOUCHER: name,
+      LOAI_GIAM: type,
+      GIA_TRI: val,
+      DON_TOI_THIEU: minOrder,
+      GIAM_TOI_DA: maxDisc || '',
+      SO_LUONG_GIOI_HAN: limitQty,
+      NGAY_BAT_DAU: startAt ? new Date(startAt).toISOString().slice(0, 16) : '',
+      NGAY_KET_THUC: endAt ? new Date(endAt).toISOString().slice(0, 16) : '',
+      TRANG_THAI: !!status
     });
     setIsVoucherModalOpen(true);
   };
@@ -169,7 +181,8 @@ const AdminVoucherPage = () => {
       if (!payload.GIAM_TOI_DA) payload.GIAM_TOI_DA = null;
 
       if (editingVoucher) {
-        await axiosClient.put(`/admin/vouchers/${editingVoucher.MA_VOUCHER}`, payload);
+        const targetId = editingVoucher.MA_VOUCHER || editingVoucher.ma_voucher || editingVoucher.id;
+        await axiosClient.put(`/admin/vouchers/${encodeURIComponent(targetId)}`, payload);
         toast.success('Cập nhật Voucher thành công!');
       } else {
         await axiosClient.post('/admin/vouchers', payload);
@@ -178,7 +191,7 @@ const AdminVoucherPage = () => {
       setIsVoucherModalOpen(false);
       fetchVouchers();
     } catch (e) {
-      toast.error('Lỗi: ' + (e.response?.data?.message || e.message));
+      toast.error('Lỗi: ' + (e.response?.data?.error || e.response?.data?.message || e.message));
     }
   };
 
@@ -228,29 +241,25 @@ const AdminVoucherPage = () => {
     setIsApplyingProdDiscount(true);
     let successCount = 0;
     try {
-      for (const masp of selectedProdIds) {
-        const p = products.find(prod => prod.MASP === masp);
-        if (!p) continue;
-        
-        const fd = new FormData();
-        fd.append('TENSP', p.TENSP);
-        fd.append('GIABAN', p.GIABAN);
-        fd.append('MALOAI', p.MALOAI);
-        fd.append('PHAN_TRAM_GIAM', pct);
-
-        try {
-          await updateProduct(masp, fd);
-          successCount++;
-        } catch (err) {
-          await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: pct }).catch(() => {});
+      try {
+        const res = await axiosClient.post('/admin/products/apply-discount', {
+          product_ids: selectedProdIds,
+          PHAN_TRAM_GIAM: pct,
+        });
+        successCount = res?.data?.updated_count ?? selectedProdIds.length;
+      } catch (batchErr) {
+        for (const masp of selectedProdIds) {
+          const p = products.find(prod => prod.MASP === masp);
+          if (!p) continue;
+          await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: pct });
           successCount++;
         }
       }
       toast.success(`🎉 Đã cập nhật giảm giá ${pct}% cho ${successCount} sản phẩm thành công!`);
       setSelectedProdIds([]);
-      fetchProductsAndCategories();
+      await fetchProductsAndCategories();
     } catch (e) {
-      toast.error('Có lỗi xảy ra khi cập nhật giảm giá sản phẩm');
+      toast.error('Có lỗi xảy ra khi cập nhật giảm giá sản phẩm: ' + (e.response?.data?.error || e.message));
     } finally {
       setIsApplyingProdDiscount(false);
     }
@@ -269,19 +278,16 @@ const AdminVoucherPage = () => {
 
     setUpdatingProdId(masp);
     try {
-      const fd = new FormData();
-      fd.append('TENSP', p.TENSP);
-      fd.append('GIABAN', p.GIABAN);
-      fd.append('MALOAI', p.MALOAI);
-      fd.append('PHAN_TRAM_GIAM', customPct);
-
       try {
-        await updateProduct(masp, fd);
+        await axiosClient.post('/admin/products/apply-discount', {
+          product_ids: [masp],
+          PHAN_TRAM_GIAM: customPct,
+        });
       } catch (err) {
         await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: customPct });
       }
       toast.success(`🎉 Đã thiết lập giảm giá ${customPct}% cho "${p.TENSP}"!`);
-      fetchProductsAndCategories();
+      await fetchProductsAndCategories();
     } catch (e) {
       toast.error('Có lỗi khi lưu giảm giá cho sản phẩm ' + p.TENSP);
     } finally {
@@ -295,19 +301,16 @@ const AdminVoucherPage = () => {
 
     setUpdatingProdId(masp);
     try {
-      const fd = new FormData();
-      fd.append('TENSP', p.TENSP);
-      fd.append('GIABAN', p.GIABAN);
-      fd.append('MALOAI', p.MALOAI);
-      fd.append('PHAN_TRAM_GIAM', 0);
-
       try {
-        await updateProduct(masp, fd);
+        await axiosClient.post('/admin/products/apply-discount', {
+          product_ids: [masp],
+          PHAN_TRAM_GIAM: 0,
+        });
       } catch (err) {
         await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: 0 });
       }
       toast.success(`Đã hủy giảm giá cho sản phẩm "${p.TENSP}"`);
-      fetchProductsAndCategories();
+      await fetchProductsAndCategories();
     } catch (e) {
       toast.error('Lỗi khi bỏ giảm giá sản phẩm');
     } finally {
@@ -369,19 +372,16 @@ const AdminVoucherPage = () => {
     setIsApplyingCatDiscount(true);
     let successCount = 0;
     try {
-      for (const p of targetProds) {
-        const masp = p.MASP || p.id;
-        const fd = new FormData();
-        fd.append('TENSP', p.TENSP || p.tenSanPham);
-        fd.append('GIABAN', p.GIABAN || p.giaBan);
-        fd.append('MALOAI', p.MALOAI || p.loaiId);
-        fd.append('PHAN_TRAM_GIAM', pct);
-
-        try {
-          await updateProduct(masp, fd);
-          successCount++;
-        } catch (err) {
-          await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: pct }).catch(() => {});
+      try {
+        const res = await axiosClient.post('/admin/products/apply-discount', {
+          category_ids: selectedCatIds,
+          PHAN_TRAM_GIAM: pct,
+        });
+        successCount = res?.data?.updated_count ?? targetProds.length;
+      } catch (batchErr) {
+        for (const p of targetProds) {
+          const masp = p.MASP || p.id;
+          await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: pct });
           successCount++;
         }
       }
@@ -391,7 +391,7 @@ const AdminVoucherPage = () => {
       } else {
         toast.success(`Đã hủy giảm giá cho ${successCount} sản phẩm thuộc ${selectedCatIds.length} loại bánh!`);
       }
-      fetchProductsAndCategories();
+      await fetchProductsAndCategories();
     } catch (e) {
       toast.error('Lỗi khi cập nhật giảm giá danh mục');
     } finally {
@@ -421,19 +421,16 @@ const AdminVoucherPage = () => {
     setIsApplyingCatDiscount(true);
     let successCount = 0;
     try {
-      for (const p of catProds) {
-        const masp = p.MASP || p.id;
-        const fd = new FormData();
-        fd.append('TENSP', p.TENSP || p.tenSanPham);
-        fd.append('GIABAN', p.GIABAN || p.giaBan);
-        fd.append('MALOAI', p.MALOAI || p.loaiId);
-        fd.append('PHAN_TRAM_GIAM', pct);
-
-        try {
-          await updateProduct(masp, fd);
-          successCount++;
-        } catch (err) {
-          await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: pct }).catch(() => {});
+      try {
+        const res = await axiosClient.post('/admin/products/apply-discount', {
+          category_ids: [targetCatId],
+          PHAN_TRAM_GIAM: pct,
+        });
+        successCount = res?.data?.updated_count ?? catProds.length;
+      } catch (batchErr) {
+        for (const p of catProds) {
+          const masp = p.MASP || p.id;
+          await axiosClient.put(`/admin/products/${masp}`, { PHAN_TRAM_GIAM: pct });
           successCount++;
         }
       }
@@ -444,7 +441,7 @@ const AdminVoucherPage = () => {
       } else {
         toast.success(`Đã hủy giảm giá cho tất cả ${successCount} bánh thuộc loại "${catName}"`);
       }
-      fetchProductsAndCategories();
+      await fetchProductsAndCategories();
     } catch (e) {
       toast.error('Lỗi khi cập nhật giảm giá danh mục');
     } finally {

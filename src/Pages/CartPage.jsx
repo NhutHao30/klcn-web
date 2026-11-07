@@ -9,7 +9,21 @@ const getImageSrc = (imageUrl) => {
 };
 
 const getItemMasp = (item) => item?.sanPhamId || item?.sanpham_id || item?.sanpham?.id || item?.id || item?.masp || item?.MASP || "";
-const getItemPrice = (item) => Number(item?.price || item?.sanpham?.giaBan || item?.sanpham?.GIABAN || item?.sanpham?.gia_ban || 0);
+const getItemBasePrice = (item) => Number(item?.basePrice || item?.sanpham?.giaBan || item?.sanpham?.GIABAN || item?.sanpham?.gia_ban || item?.price || 0);
+const getItemDiscountPct = (item) => Number(item?.phanTramGiam || item?.PHAN_TRAM_GIAM || item?.sanpham?.phanTramGiam || item?.sanpham?.PHAN_TRAM_GIAM || 0);
+const getItemPrice = (item) => {
+    const sp = item?.sanpham;
+    const pct = getItemDiscountPct(item);
+    const base = getItemBasePrice(item);
+    if (pct > 0 && pct <= 100 && base > 0) {
+        return Math.round(base * (1 - pct / 100));
+    }
+    if (sp && (sp.giaSauGiam !== undefined || sp.GIA_SAU_GIAM !== undefined)) {
+        const after = Number(sp.giaSauGiam ?? sp.GIA_SAU_GIAM);
+        if (!isNaN(after) && after > 0) return after;
+    }
+    return base;
+};
 const getItemQty = (item) => Number(item?.quantity || item?.soLuong || item?.so_luong || 1);
 const getItemName = (item) => item?.name || item?.sanpham?.tenSanPham || item?.sanpham?.TENSP || item?.sanpham?.ten_san_pham || "Sản phẩm";
 const getItemImage = (item) => item?.image || item?.sanpham?.hinhAnh || item?.sanpham?.HINHANH || item?.sanpham?.hinh_anh;
@@ -710,6 +724,8 @@ const CartPage = () => {
                                     <tbody>
                                         {cartItems.map((item, index) => {
                                             const masp = getItemMasp(item);
+                                            const basePrice = getItemBasePrice(item);
+                                            const discountPct = getItemDiscountPct(item);
                                             const price = getItemPrice(item);
                                             const qty = getItemQty(item);
                                             const name = getItemName(item);
@@ -731,8 +747,13 @@ const CartPage = () => {
                                                                 }}
                                                             />
                                                             <div>
-                                                                <div style={{ fontSize: "14px", fontWeight: "700", color: "#222", textTransform: "uppercase", marginBottom: "4px" }}>
-                                                                    {name}
+                                                                <div style={{ fontSize: "14px", fontWeight: "700", color: "#222", textTransform: "uppercase", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                                                    <span>{name}</span>
+                                                                    {discountPct > 0 && (
+                                                                        <span style={{ background: "#ef4444", color: "#fff", fontSize: "11px", padding: "1px 6px", borderRadius: "4px", fontWeight: "700" }}>
+                                                                            -{discountPct}%
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                                 <button
                                                                     onClick={() => handleRemove(masp)}
@@ -752,7 +773,14 @@ const CartPage = () => {
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: "18px 15px", textAlign: "center", fontSize: "14px", color: "#333" }}>
-                                                        {price.toLocaleString('vi-VN')}đ
+                                                        {discountPct > 0 && basePrice > price ? (
+                                                            <div>
+                                                                <div style={{ fontWeight: "700", color: "#d9534f" }}>{price.toLocaleString('vi-VN')}đ</div>
+                                                                <div style={{ fontSize: "12px", color: "#999", textDecoration: "line-through" }}>{basePrice.toLocaleString('vi-VN')}đ</div>
+                                                            </div>
+                                                        ) : (
+                                                            <span>{price.toLocaleString('vi-VN')}đ</span>
+                                                        )}
                                                     </td>
                                                     <td style={{ padding: "18px 15px", textAlign: "center" }}>
                                                         <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #dcd6ce", borderRadius: "4px", backgroundColor: "#fff" }}>

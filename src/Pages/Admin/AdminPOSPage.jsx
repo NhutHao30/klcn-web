@@ -335,10 +335,17 @@ const AdminPOSPage = () => {
           item.id === id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
+      const basePrice = Number(product.gia_ban || product.giaban || product.GIABAN || product.giaBan || 0);
+      const discountPct = Number(product.PHAN_TRAM_GIAM ?? product.phanTramGiam ?? 0);
+      const effectivePrice = discountPct > 0 && discountPct <= 100
+        ? Math.round(basePrice * (1 - discountPct / 100))
+        : basePrice;
       return [...prev, { 
         id, 
         name: product.ten_san_pham || product.tenSP || product.TenSP || product.TENSP,
-        price: product.gia_ban || product.giaban || product.GIABAN || 0,
+        price: effectivePrice,
+        basePrice,
+        discountPct,
         quantity: 1,
         image: product.hinh_anh || product.hinhanh || product.HINHANH
       }];
@@ -714,19 +721,29 @@ const AdminPOSPage = () => {
              {isLoading ? <p>Đang tải dữ liệu...</p> : products.slice(0, 12).map(product => {
                 const id = product.maSP || product.MaSP || product.MASP || product.id;
                 const name = product.tenSP || product.TenSP || product.TENSP || product.ten_san_pham;
-                const price = product.giaban || product.GIABAN || product.gia_ban;
+                const basePrice = Number(product.giaban || product.GIABAN || product.gia_ban || product.giaBan || 0);
+                const discountPct = Number(product.PHAN_TRAM_GIAM ?? product.phanTramGiam ?? 0);
+                const price = discountPct > 0 && discountPct <= 100 ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
                 const image = product.hinhanh || product.HINHANH || product.hinh_anh;
                 const imageUrl = formatImageUrl(image);
                 
                 return (
                     <div 
                         key={id} 
-                        style={{ border: '1px solid #eee', borderRadius: '8px', padding: '10px', textAlign: 'center', cursor: 'pointer', transition: '0.2s', ':hover': { borderColor: 'var(--primary-color)' } }}
+                        style={{ position: 'relative', border: '1px solid #eee', borderRadius: '8px', padding: '10px', textAlign: 'center', cursor: 'pointer', transition: '0.2s', ':hover': { borderColor: 'var(--primary-color)' } }}
                         onClick={() => addToCart(product)}
                     >
+                        {discountPct > 0 && (
+                            <span style={{ position: 'absolute', top: '6px', right: '6px', background: '#ef4444', color: '#fff', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '10px' }}>
+                                -{discountPct}%
+                            </span>
+                        )}
                         <img src={imageUrl} alt={name} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px', marginBottom: '10px' }} />
                         <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
                         <div style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>{Number(price).toLocaleString('vi-VN')}₫</div>
+                        {discountPct > 0 && (
+                            <div style={{ fontSize: '11px', color: '#999', textDecoration: 'line-through' }}>{Number(basePrice).toLocaleString('vi-VN')}₫</div>
+                        )}
                     </div>
                 );
              })}
