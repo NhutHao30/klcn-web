@@ -11,6 +11,7 @@ import {
 import { getStores } from '../../services/storeService';
 import { getCurrentUser } from '../../services/authService';
 import { useToast } from '../../components/Toast/Toast';
+import { useConfirm } from '../../components/ConfirmModal/ConfirmModal';
 import '../../css/admin.css';
 
 const ROLE_OPTIONS = [
@@ -54,6 +55,7 @@ const formatDateStr = (dateStr) => {
 
 const AdminAccountPage = () => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState('staff'); // 'staff' | 'customer'
   const [accounts, setAccounts] = useState([]);
   const [stores, setStores] = useState([]);
@@ -358,13 +360,18 @@ const AdminAccountPage = () => {
 
   const handleResetDefaultPassword = async () => {
     if (!passwordTarget) return;
-    if (
-      !window.confirm(
-        `Bạn có chắc muốn đặt lại mật khẩu của tài khoản "${passwordTarget.username}" về mặc định (trùng với tên đăng nhập "${passwordTarget.username}")?`
-      )
-    ) {
-      return;
-    }
+
+    const ok = await confirm({
+      title: 'Đặt lại mật khẩu mặc định',
+      subtitle: 'Quản trị tài khoản Givral Bakery',
+      message: `Bạn có chắc chắn muốn đặt lại mật khẩu của tài khoản "${passwordTarget.username}" (${passwordTarget.hoTen || 'Người dùng'}) về mặc định?`,
+      note: `Mật khẩu mới khởi tạo sẽ trùng với tên đăng nhập: "${passwordTarget.username}"`,
+      confirmText: 'Đặt lại mật khẩu',
+      cancelText: 'Hủy bỏ',
+      type: 'warning',
+      icon: <i className="fa-solid fa-key" style={{ color: '#d97706' }}></i>,
+    });
+    if (!ok) return;
 
     setIsUpdatingPassword(true);
     try {
@@ -395,10 +402,26 @@ const AdminAccountPage = () => {
       return;
     }
 
-    const actionText = acc.isActive ? 'KHÓA (vô hiệu hóa đăng nhập)' : 'MỞ KHÓA (kích hoạt lại)';
-    if (!window.confirm(`Bạn có chắc chắn muốn ${actionText} tài khoản "${acc.username}" (${acc.hoTen})?`)) {
-      return;
-    }
+    const isLocking = acc.isActive;
+    const ok = await confirm({
+      title: isLocking ? 'Xác nhận khóa tài khoản' : 'Xác nhận mở khóa tài khoản',
+      subtitle: 'Phân quyền tài khoản Givral Bakery',
+      message: isLocking
+        ? `Bạn có chắc chắn muốn KHÓA (vô hiệu hóa đăng nhập) tài khoản "${acc.username}" (${acc.hoTen})?`
+        : `Bạn có chắc chắn muốn MỞ KHÓA (kích hoạt lại) tài khoản "${acc.username}" (${acc.hoTen})?`,
+      note: isLocking
+        ? 'Tài khoản sau khi khóa sẽ không thể đăng nhập vào hệ thống. Bạn có thể mở khóa lại bất kỳ lúc nào.'
+        : 'Người dùng sẽ có thể đăng nhập lại vào hệ thống bình thường.',
+      confirmText: isLocking ? 'Khóa tài khoản' : 'Mở khóa ngay',
+      cancelText: 'Hủy bỏ',
+      type: isLocking ? 'danger' : 'success',
+      icon: isLocking ? (
+        <i className="fa-solid fa-user-slash" style={{ color: '#dc2626' }}></i>
+      ) : (
+        <i className="fa-solid fa-user-check" style={{ color: '#16a34a' }}></i>
+      ),
+    });
+    if (!ok) return;
 
     try {
       const targetStatus = acc.isActive ? 0 : 1;

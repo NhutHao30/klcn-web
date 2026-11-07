@@ -5,9 +5,11 @@ import { getEmployees, createEmployee, updateEmployee, deleteEmployee, importEmp
 import { getStores } from '../../services/storeService';
 import { getCurrentUser } from '../../services/authService';
 import { useToast } from '../../components/Toast/Toast';
+import { useConfirm } from '../../components/ConfirmModal/ConfirmModal';
 
 const AdminEmployeePage = () => {
     const toast = useToast();
+    const confirm = useConfirm();
 const [employees, setEmployees] = useState([]);
   const [stores, setStores] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
@@ -274,8 +276,19 @@ const [employees, setEmployees] = useState([]);
     const file = e.target.files[0];
     if (!file) return;
 
-    if (window.confirm(`Bạn có chắc chắn muốn nhập dữ liệu từ file ${file.name}?`)) {
-      setIsImporting(true);
+    const ok = await confirm({
+      title: 'Nhập dữ liệu nhân viên',
+      subtitle: 'Import danh sách nhân sự',
+      message: `Bạn có chắc chắn muốn nhập dữ liệu nhân viên từ tập tin "${file.name}"?`,
+      note: 'Các bản ghi hợp lệ sẽ được thêm hoặc cập nhật vào hệ thống tự động.',
+      confirmText: 'Bắt đầu Import',
+      cancelText: 'Hủy bỏ',
+      type: 'info',
+      icon: <i className="fa-solid fa-file-excel" style={{ color: '#0284c7' }}></i>,
+    });
+    if (!ok) return;
+
+    setIsImporting(true);
       try {
         const response = await importEmployeesFromExcel(file);
         toast.success(response.message || 'Import thành công!');
@@ -287,7 +300,6 @@ const [employees, setEmployees] = useState([]);
         setIsImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
-    }
   };
 
   const parseCccdQrPayload = (qrText) => {
@@ -410,15 +422,25 @@ const [employees, setEmployees] = useState([]);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Xác nhận vô hiệu hóa tài khoản và cho nhân viên này nghỉ việc?")) {
-      try {
-        await deleteEmployee(id);
-        toast.success('Đã vô hiệu hóa thành công!');
-        fetchEmployees();
-      } catch (error) {
-        console.error("Error deleting employee:", error);
-        toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi vô hiệu hóa!');
-      }
+    const ok = await confirm({
+      title: 'Vô hiệu hóa nhân viên',
+      subtitle: 'Quản trị nhân sự Givral Bakery',
+      message: 'Bạn có chắc chắn muốn vô hiệu hóa tài khoản và chuyển nhân viên này sang trạng thái Đã nghỉ việc?',
+      note: 'Nhân viên sẽ không thể đăng nhập vào hệ thống cửa hàng nữa.',
+      confirmText: 'Vô hiệu hóa',
+      cancelText: 'Hủy bỏ',
+      type: 'danger',
+      icon: <i className="fa-solid fa-user-xmark" style={{ color: '#dc2626' }}></i>,
+    });
+    if (!ok) return;
+
+    try {
+      await deleteEmployee(id);
+      toast.success('Đã vô hiệu hóa thành công!');
+      fetchEmployees();
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi vô hiệu hóa!');
     }
   };
 

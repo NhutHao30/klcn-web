@@ -5,6 +5,7 @@ import Modal from "./components/Modal";
 import ChatBox from "./components/ChatBox";
 import { getCurrentUser, clearUserCache } from "./services/authService";
 import { ToastProvider } from "./components/Toast/Toast";
+import { ConfirmProvider } from "./components/ConfirmModal/ConfirmModal";
 import PageViewTracker from './components/PageViewTracker';
 import VisitActivityTracker from './components/VisitActivityTracker';
 
@@ -195,12 +196,13 @@ function App() {
   return (
     <GlobalErrorBoundary>
       <ToastProvider>
-        <Router>
-          <Header />
-          <VisitActivityTracker />
-          <PageViewTracker />
-          <Suspense fallback={<LoadingFallback />}>
-          <Routes>
+        <ConfirmProvider>
+          <Router>
+            <Header />
+            <VisitActivityTracker />
+            <PageViewTracker />
+            <Suspense fallback={<LoadingFallback />}>
+            <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/trang-chu" element={<HomePage />} />
             <Route path="/gioi-thieu" element={<AboutPage />} />
@@ -254,6 +256,7 @@ function App() {
           <Modal />
           <ChatBox currentUser={currentUser} />
         </Router>
+        </ConfirmProvider>
       </ToastProvider>
     </GlobalErrorBoundary>
   );

@@ -12,6 +12,7 @@ import {
 import { lookupCustomerBySdt } from '../../services/customerService';
 import { getProducts } from '../../services/productService';
 import { useToast } from '../../components/Toast/Toast';
+import { useConfirm } from '../../components/ConfirmModal/ConfirmModal';
 import axiosClient from '../../services/axiosClient';
 import { DatBanhTruocPrintModal } from '../../components/PrintForms';
 
@@ -389,6 +390,7 @@ const SignatureCanvas = ({ value, onChange }) => {
 // ─── Component chính ─────────────────────────────────────────
 const AdminPreOrderPage = () => {
     const toast = useToast();
+    const confirm = useConfirm();
     const printRef = useRef(null);
 
     const [orders, setOrders]                 = useState([]);
@@ -1601,8 +1603,18 @@ const AdminPreOrderPage = () => {
                                         </button>
                                     )}
                                     {!['da_giao', 'da_huy'].includes(detail.trangThai) && (
-                                        <button className="admin-btn" style={styles.btnDanger} onClick={() => {
-                                            if (window.confirm(`Bạn có chắc chắn muốn hủy đơn đặt hàng ${detail.maDHT}?`)) {
+                                        <button className="admin-btn" style={styles.btnDanger} onClick={async () => {
+                                            const ok = await confirm({
+                                                title: 'Xác nhận hủy đơn đặt bánh',
+                                                subtitle: 'Đơn đặt hàng trước Givral Bakery',
+                                                message: `Bạn có chắc chắn muốn HỦY đơn đặt bánh ${detail.maDHT} của khách hàng ${detail.hoTenKH}?`,
+                                                note: 'Nếu đơn hàng đã được trừ tồn kho, số lượng bánh sẽ tự động được hoàn trả vào kho.',
+                                                confirmText: 'Xác nhận hủy đơn',
+                                                cancelText: 'Đóng',
+                                                type: 'danger',
+                                                icon: <i className="fa-solid fa-ban" style={{ color: '#dc2626' }}></i>,
+                                            });
+                                            if (ok) {
                                                 handleUpdateStatus(detail.maDHT, 'da_huy');
                                             }
                                         }}>

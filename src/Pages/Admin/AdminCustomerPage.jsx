@@ -4,9 +4,11 @@ import { getCustomers, createCustomer, updateCustomer, deleteCustomer, restoreCu
 import { getInvoices } from '../../services/invoiceService';
 import { getStores } from '../../services/storeService';
 import { useToast } from '../../components/Toast/Toast';
+import { useConfirm } from '../../components/ConfirmModal/ConfirmModal';
 
 const AdminCustomerPage = () => {
     const toast = useToast();
+    const confirm = useConfirm();
 const [customers, setCustomers] = useState([]);
   const [stores, setStores] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
@@ -160,28 +162,46 @@ const [customers, setCustomers] = useState([]);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn vô hiệu hóa tài khoản khách hàng này? Khách hàng sẽ không thể đăng nhập.")) {
-      try {
-        await deleteCustomer(id);
-        toast.success('Vô hiệu hóa thành công!');
-        fetchCustomers();
-      } catch (error) {
-        console.error("Error deleting customer:", error);
-        toast.error('Có lỗi xảy ra khi vô hiệu hóa!');
-      }
+    const ok = await confirm({
+      title: 'Vô hiệu hóa khách hàng',
+      subtitle: 'Quản lý khách hàng Givral Bakery',
+      message: 'Bạn có chắc chắn muốn vô hiệu hóa tài khoản khách hàng này? Khách hàng sẽ không thể đăng nhập vào ứng dụng.',
+      confirmText: 'Vô hiệu hóa',
+      cancelText: 'Hủy bỏ',
+      type: 'danger',
+      icon: <i className="fa-solid fa-user-xmark" style={{ color: '#dc2626' }}></i>,
+    });
+    if (!ok) return;
+
+    try {
+      await deleteCustomer(id);
+      toast.success('Vô hiệu hóa thành công!');
+      fetchCustomers();
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      toast.error('Có lỗi xảy ra khi vô hiệu hóa!');
     }
   };
 
   const handleRestore = async (id) => {
-    if (window.confirm("Bạn muốn kích hoạt lại tài khoản khách hàng này?")) {
-      try {
-        await restoreCustomer(id);
-        toast.success('Kích hoạt lại thành công!');
-        fetchCustomers();
-      } catch (error) {
-        console.error("Error restoring customer:", error);
-        toast.error('Có lỗi xảy ra khi kích hoạt lại!');
-      }
+    const ok = await confirm({
+      title: 'Kích hoạt lại khách hàng',
+      subtitle: 'Quản lý khách hàng Givral Bakery',
+      message: 'Bạn có chắc chắn muốn kích hoạt lại tài khoản khách hàng này? Khách hàng sẽ có thể đăng nhập bình thường.',
+      confirmText: 'Kích hoạt lại',
+      cancelText: 'Hủy bỏ',
+      type: 'success',
+      icon: <i className="fa-solid fa-user-check" style={{ color: '#16a34a' }}></i>,
+    });
+    if (!ok) return;
+
+    try {
+      await restoreCustomer(id);
+      toast.success('Kích hoạt lại thành công!');
+      fetchCustomers();
+    } catch (error) {
+      console.error("Error restoring customer:", error);
+      toast.error('Có lỗi xảy ra khi kích hoạt lại!');
     }
   };
 
