@@ -200,15 +200,13 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
   }).length;
 
   const exportPDF = () => {
-    const windowPrint = window.open('', '', 'width=900,height=650');
     let content = '';
     let title = '';
 
     if (activeTab === 'revenue') {
-      if (revenueData.length === 0) return;
       title = `Bao_Cao_Doanh_Thu_${reportType === 'month' ? 'Thang' : 'Ngay'}`;
       
-      const maxRev = Math.max(...revenueData.map(d => Number(d.total)), 1);
+      const maxRev = revenueData.length > 0 ? Math.max(...revenueData.map(d => Number(d.total)), 1) : 1;
       
       // Render biểu đồ cột bằng HTML thuần
       const chartHTML = `
@@ -271,27 +269,54 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
         </div>
       ` : '';
 
+      const profitProducts = Array.isArray(profitData?.theo_san_pham) ? profitData.theo_san_pham : [];
       const profitHTML = `
         <div class="pdf-section">
           <h2>III. LỢI NHUẬN RÒNG & HAO HỤT THỰC TẾ</h2>
-          <div style="display: flex; gap: 10px;">
-            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px;">
+          <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; background: #f8fafc;">
               <div style="color: #64748b; font-size: 9px; font-weight: bold;">DOANH THU BÁN HÀNG</div>
               <div style="font-size: 14px; font-weight: bold; color: #0284c7; margin-top: 3px;">${Number(profitData?.doanh_thu || 0).toLocaleString('vi-VN')} ₫</div>
             </div>
-            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px;">
+            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; background: #f8fafc;">
               <div style="color: #64748b; font-size: 9px; font-weight: bold;">CHI PHÍ NHẬP (NCC)</div>
               <div style="font-size: 14px; font-weight: bold; color: #b45309; margin-top: 3px;">${Number(profitData?.chi_phi_nhap || 0).toLocaleString('vi-VN')} ₫</div>
             </div>
-            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px;">
+            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; background: #f8fafc;">
               <div style="color: #64748b; font-size: 9px; font-weight: bold;">TỔN THẤT HỦY (HSD)</div>
-              <div style="font-size: 14px; font-weight: bold; color: #dc3545; margin-top: 3px;">${Number(profitData?.chi_phi_huy || 0).toLocaleString('vi-VN')} ₫</div>
+              <div style="font-size: 14px; font-weight: bold; color: #dc3545; margin-top: 3px;">${Number(profitData?.chi_phi_huy ?? lossData?.gia_tri_huy ?? 0).toLocaleString('vi-VN')} ₫</div>
             </div>
-            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px;">
-              <div style="color: #64748b; font-size: 9px; font-weight: bold;">LỢI NHUẬN RÒNG</div>
-              <div style="font-size: 14px; font-weight: bold; color: #16a34a; margin-top: 3px;">${Number(profitData?.loi_nhuan || profitData?.loi_nhuan_rong || (Number(profitData?.doanh_thu || 0) - Number(profitData?.chi_phi_nhap || 0))).toLocaleString('vi-VN')} ₫</div>
+            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; background: #f8fafc;">
+              <div style="color: #64748b; font-size: 9px; font-weight: bold;">LỢI NHUẬN RÒNG THỰC TẾ</div>
+              <div style="font-size: 14px; font-weight: bold; color: #16a34a; margin-top: 3px;">${Number(profitData?.loi_nhuan ?? profitData?.loi_nhuan_rong ?? (Number(profitData?.doanh_thu || 0) - Number(profitData?.chi_phi_nhap || 0) - Number(profitData?.chi_phi_huy || 0))).toLocaleString('vi-VN')} ₫</div>
             </div>
           </div>
+          ${profitProducts.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th class="text-center" style="width: 8%;">STT</th>
+                  <th>Tên Sản Phẩm Bánh</th>
+                  <th class="text-center" style="width: 15%;">SL Đã Bán</th>
+                  <th class="text-right" style="width: 22%;">Doanh Thu</th>
+                  <th class="text-right" style="width: 22%;">Giá Vốn Nhập</th>
+                  <th class="text-right" style="width: 23%;">Lợi Nhuận Gộp</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${profitProducts.map((sp, i) => `
+                  <tr>
+                    <td class="text-center">${i + 1}</td>
+                    <td style="font-weight: bold;">${sp.TENSP || sp.MASP}</td>
+                    <td class="text-center">${sp.tong_ban || 0}</td>
+                    <td class="text-right">${Number(sp.doanh_thu || 0).toLocaleString('vi-VN')} ₫</td>
+                    <td class="text-right">${Number(sp.chi_phi || 0).toLocaleString('vi-VN')} ₫</td>
+                    <td class="text-right" style="font-weight: bold; color: #16a34a;">${Number(sp.loi_nhuan || 0).toLocaleString('vi-VN')} ₫</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : ''}
         </div>
       `;
 
@@ -345,31 +370,45 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
         </div>
       ` : '';
 
-      const lossDetailsHTML = lossData && Array.isArray(lossData.hao_hut_theo_san_pham) && lossData.hao_hut_theo_san_pham.length > 0 ? `
+      const lossItemsForPdf = lossData?.hao_hut_theo_san_pham || lossData?.hao_hut_theo_sp || [];
+      const lossDetailsHTML = `
         <div class="pdf-section">
-          <h2>CHI TIẾT TỔN THẤT & HAO HỤT BÁNH HẾT HẠN</h2>
+          <h2>CHI TIẾT TỔN THẤT & TỶ LỆ HAO HỤT THEO SẢN PHẨM</h2>
           <table>
             <thead>
               <tr>
-                <th class="text-center" style="width: 10%;">STT</th>
+                <th class="text-center" style="width: 8%;">STT</th>
                 <th>Tên Sản Phẩm Bánh</th>
-                <th class="text-center" style="width: 25%;">Số Lượng Bị Hủy</th>
-                <th class="text-right" style="width: 35%;">Giá Trị Tổn Thất</th>
+                <th class="text-center" style="width: 16%;">Tổng SL Nhập</th>
+                <th class="text-center" style="width: 18%;">Số Lượng Bị Hủy</th>
+                <th class="text-center" style="width: 15%;">Tỷ Lệ Hao Hụt</th>
+                <th class="text-right" style="width: 23%;">Giá Trị Tổn Thất</th>
               </tr>
             </thead>
             <tbody>
-              ${lossData.hao_hut_theo_san_pham.map((item, idx) => `
+              ${lossItemsForPdf.length === 0 ? `
                 <tr>
-                  <td class="text-center">#${idx + 1}</td>
-                  <td>${item.san_pham?.TENSP || item.MASP}</td>
-                  <td class="text-center" style="color: #dc3545; font-weight: bold;">${item.tong_so_luong_huy} ${item.san_pham?.DVT || 'Cái'}</td>
-                  <td class="text-right" style="color: #dc3545; font-weight: bold;">${(Number(item.tong_so_luong_huy) * Number(item.san_pham?.GIABAN || 15000)).toLocaleString('vi-VN')} ₫</td>
+                  <td colspan="6" class="text-center" style="color: #64748b; padding: 10px;">Không ghi nhận sản phẩm nào bị hủy/hao hụt trong kỳ này</td>
                 </tr>
-              `).join('')}
+              ` : lossItemsForPdf.map((item, idx) => {
+                const slHuy = Number(item.tong_so_luong_huy ?? item.tong_huy ?? 0);
+                const dvt = item.san_pham?.DVT || item.DVT || 'Cái';
+                const giaTriHuy = Number(item.gia_tri_huy ?? (slHuy * Number(item.san_pham?.GIABAN || item.GIABAN || 15000)));
+                return `
+                  <tr>
+                    <td class="text-center">#${idx + 1}</td>
+                    <td style="font-weight: bold;">${item.san_pham?.TENSP || item.TENSP || item.MASP}</td>
+                    <td class="text-center">${item.tong_nhap ?? 0} ${dvt}</td>
+                    <td class="text-center" style="color: #dc3545; font-weight: bold;">${slHuy} ${dvt}</td>
+                    <td class="text-center" style="color: #b45309; font-weight: bold;">${item.ty_le_huy ?? 0}%</td>
+                    <td class="text-right" style="color: #dc3545; font-weight: bold;">${giaTriHuy.toLocaleString('vi-VN')} ₫</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
-      ` : '';
+      `;
 
       const revenueTableHTML = `
         <div class="pdf-section">
@@ -525,9 +564,194 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
           </table>
         </div>
       `;
+    } else if (activeTab === 'cancel') {
+      title = `Bao_Cao_Thong_Ke_Huy_Don_${cancelFilter.tuNgay}_${cancelFilter.denNgay}`;
+      const selectedStoreName = cancelFilter.cuaHangId
+        ? (stores.find(st => String(st.id || st.MACUAHANG) === String(cancelFilter.cuaHangId))?.tenCuaHang ||
+           stores.find(st => String(st.id || st.MACUAHANG) === String(cancelFilter.cuaHangId))?.TENCUAHANG ||
+           `Chi nhánh #${cancelFilter.cuaHangId}`)
+        : 'Tất cả chi nhánh';
+
+      const lyDoList = Array.isArray(cancelStats?.lyDoHuy) ? cancelStats.lyDoHuy : [];
+      const nguonList = Array.isArray(cancelStats?.nguonYeuCauHuy) ? cancelStats.nguonYeuCauHuy : [];
+      const spHuyList = Array.isArray(cancelStats?.sanPhamTrongDonHuy) ? cancelStats.sanPhamTrongDonHuy : [];
+      const huyTheoNgayList = Array.isArray(cancelStats?.huyTheoNgay) ? cancelStats.huyTheoNgay : [];
+      const chiTietList = Array.isArray(cancelStats?.chiTietDonHuy) ? cancelStats.chiTietDonHuy : [];
+
+      content = `
+        <div class="header">
+          <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px;">
+            <img src="/assets/IMG/Logo.jpg" style="width:48px;height:48px;object-fit:contain;border-radius:6px;" />
+            <h1 style="margin:0;">BÁO CÁO THỐNG KÊ & PHÂN TÍCH ĐƠN HÀNG BỊ HỦY</h1>
+          </div>
+          <p style="font-weight:bold;color:#5c3d2e;">Givral Bakery</p>
+          <p>Kỳ báo cáo: Từ ngày <b>${cancelFilter.tuNgay}</b> đến ngày <b>${cancelFilter.denNgay}</b> | Chi nhánh: <b>${selectedStoreName}</b></p>
+        </div>
+
+        <div class="pdf-section">
+          <h2>I. TỔNG QUAN CHỈ SỐ ĐƠN HỦY TRONG KỲ</h2>
+          <div style="display: flex; gap: 10px;">
+            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 4px; background: #f8fafc;">
+              <div style="color: #64748b; font-size: 9px; font-weight: bold; text-transform: uppercase;">Đơn Online đặt trong kỳ</div>
+              <div style="font-size: 16px; font-weight: bold; color: #334155; margin-top: 4px;">${cancelStats?.tongDonOnline ?? 0} đơn</div>
+            </div>
+            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 4px; background: #f8fafc;">
+              <div style="color: #64748b; font-size: 9px; font-weight: bold; text-transform: uppercase;">Đơn hủy phát sinh trong kỳ</div>
+              <div style="font-size: 16px; font-weight: bold; color: #dc3545; margin-top: 4px;">${cancelStats?.tongDonHuy ?? 0} đơn</div>
+            </div>
+            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 4px; background: #f8fafc;">
+              <div style="color: #64748b; font-size: 9px; font-weight: bold; text-transform: uppercase;">Tỷ lệ hủy đơn Online</div>
+              <div style="font-size: 16px; font-weight: bold; color: #b45309; margin-top: 4px;">${cancelStats?.tyLeHuy ?? 0}%</div>
+            </div>
+            <div style="flex: 1; border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 4px; background: #f8fafc;">
+              <div style="color: #64748b; font-size: 9px; font-weight: bold; text-transform: uppercase;">Giá trị đơn hủy trong kỳ</div>
+              <div style="font-size: 16px; font-weight: bold; color: #7a5230; margin-top: 4px;">${Number(cancelStats?.tongGiaTriHuy ?? 0).toLocaleString('vi-VN')} ₫</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pdf-section">
+          <h2>II. THỐNG KÊ THEO LÝ DO HỦY & NGUỒN YÊU CẦU HỦY</h2>
+          <div style="display: flex; gap: 12px;">
+            <div style="flex: 1;">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width: 12%;">STT</th>
+                    <th>Lý Do Hủy Đơn</th>
+                    <th class="text-center" style="width: 25%;">Số Đơn</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${lyDoList.length === 0 ? `<tr><td colspan="3" class="text-center">Chưa có dữ liệu lý do hủy</td></tr>` : lyDoList.map((item, i) => `
+                    <tr>
+                      <td class="text-center">${i + 1}</td>
+                      <td>${item.lyDo}</td>
+                      <td class="text-center" style="font-weight: bold; color: #dc3545;">${item.soDon} đơn</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            <div style="flex: 1;">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width: 12%;">STT</th>
+                    <th>Nguồn Yêu Cầu Hủy</th>
+                    <th class="text-center" style="width: 25%;">Số Đơn</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${nguonList.length === 0 ? `<tr><td colspan="3" class="text-center">Chưa có dữ liệu nguồn hủy</td></tr>` : nguonList.map((item, i) => `
+                    <tr>
+                      <td class="text-center">${i + 1}</td>
+                      <td>${item.nguon}</td>
+                      <td class="text-center" style="font-weight: bold; color: #7a5230;">${item.soDon} đơn</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="pdf-section">
+          <h2>III. SẢN PHẨM TRONG ĐƠN HỦY & DIỄN BIẾN HỦY THEO NGÀY</h2>
+          <div style="display: flex; gap: 12px;">
+            <div style="flex: 1;">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width: 12%;">STT</th>
+                    <th>Tên Sản Phẩm Bánh</th>
+                    <th class="text-center" style="width: 20%;">Số Đơn</th>
+                    <th class="text-center" style="width: 22%;">Tổng SL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${spHuyList.length === 0 ? `<tr><td colspan="4" class="text-center">Chưa có sản phẩm trong đơn hủy</td></tr>` : spHuyList.map((item, i) => `
+                    <tr>
+                      <td class="text-center">#${i + 1}</td>
+                      <td style="font-weight: bold;">${item.tenSP}</td>
+                      <td class="text-center">${item.soDon} đơn</td>
+                      <td class="text-center" style="font-weight: bold; color: #dc3545;">${item.soLuong} bánh</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            <div style="flex: 1;">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width: 15%;">STT</th>
+                    <th>Ngày Phát Sinh Hủy</th>
+                    <th class="text-center" style="width: 30%;">Số Đơn Hủy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${huyTheoNgayList.length === 0 ? `<tr><td colspan="3" class="text-center">Chưa có đơn hủy theo ngày</td></tr>` : huyTheoNgayList.map((item, i) => `
+                    <tr>
+                      <td class="text-center">${i + 1}</td>
+                      <td>${item.ngay}</td>
+                      <td class="text-center" style="font-weight: bold; color: #dc3545;">${item.soDon} đơn</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="pdf-section">
+          <h2>IV. DANH SÁCH CHI TIẾT ĐƠN HỦY PHÁT SINH TRONG KỲ</h2>
+          <table>
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 6%;">STT</th>
+                <th style="width: 18%;">Mã Đơn / Thời Gian</th>
+                <th style="width: 20%;">Khách Hàng / Chi Nhánh</th>
+                <th class="text-right" style="width: 14%;">Giá Trị Đơn</th>
+                <th>Lý Do & Ghi Chú Hủy</th>
+                <th class="text-center" style="width: 14%;">Nguồn Hủy</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${chiTietList.length === 0 ? `
+                <tr>
+                  <td colspan="6" class="text-center" style="padding: 12px; color: #64748b;">Không có đơn hủy nào phát sinh trong kỳ báo cáo</td>
+                </tr>
+              ` : chiTietList.map((row, idx) => `
+                <tr>
+                  <td class="text-center">${idx + 1}</td>
+                  <td>
+                    <div style="font-weight: bold; color: #1e293b;">${row.maDonHang}</div>
+                    <div style="font-size: 9.5px; color: #64748b;">Đặt: ${row.ngayDat}</div>
+                    <div style="font-size: 9.5px; color: #dc3545;">Hủy: ${row.ngayHuy}</div>
+                  </td>
+                  <td>
+                    <div style="font-weight: bold;">${row.tenKH}</div>
+                    <div style="font-size: 9.5px; color: #64748b;">${row.cuaHang}</div>
+                  </td>
+                  <td class="text-right" style="font-weight: bold; color: #7a5230;">${Number(row.tongTien || 0).toLocaleString('vi-VN')} ₫</td>
+                  <td>
+                    <div style="font-weight: bold;">${row.lyDoHuy || 'Không xác định'}</div>
+                    ${row.ghiChuHuy ? `<div style="font-size: 9.5px; color: #64748b;">${row.ghiChuHuy}</div>` : ''}
+                  </td>
+                  <td class="text-center">${row.nguon || 'Khách hàng'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
     }
 
     if (!content) return;
+
+    const windowPrint = window.open('', '', 'width=900,height=650');
+    if (!windowPrint) return;
 
     windowPrint.document.write(`
       <html>
@@ -965,27 +1189,36 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
                         </tr>
                       </thead>
                       <tbody>
-                        {!lossData?.hao_hut_theo_san_pham || lossData.hao_hut_theo_san_pham.length === 0 ? (
-                          <tr>
-                            <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
-                              Không ghi nhận sản phẩm nào bị hủy trong kỳ này
-                            </td>
-                          </tr>
-                        ) : (
-                          lossData.hao_hut_theo_san_pham.map((item, idx) => (
-                            <tr key={idx}>
-                              <td style={{ textAlign: 'center' }}><b>#{idx + 1}</b></td>
-                              <td style={{ fontWeight: 'bold' }}>{item.san_pham?.TENSP || item.MASP}</td>
-                              <td style={{ textAlign: 'center', color: '#dc3545', fontWeight: 'bold' }}>
-                                {item.tong_so_luong_huy} cái
-                              </td>
-                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#dc3545' }}>
-                                {(Number(item.tong_so_luong_huy) * Number(item.san_pham?.GIABAN || 15000)).toLocaleString('vi-VN')} ₫
-                              </td>
-                              <td style={{ textAlign: 'center' }}>{item.san_pham?.DVT || 'Cái'}</td>
-                            </tr>
-                          ))
-                        )}
+                        {(() => {
+                          const lossList = lossData?.hao_hut_theo_san_pham || lossData?.hao_hut_theo_sp || [];
+                          if (lossList.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
+                                  Không ghi nhận sản phẩm nào bị hủy trong kỳ này
+                                </td>
+                              </tr>
+                            );
+                          }
+                          return lossList.map((item, idx) => {
+                            const slHuy = Number(item.tong_so_luong_huy ?? item.tong_huy ?? 0);
+                            const giaTriHuy = Number(item.gia_tri_huy ?? (slHuy * Number(item.san_pham?.GIABAN || item.GIABAN || 15000)));
+                            const dvt = item.san_pham?.DVT || item.DVT || 'Cái';
+                            return (
+                              <tr key={idx}>
+                                <td style={{ textAlign: 'center' }}><b>#{idx + 1}</b></td>
+                                <td style={{ fontWeight: 'bold' }}>{item.san_pham?.TENSP || item.TENSP || item.MASP}</td>
+                                <td style={{ textAlign: 'center', color: '#dc3545', fontWeight: 'bold' }}>
+                                  {slHuy} {dvt}
+                                </td>
+                                <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#dc3545' }}>
+                                  {giaTriHuy.toLocaleString('vi-VN')} ₫
+                                </td>
+                                <td style={{ textAlign: 'center' }}>{dvt}</td>
+                              </tr>
+                            );
+                          });
+                        })()}
                       </tbody>
                     </table>
                   </div>
