@@ -218,15 +218,31 @@ const MyOrdersPage = () => {
     }
   };
 
-  // Hủy đơn hàng với lý do đã chọn (Chỉ cho phép khi đơn hàng CHƯA THANH TOÁN)
+  // Hủy đơn hàng với lý do đã chọn (Chỉ cho phép khi trạng thái là Chờ xử lý VÀ khách chọn COD chưa chuyển khoản)
   const handleCancelOrder = async () => {
     if (!cancelReason) {
       toast.warning("Vui lòng chọn 1 trong các lý do hủy đơn!");
       return;
     }
 
-    if (Number(viewingOrder?.trangThaiThanhToan) === 1) {
-      toast.warning("Đơn hàng đã thanh toán không thể hủy trực tiếp. Quý khách vui lòng nhận hàng hoặc yêu cầu Trả hàng & Hoàn tiền theo chính sách!");
+    const pmStr = String(viewingOrder?.phuongThucTT || viewingOrder?.PHUONGTHUCTHANHTOAN || '').toLowerCase();
+    const isPaidOrTransferred =
+      viewingOrder?.isPaidOrTransferred === true ||
+      Number(viewingOrder?.trangThaiThanhToan) === 1 ||
+      [1, 2].includes(Number(viewingOrder?.phuongThucThanhToan)) ||
+      Boolean(viewingOrder?.minhChungThanhToan) ||
+      pmStr.includes('chuyển khoản') ||
+      pmStr.includes('vietqr') ||
+      pmStr.includes('momo') ||
+      pmStr.includes('vnpay');
+
+    if (isPaidOrTransferred) {
+      toast.warning("Đơn hàng đã chuyển khoản thanh toán không thể hủy (dù đang ở trạng thái Chờ xử lý). Quý khách sẽ được quyền Hoàn hàng khi nhận hàng!");
+      return;
+    }
+
+    if (Number(viewingOrder?.trangThaiDonHang) !== 1 && !['Chờ xử lý', 'Chờ xác nhận'].includes(viewingOrder?.trangThai)) {
+      toast.warning("Chỉ cho phép hủy đơn hàng khi trạng thái đang là Chờ xử lý!");
       return;
     }
 
@@ -273,31 +289,31 @@ const MyOrdersPage = () => {
     setIsReturnModalOpen(true);
   };
 
-  // Khách gửi yêu cầu trả hàng & hoàn tiền
+  // Khách gửi yêu cầu hoàn hàng khi nhận hàng (chụp ảnh trạng thái sản phẩm + kê khai tài khoản chờ hoàn tiền + đợi nhân viên xác nhận)
   const handleSubmitReturn = async () => {
     if (!returnReason) {
-      toast.warning("Vui lòng chọn lý do trả hàng!");
+      toast.warning("Vui lòng chọn lý do hoàn hàng!");
       return;
     }
     if (!returnNote.trim()) {
-      toast.warning("Vui lòng nhập mô tả chi tiết tình trạng bánh hỏng / lý do hoàn!");
+      toast.warning("Vui lòng nhập mô tả chi tiết trạng thái sản phẩm khi nhận hàng!");
       return;
     }
-
-    const isPaid = Number(viewingOrder?.trangThaiThanhToan) === 1 || 
-      viewingOrder?.phuongThucTT?.includes('Chuyển khoản') || 
-      viewingOrder?.phuongThucTT?.includes('MoMo') || 
-      viewingOrder?.phuongThucTT?.includes('VietQR');
-
-    if (isPaid) {
-      if (!returnAccountNo.trim()) {
-        toast.warning("Vui lòng nhập Số tài khoản ngân hàng để nhận tiền hoàn!");
-        return;
-      }
-      if (!returnAccountName.trim()) {
-        toast.warning("Vui lòng nhập Tên chủ tài khoản người nhận tiền hoàn!");
-        return;
-      }
+    if (!returnProofFile) {
+      toast.warning("Vui lòng chụp hoặc tải lên ảnh trạng thái sản phẩm khi nhận hàng!");
+      return;
+    }
+    if (!returnBank) {
+      toast.warning("Vui lòng chọn Ngân hàng nhận tiền hoàn!");
+      return;
+    }
+    if (!returnAccountNo.trim()) {
+      toast.warning("Vui lòng kê khai Số tài khoản ngân hàng chờ hoàn tiền!");
+      return;
+    }
+    if (!returnAccountName.trim()) {
+      toast.warning("Vui lòng kê khai Tên chủ tài khoản nhận tiền hoàn!");
+      return;
     }
 
     setIsSubmittingReturn(true);
@@ -308,18 +324,17 @@ const MyOrdersPage = () => {
       formData.append('nganHangHoanTien', returnBank);
       formData.append('soTaiKhoanHoanTien', returnAccountNo.trim());
       formData.append('tenNguoiNhanHoanTien', returnAccountName.trim().toUpperCase());
-      if (returnProofFile) {
-        formData.append('hinhAnhHoanTra', returnProofFile);
-      }
+      formData.append('hinhAnhHoanTra', returnProofFile);
 
       const m = await import('../services/axiosClient.js');
       const res = await m.default.post(`/my-orders/${viewingOrder.maHD}/request-return`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      toast.success(res.data.message || "Đã gửi yêu cầu Trả hàng & Hoàn tiền thành công!");
+      toast.success(res.data.message || "Đã gửi yêu cầu Hoàn hàng & Kê khai tài khoản chờ hoàn tiền! Vui lòng đợi nhân viên xác nhận.");
       setIsReturnModalOpen(false);
       
+      const savedProofUrl = res.data?.data?.hinhAnhHoanTra || returnProofPreview;
       const updatedOrder = {
         ...viewingOrder,
         trangThai: 'Yêu cầu hoàn trả',
@@ -327,11 +342,12 @@ const MyOrdersPage = () => {
         trangThaiHoanHang: 'CHO_DUYET',
         lyDoHoanTra: returnReason,
         ghiChuHoanTra: returnNote.trim(),
+        hinhAnhHoanTra: savedProofUrl,
         nganHangHoanTien: returnBank,
         soTaiKhoanHoanTien: returnAccountNo.trim(),
         tenNguoiNhanHoanTien: returnAccountName.trim().toUpperCase(),
-        trangThaiThanhToan: isPaid ? 2 : viewingOrder.trangThaiThanhToan,
-        trangThaiHoanTien: isPaid ? 'CHO_HOAN_TIEN' : null,
+        trangThaiThanhToan: 2,
+        trangThaiHoanTien: 'CHO_HOAN_TIEN',
       };
       setViewingOrder(updatedOrder);
       setOrders(orders.map(o => (o.maHD === viewingOrder.maHD || o.id === viewingOrder.id) ? updatedOrder : o));
@@ -366,25 +382,48 @@ const MyOrdersPage = () => {
     }
   };
 
-  // QUY TẮC: Đơn hàng CHỈ được hủy khi đang ở trạng thái ban đầu "đang xử lý" (Chờ xử lý / Chờ xác nhận) VÀ CHƯA THANH TOÁN
-  // Khi nhân viên đã xác nhận đơn (Đang chuẩn bị, Chờ lấy hàng, Đang giao...), KHÔNG CHO PHÉP HỦY ĐƠN!
-  const isCancellable = viewingOrder && 
-    (viewingOrder.trangThaiDonHang === 1 || ['Chờ xử lý', 'Chờ xác nhận'].includes(viewingOrder.trangThai)) &&
-    !['Đang chuẩn bị', 'Chờ lấy hàng', 'Đang giao', 'Đã hoàn thành', 'Đã giao', 'Đã hủy', 'Đã hoàn hàng', 'Yêu cầu hoàn trả'].includes(viewingOrder.trangThai) &&
-    Number(viewingOrder.trangThaiThanhToan) === 0;
+  const pmText = String(viewingOrder?.phuongThucTT || viewingOrder?.PHUONGTHUCTHANHTOAN || '').toLowerCase();
+  const isPaidOrTransferredOrder = Boolean(
+    viewingOrder && (
+      viewingOrder.isPaidOrTransferred === true ||
+      Number(viewingOrder.trangThaiThanhToan) === 1 ||
+      [1, 2].includes(Number(viewingOrder.phuongThucThanhToan)) ||
+      Boolean(viewingOrder.minhChungThanhToan) ||
+      pmText.includes('chuyển khoản') ||
+      pmText.includes('vietqr') ||
+      pmText.includes('momo') ||
+      pmText.includes('vnpay')
+    )
+  );
 
-  // Đơn hàng đang xử lý nhưng ĐÃ THANH TOÁN -> Khóa hủy, hướng dẫn hoàn hàng
-  const isProcessingPaid = viewingOrder && 
-    (viewingOrder.trangThaiDonHang === 1 || ['Chờ xử lý', 'Chờ xác nhận'].includes(viewingOrder.trangThai)) &&
-    !['Đang chuẩn bị', 'Chờ lấy hàng', 'Đang giao', 'Đã hoàn thành', 'Đã giao', 'Đã hủy', 'Đã hoàn hàng', 'Yêu cầu hoàn trả'].includes(viewingOrder.trangThai) &&
-    Number(viewingOrder.trangThaiThanhToan) === 1;
+  const isPendingStatus = Boolean(
+    viewingOrder &&
+    (Number(viewingOrder.trangThaiDonHang) === 1 || ['Chờ xử lý', 'Chờ xác nhận'].includes(viewingOrder.trangThai)) &&
+    !['Đang chuẩn bị', 'Chờ lấy hàng', 'Đang giao', 'Đã hoàn thành', 'Đã giao', 'Đã hủy', 'Đã hoàn hàng', 'Yêu cầu hoàn trả'].includes(viewingOrder.trangThai)
+  );
 
-  // Đơn hàng có thể yêu cầu trả hàng & hoàn tiền (Đã giao đến khách)
-  const isReturnable = viewingOrder && 
-    (viewingOrder.trangThaiDonHang === 4 || viewingOrder.trangThaiDonHang === 5 || ['Đã hoàn thành', 'Đã giao'].includes(viewingOrder.trangThai)) &&
+  // QUY TẮC: Chỉ cho phép hủy khi trạng thái đang là Chờ xử lý VÀ khách hàng chọn thanh toán bằng COD (chưa chuyển khoản)
+  const isCancellable = Boolean(
+    viewingOrder &&
+    isPendingStatus &&
+    !isPaidOrTransferredOrder &&
+    Number(viewingOrder.trangThaiThanhToan) === 0
+  );
+
+  // Với trường hợp khách hàng ĐÃ CHUYỂN KHOẢN cho đơn hàng đó: Không cho hủy dù trạng thái đơn có là Chờ xử lý, nhưng sẽ cho hoàn hàng khi nhận hàng
+  const isProcessingPaid = Boolean(
+    viewingOrder &&
+    isPaidOrTransferredOrder &&
+    (isPendingStatus || [1, 2, 7].includes(Number(viewingOrder.trangThaiDonHang)))
+  );
+
+  // Cho phép hoàn hàng khi nhận hàng (3: Đang giao đến tay khách / 4, 5: Đã giao / Đã hoàn thành)
+  const isReturnable = Boolean(
+    viewingOrder &&
+    ([3, 4, 5].includes(Number(viewingOrder.trangThaiDonHang)) || ['Đang giao', 'Đã hoàn thành', 'Đã giao'].includes(viewingOrder.trangThai)) &&
     !viewingOrder.trangThaiHoanHang &&
-    viewingOrder.trangThaiDonHang !== 6 &&
-    viewingOrder.trangThaiDonHang !== 8;
+    ![0, 6, 8].includes(Number(viewingOrder.trangThaiDonHang))
+  );
 
   return (
     <>
@@ -791,7 +830,7 @@ const MyOrdersPage = () => {
                 </div>
               )}
 
-              {/* 2. Khối Khóa Hủy khi đơn ĐÃ THANH TOÁN */}
+              {/* 2. Khối Khóa Hủy khi đơn ĐÃ CHUYỂN KHOẢN / ĐÃ THANH TOÁN */}
               {isProcessingPaid && (
                 <div style={{
                   backgroundColor: '#fffbeb',
@@ -802,20 +841,20 @@ const MyOrdersPage = () => {
                 }}>
                   <div style={{ fontSize: '14px', fontWeight: '700', color: '#b45309', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <i className="fa-solid fa-shield-halved"></i>
-                    Đơn hàng đã thanh toán
+                    Đơn hàng đã chuyển khoản thanh toán
                   </div>
                   <p style={{ fontSize: '12px', color: '#78350f', lineHeight: '1.5', margin: 0 }}>
-                    Đơn hàng này đã được thanh toán (<b>{Number(viewingOrder.tongTien).toLocaleString('vi-VN')} đ</b>) và đang trong quy trình chế biến / đóng gói. Theo quy định hệ thống, <b>không thể hủy đơn trực tiếp</b>.
+                    Khách hàng đã chuyển khoản cho đơn hàng này (<b>{Number(viewingOrder.tongTien).toLocaleString('vi-VN')} đ</b>). Theo quy định, <b>không cho phép hủy đơn dù trạng thái đang là Chờ xử lý</b> (chỉ cho phép hủy ở trạng thái Chờ xử lý khi chọn COD).
                   </p>
                   <div style={{ marginTop: '10px', fontSize: '11px', color: '#92400e', backgroundColor: '#fef3c7', padding: '8px 10px', borderRadius: '4px', lineHeight: '1.4' }}>
-                    💡 Sau khi nhận bánh, nếu có bất kỳ hỏng hóc hoặc sự cố nào, quý khách có thể gửi <b>Yêu cầu Trả hàng & Hoàn tiền</b> (trong vòng 3 ngày) để được nhân viên chuyển khoản hoàn tiền.
+                    💡 Hệ thống sẽ <b>cho phép Hoàn hàng khi nhận hàng</b>: Lúc này quý khách sẽ chụp ảnh trạng thái sản phẩm, kê khai tài khoản ngân hàng chờ hoàn tiền và đợi nhân viên xác nhận.
                   </div>
                 </div>
               )}
 
               {/* Bảng Danh sách Bánh trong đơn */}
               <div>
-                {/* Trạng thái & Nút Yêu cầu Trả hàng & Hoàn tiền */}
+                {/* Trạng thái & Nút Yêu cầu Hoàn hàng & Hoàn tiền khi nhận hàng */}
                 {isReturnable && (
                   <div style={{
                     backgroundColor: '#f0fdf4',
@@ -831,10 +870,10 @@ const MyOrdersPage = () => {
                   }}>
                     <div>
                       <div style={{ fontWeight: '700', color: '#166534', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <i className="fa-solid fa-box-open"></i> Đơn hàng đã giao thành công
+                        <i className="fa-solid fa-box-open"></i> Hoàn hàng & Hoàn tiền khi nhận hàng
                       </div>
                       <div style={{ fontSize: '12px', color: '#15803d', marginTop: '2px' }}>
-                        Bánh có sự cố hoặc bị hỏng hóc? Bạn có thể yêu cầu đổi trả & hoàn tiền trong vòng 3 ngày.
+                        Khi nhận hàng nếu muốn hoàn hàng, vui lòng chụp ảnh trạng thái sản phẩm, kê khai tài khoản chờ hoàn tiền và đợi nhân viên xác nhận.
                       </div>
                     </div>
                     <button
@@ -855,12 +894,12 @@ const MyOrdersPage = () => {
                         gap: '6px'
                       }}
                     >
-                      <i className="fa-solid fa-rotate-left"></i> Yêu cầu Trả hàng & Hoàn tiền
+                      <i className="fa-solid fa-rotate-left"></i> Hoàn hàng & Kê khai hoàn tiền
                     </button>
                   </div>
                 )}
 
-                {viewingOrder.trangThaiDonHang === 8 && (
+                {Number(viewingOrder.trangThaiDonHang) === 8 && (
                   <div style={{
                     backgroundColor: '#faf5ff',
                     border: '1.5px solid #d8b4fe',
@@ -868,14 +907,26 @@ const MyOrdersPage = () => {
                     padding: '12px 16px',
                     marginBottom: '16px'
                   }}>
-                    <div style={{ fontWeight: '700', color: '#7e22ce', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                      <i className="fa-solid fa-clock-rotate-left"></i> Đang chờ cửa hàng xét duyệt Yêu cầu Trả hàng & Hoàn tiền
+                    <div style={{ fontWeight: '700', color: '#7e22ce', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <i className="fa-solid fa-clock-rotate-left"></i> Đang đợi nhân viên xác nhận Hoàn hàng & Chờ hoàn tiền
                     </div>
-                    <div style={{ fontSize: '12px', color: '#6b21a8', lineHeight: '1.5' }}>
-                      <div>• <b>Lý do:</b> {viewingOrder.lyDoHoanTra}</div>
-                      {viewingOrder.ghiChuHoanTra && <div>• <b>Mô tả:</b> {viewingOrder.ghiChuHoanTra}</div>}
+                    <div style={{ fontSize: '12px', color: '#6b21a8', lineHeight: '1.6' }}>
+                      <div>• <b>Lý do hoàn hàng:</b> {viewingOrder.lyDoHoanTra}</div>
+                      {viewingOrder.ghiChuHoanTra && <div>• <b>Mô tả trạng thái sản phẩm:</b> {viewingOrder.ghiChuHoanTra}</div>}
                       {viewingOrder.nganHangHoanTien && (
-                        <div>• <b>Tài khoản nhận tiền:</b> {viewingOrder.nganHangHoanTien} - {viewingOrder.soTaiKhoanHoanTien} ({viewingOrder.tenNguoiNhanHoanTien})</div>
+                        <div>• <b>Tài khoản chờ hoàn tiền:</b> {viewingOrder.nganHangHoanTien} — STK: <b>{viewingOrder.soTaiKhoanHoanTien}</b> ({viewingOrder.tenNguoiNhanHoanTien})</div>
+                      )}
+                      <div>• <b>Số tiền chờ hoàn:</b> <b>{Number(viewingOrder.soTienHoan || viewingOrder.tongTien).toLocaleString('vi-VN')} đ</b></div>
+                      {viewingOrder.hinhAnhHoanTra && (
+                        <div style={{ marginTop: '8px' }}>
+                          <div style={{ fontWeight: '700', marginBottom: '4px' }}>📷 Ảnh trạng thái sản phẩm đã gửi:</div>
+                          <img
+                            src={formatImageUrl(viewingOrder.hinhAnhHoanTra)}
+                            alt="Trạng thái sản phẩm hoàn trả"
+                            onClick={() => setPreviewReceiptModalUrl(formatImageUrl(viewingOrder.hinhAnhHoanTra))}
+                            style={{ maxWidth: '160px', maxHeight: '120px', objectFit: 'cover', borderRadius: '6px', border: '1.5px solid #a855f7', cursor: 'pointer', backgroundColor: '#fff' }}
+                          />
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1236,14 +1287,15 @@ const MyOrdersPage = () => {
               />
             </div>
 
-            {/* Upload ảnh minh chứng bánh hỏng */}
+            {/* Upload ảnh chụp trạng thái sản phẩm (BẮT BUỘC) */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#333', marginBottom: '6px' }}>
-                📷 Ảnh chụp bánh hỏng thực tế (Minh chứng đối soát):
+                📷 Chụp ảnh trạng thái sản phẩm khi nhận hàng (*):
               </label>
               <input
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={e => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -1257,7 +1309,7 @@ const MyOrdersPage = () => {
                 <div style={{ marginTop: '8px', position: 'relative', display: 'inline-block' }}>
                   <img
                     src={returnProofPreview}
-                    alt="Ảnh minh chứng bánh hỏng"
+                    alt="Ảnh trạng thái sản phẩm"
                     style={{ maxWidth: '160px', maxHeight: '120px', borderRadius: '6px', border: '1px solid #ddd', objectFit: 'cover' }}
                   />
                   <button
@@ -1274,85 +1326,77 @@ const MyOrdersPage = () => {
               )}
             </div>
 
-            {/* Khối kê khai thông tin tài khoản ngân hàng để nhân viên chuyển khoản hoàn tiền (Dành cho đơn thanh toán online hoặc đã thanh toán) */}
-            {(Number(viewingOrder.trangThaiThanhToan) === 1 || 
-              Number(viewingOrder.phuongThucThanhToan) === 1 || 
-              Number(viewingOrder.phuongThucThanhToan) === 2 || 
-              viewingOrder.phuongThucTT?.includes('Chuyển khoản') || 
-              viewingOrder.phuongThucTT?.includes('VNPAY') || 
-              viewingOrder.phuongThucTT?.includes('MoMo') || 
-              viewingOrder.phuongThucTT?.includes('VietQR')) && (
-              <div style={{ padding: '14px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '20px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <i className="fa-solid fa-building-columns" style={{ color: '#0284c7' }}></i>
-                  Tài khoản ngân hàng nhận tiền hoàn:
-                </div>
-
-                {/* Chọn ngân hàng */}
-                <div style={{ marginBottom: '10px' }}>
-                  <label style={{ fontSize: '12px', color: '#475569', display: 'block', marginBottom: '3px' }}>Ngân hàng (*):</label>
-                  <select
-                    value={returnBank}
-                    onChange={e => setReturnBank(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '7px 10px',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '50px',
-                      fontSize: '12px',
-                      backgroundColor: '#fff',
-                      outline: 'none'
-                    }}
-                  >
-                    {REFUND_BANKS.map(b => (
-                      <option key={b.id} value={b.name}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Số tài khoản */}
-                <div style={{ marginBottom: '10px' }}>
-                  <label style={{ fontSize: '12px', color: '#475569', display: 'block', marginBottom: '3px' }}>Số tài khoản (*):</label>
-                  <input
-                    type="text"
-                    placeholder="Nhập số tài khoản ngân hàng..."
-                    value={returnAccountNo}
-                    onChange={e => setReturnAccountNo(e.target.value.replace(/\s+/g, ''))}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      fontWeight: 'bold',
-                      backgroundColor: '#fff',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                {/* Tên chủ tài khoản */}
-                <div>
-                  <label style={{ fontSize: '12px', color: '#475569', display: 'block', marginBottom: '3px' }}>Tên chủ tài khoản (*):</label>
-                  <input
-                    type="text"
-                    placeholder="Ví dụ: NGUYEN VAN A"
-                    value={returnAccountName}
-                    onChange={e => setReturnAccountName(e.target.value.toUpperCase())}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      fontWeight: 'bold',
-                      backgroundColor: '#fff',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
+            {/* Khối kê khai tài khoản ngân hàng chờ hoàn tiền (BẮT BUỘC) */}
+            <div style={{ padding: '14px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <i className="fa-solid fa-building-columns" style={{ color: '#0284c7' }}></i>
+                Kê khai tài khoản ngân hàng chờ hoàn tiền (*):
               </div>
-            )}
+
+              {/* Chọn ngân hàng */}
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '12px', color: '#475569', display: 'block', marginBottom: '3px' }}>Ngân hàng (*):</label>
+                <select
+                  value={returnBank}
+                  onChange={e => setReturnBank(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '7px 10px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    backgroundColor: '#fff',
+                    outline: 'none'
+                  }}
+                >
+                  {REFUND_BANKS.map(b => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Số tài khoản */}
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '12px', color: '#475569', display: 'block', marginBottom: '3px' }}>Số tài khoản (*):</label>
+                <input
+                  type="text"
+                  placeholder="Nhập số tài khoản ngân hàng..."
+                  value={returnAccountNo}
+                  onChange={e => setReturnAccountNo(e.target.value.replace(/\s+/g, ''))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    backgroundColor: '#fff',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Tên chủ tài khoản */}
+              <div>
+                <label style={{ fontSize: '12px', color: '#475569', display: 'block', marginBottom: '3px' }}>Tên chủ tài khoản (*):</label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: NGUYEN VAN A"
+                  value={returnAccountName}
+                  onChange={e => setReturnAccountName(e.target.value.toUpperCase())}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    backgroundColor: '#fff',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
 
             {/* Nút hành động */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
