@@ -430,6 +430,8 @@ const AdminPreOrderPage = () => {
     // Danh sách sản phẩm từ hệ thống dùng để tra cứu / chọn nhanh
     const [productList, setProductList]       = useState([]);
     const [activeSuggestIdx, setActiveSuggestIdx] = useState(null);
+    const [quickCakeSearch, setQuickCakeSearch]   = useState('');
+    const [showQuickCakePicker, setShowQuickCakePicker] = useState(true);
 
     useEffect(() => {
         if (showCreate && productList.length === 0) {
@@ -440,14 +442,59 @@ const AdminPreOrderPage = () => {
         }
     }, [showCreate, productList.length]);
 
+    const getProductNumericId = (p) => {
+        if (p?.id && !isNaN(Number(p.id))) return Number(p.id);
+        const raw = String(p?.MASP || p?.maSanPham || p?.id || '');
+        const m = raw.match(/\d+/);
+        return m ? Number(m[0]) : raw;
+    };
+
     // Lọc sản phẩm theo từ khóa gợi ý thời gian thực
-    const filterProducts = (query) => {
-        if (!query || !query.trim()) return productList.slice(0, 8);
+    const filterProducts = (query, maxItems = 40) => {
+        if (!query || !query.trim()) return productList.slice(0, maxItems);
         const q = query.toLowerCase().trim();
-        return productList.filter(p => 
-            (p.TENSP && p.TENSP.toLowerCase().includes(q)) ||
-            (p.MASP && p.MASP.toLowerCase().includes(q))
-        ).slice(0, 10);
+        return productList.filter(p => {
+            const name = String(p.TENSP || p.tenSanPham || '').toLowerCase();
+            const code = String(p.MASP || p.maSanPham || p.id || '').toLowerCase();
+            const cat = String(p.TENLOAI || p.tenDanhMuc || '').toLowerCase();
+            return name.includes(q) || code.includes(q) || cat.includes(q);
+        }).slice(0, maxItems);
+    };
+
+    // Chọn nhanh bánh từ danh sách gợi ý
+    const handlePickSuggestedCake = (p, targetIdx = null) => {
+        const tenSp = p.TENSP || p.tenSanPham || '';
+        const maSp = getProductNumericId(p);
+        const donGia = Number(p.GIABAN || p.giaBan || 0);
+
+        setForm(f => {
+            const ct = [...f.chi_tiet];
+            if (targetIdx !== null && ct[targetIdx]) {
+                ct[targetIdx] = { ...ct[targetIdx], ten_sp: tenSp, masp: maSp, don_gia: donGia };
+                return { ...f, chi_tiet: ct };
+            }
+
+            // Nếu đang có dòng trống thì điền vào dòng trống đó
+            const emptyIdx = ct.findIndex(r => !String(r.ten_sp || '').trim());
+            if (emptyIdx !== -1) {
+                ct[emptyIdx] = { ...ct[emptyIdx], ten_sp: tenSp, masp: maSp, don_gia: donGia };
+                return { ...f, chi_tiet: ct };
+            }
+
+            // Nếu bánh đã có trong danh sách thì tăng số lượng +1
+            const existIdx = ct.findIndex(r => String(r.masp) === String(maSp) || r.ten_sp === tenSp);
+            if (existIdx !== -1) {
+                ct[existIdx] = { ...ct[existIdx], so_luong: (parseInt(ct[existIdx].so_luong || 1) + 1) };
+                return { ...f, chi_tiet: ct };
+            }
+
+            // Nếu chưa có thì thêm dòng mới
+            return {
+                ...f,
+                chi_tiet: [...ct, { ten_sp: tenSp, masp: maSp, so_luong: 1, don_gia: donGia, ghi_chu_sp: '' }]
+            };
+        });
+        setActiveSuggestIdx(null);
     };
 
     // Modal chi tiết / in phiếu
@@ -560,8 +607,12 @@ const AdminPreOrderPage = () => {
         });
     };
 
-    const addRow = () =>
+    const addRow = () => {
+        const nextIdx = form.chi_tiet.length;
         setForm(f => ({ ...f, chi_tiet: [...f.chi_tiet, { ten_sp: '', masp: '', so_luong: 1, don_gia: '', ghi_chu_sp: '' }] }));
+        setActiveSuggestIdx(nextIdx);
+        setShowQuickCakePicker(true);
+    };
 
     const removeRow = (idx) =>
         setForm(f => ({ ...f, chi_tiet: f.chi_tiet.filter((_, i) => i !== idx) }));
@@ -912,7 +963,7 @@ const AdminPreOrderPage = () => {
             {/* ══════ MODAL TẠO / SỬA ĐƠN ══════ */}
             {showCreate && (
                 <div style={styles.overlay}>
-                    <div style={{ ...styles.modalContainer, maxWidth: '840px' }}>
+                    <div style={{ ...styles.modalContainer, maxWidth: '1000px' }}>
                         <div style={styles.modalHeader}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <div style={styles.iconCircle}>{editingMaDHT ? '✏️' : '🍰'}</div>
@@ -966,82 +1017,293 @@ const AdminPreOrderPage = () => {
                                 )}
 
                                 {/* Chi tiết sản phẩm đặt bánh */}
-                                <SectionTitle>🎂 Danh sách sản phẩm đặt bánh</SectionTitle>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                                    <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: 0, borderLeft: '4px solid #0284c7', paddingLeft: '10px' }}>
+                                        🎂 Danh sách sản phẩm đặt bánh
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowQuickCakePicker(v => !v)}
+                                        style={{
+                                            backgroundColor: showQuickCakePicker ? '#e0f2fe' : '#f1f5f9',
+                                            color: showQuickCakePicker ? '#0369a1' : '#475569',
+                                            border: '1px solid #bae6fd',
+                                            padding: '6px 12px',
+                                            borderRadius: '8px',
+                                            fontSize: '13px',
+                                            fontWeight: 700,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {showQuickCakePicker ? '🔼 Thu gọn bảng gợi ý bánh' : '🍰 Mở bảng tìm & chọn bánh gợi ý'}
+                                    </button>
+                                </div>
                                 {formErrors.chi_tiet && <ErrMsg msg={formErrors.chi_tiet} />}
 
-                                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', marginBottom: '12px' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                                {/* Bảng gợi ý & tìm kiếm nhanh bánh */}
+                                {showQuickCakePicker && (
+                                    <div style={{
+                                        backgroundColor: '#fffbeb',
+                                        border: '1px solid #fde68a',
+                                        borderRadius: '10px',
+                                        padding: '12px 14px',
+                                        marginBottom: '14px'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#92400e' }}>
+                                                🍰 Tìm kiếm & Chọn nhanh bánh có sẵn (Nhấp vào bánh để thêm vào đơn):
+                                            </div>
+                                            <div style={{ flex: '1 1 280px', maxWidth: '400px' }}>
+                                                <input
+                                                    type="text"
+                                                    className="admin-input"
+                                                    style={{ ...styles.inp, padding: '7px 12px', fontSize: '14px', backgroundColor: '#ffffff', border: '1px solid #f59e0b' }}
+                                                    placeholder="🔍 Gõ tên bánh hoặc mã SP để lọc nhanh..."
+                                                    value={quickCakeSearch}
+                                                    onChange={e => setQuickCakeSearch(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(235px, 1fr))',
+                                            gap: '8px',
+                                            maxHeight: '220px',
+                                            overflowY: 'auto',
+                                            paddingRight: '4px'
+                                        }}>
+                                            {filterProducts(quickCakeSearch, 50).map((p, pi) => {
+                                                const pName = p.TENSP || p.tenSanPham || 'Bánh ngọt';
+                                                const pPrice = Number(p.GIABAN || p.giaBan || 0);
+                                                const pCode = p.MASP || `SP${p.id}`;
+                                                const pImg = p.HINHANH || p.hinhAnh || p.anhDaiDien || '/assets/IMG/Logo.jpg';
+                                                return (
+                                                    <div
+                                                        key={pi}
+                                                        onClick={() => handlePickSuggestedCake(p)}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '10px',
+                                                            backgroundColor: '#ffffff',
+                                                            border: '1px solid #e2e8f0',
+                                                            borderRadius: '8px',
+                                                            padding: '8px 10px',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s ease',
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                                                        }}
+                                                        title="Nhấp để chọn bánh này"
+                                                    >
+                                                        <img
+                                                            src={pImg}
+                                                            alt={pName}
+                                                            onError={e => { e.target.onerror = null; e.target.src = '/assets/IMG/Logo.jpg'; }}
+                                                            style={{ width: '44px', height: '44px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0, border: '1px solid #f1f5f9' }}
+                                                        />
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                {pName}
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' }}>
+                                                                <span style={{ fontSize: '11.5px', color: '#64748b', backgroundColor: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                                                                    {pCode}
+                                                                </span>
+                                                                <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0284c7' }}>
+                                                                    {fmt(pPrice)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'visible', marginBottom: '12px', backgroundColor: '#ffffff' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px' }}>
                                         <thead>
                                             <tr style={{ background: '#f1f5f9' }}>
-                                                <th style={{ ...styles.th, width: '40%' }}>Tên bánh / Sản phẩm *</th>
-                                                <th style={{ ...styles.th, width: '12%', textAlign: 'center' }}>Số lượng</th>
-                                                <th style={{ ...styles.th, width: '22%', textAlign: 'right' }}>Đơn giá (đ) *</th>
-                                                <th style={{ ...styles.th, width: '22%', textAlign: 'right' }}>Thành tiền</th>
-                                                <th style={{ ...styles.th, width: '4%' }}></th>
+                                                <th style={{ ...styles.th, width: '44%', fontSize: '14px', padding: '12px' }}>Tên bánh / Sản phẩm *</th>
+                                                <th style={{ ...styles.th, width: '130px', minWidth: '120px', textAlign: 'center', fontSize: '14px', padding: '12px 8px' }}>Số lượng</th>
+                                                <th style={{ ...styles.th, width: '195px', minWidth: '180px', textAlign: 'right', fontSize: '14px', padding: '12px' }}>Đơn giá (đ) *</th>
+                                                <th style={{ ...styles.th, width: '155px', minWidth: '140px', textAlign: 'right', fontSize: '14px', padding: '12px' }}>Thành tiền</th>
+                                                <th style={{ ...styles.th, width: '44px', textAlign: 'center' }}>Xóa</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {form.chi_tiet.map((row, idx) => (
-                                                <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                    <td style={{ padding: '8px', position: 'relative' }}>
-                                                        <input className="admin-input" style={{ ...styles.inp, fontSize: '14px' }}
-                                                            placeholder="Nhập tên bánh..."
-                                                            value={row.ten_sp}
-                                                            onFocus={() => setActiveSuggestIdx(idx)}
-                                                            onChange={e => {
-                                                                setRow(idx, 'ten_sp', e.target.value);
-                                                                setRow(idx, 'masp', '');
-                                                                setActiveSuggestIdx(idx);
-                                                            }} />
-                                                        {formErrors[`sp_ten_${idx}`] && <ErrMsg msg={formErrors[`sp_ten_${idx}`]} />}
-
-                                                        {activeSuggestIdx === idx && (
-                                                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, backgroundColor: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', maxHeight: '180px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-                                                                {filterProducts(row.ten_sp).map((p, pi) => (
-                                                                    <div key={pi} style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}
-                                                                        onMouseDown={() => {
-                                                                            setRow(idx, 'ten_sp', p.TENSP || p.tenSanPham);
-                                                                            setRow(idx, 'masp', p.MASP || p.id);
-                                                                            setRow(idx, 'don_gia', p.GIABAN || p.giaBan || 0);
-                                                                            setActiveSuggestIdx(null);
-                                                                        }}>
-                                                                        <strong>{p.TENSP || p.tenSanPham}</strong>
-                                                                        <span style={{ float: 'right', color: '#0284c7', fontWeight: 600 }}>{fmt(p.GIABAN || p.giaBan)}</span>
-                                                                    </div>
-                                                                ))}
+                                            {form.chi_tiet.map((row, idx) => {
+                                                const suggestions = filterProducts(row.ten_sp, 40);
+                                                return (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', verticalAlign: 'top' }}>
+                                                        <td style={{ padding: '12px', position: 'relative' }}>
+                                                            <div style={{ position: 'relative' }}>
+                                                                <input className="admin-input"
+                                                                    style={{
+                                                                        ...styles.inp,
+                                                                        fontSize: '15px',
+                                                                        fontWeight: 600,
+                                                                        padding: '10px 12px',
+                                                                        border: activeSuggestIdx === idx ? '2px solid #0284c7' : '1px solid #cbd5e1'
+                                                                    }}
+                                                                    placeholder="🔍 Nhập tên bánh hoặc nhấp để chọn bánh gợi ý..."
+                                                                    value={row.ten_sp}
+                                                                    onFocus={() => setActiveSuggestIdx(idx)}
+                                                                    onBlur={() => setTimeout(() => setActiveSuggestIdx(cur => (cur === idx ? null : cur)), 200)}
+                                                                    onChange={e => {
+                                                                        setRow(idx, 'ten_sp', e.target.value);
+                                                                        setRow(idx, 'masp', '');
+                                                                        setActiveSuggestIdx(idx);
+                                                                    }} />
                                                             </div>
-                                                        )}
-                                                    </td>
-                                                    <td style={{ padding: '8px', textAlign: 'center' }}>
-                                                        <input type="number" min="1" className="admin-input"
-                                                            style={{ ...styles.inp, textAlign: 'center', padding: '4px 6px' }}
-                                                            value={row.so_luong}
-                                                            onChange={e => setRow(idx, 'so_luong', e.target.value)} />
-                                                    </td>
-                                                    <td style={{ padding: '8px', textAlign: 'right' }}>
-                                                        <input type="number" min="0" className="admin-input"
-                                                            style={{ ...styles.inp, textAlign: 'right', padding: '4px 6px' }}
-                                                            value={row.don_gia}
-                                                            onChange={e => setRow(idx, 'don_gia', e.target.value)} />
-                                                        {formErrors[`sp_gia_${idx}`] && <ErrMsg msg={formErrors[`sp_gia_${idx}`]} />}
-                                                    </td>
-                                                    <td style={{ padding: '8px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
-                                                        {fmt((parseInt(row.so_luong || 0) * parseInt(row.don_gia || 0)))}
-                                                    </td>
-                                                    <td style={{ padding: '8px', textAlign: 'center' }}>
-                                                        {form.chi_tiet.length > 1 && (
-                                                            <button type="button" onClick={() => removeRow(idx)}
-                                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px' }}>✕</button>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                            {row.masp && (
+                                                                <div style={{ fontSize: '12.5px', color: '#0369a1', fontWeight: 600, marginTop: '4px' }}>
+                                                                    🏷️ Mã SP: #{row.masp}
+                                                                </div>
+                                                            )}
+                                                            {formErrors[`sp_ten_${idx}`] && <ErrMsg msg={formErrors[`sp_ten_${idx}`]} />}
+
+                                                            {activeSuggestIdx === idx && suggestions.length > 0 && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    top: '100%',
+                                                                    left: '12px',
+                                                                    minWidth: '420px',
+                                                                    width: 'calc(100% - 24px)',
+                                                                    zIndex: 350,
+                                                                    backgroundColor: '#ffffff',
+                                                                    border: '2px solid #0284c7',
+                                                                    borderRadius: '10px',
+                                                                    maxHeight: '300px',
+                                                                    overflowY: 'auto',
+                                                                    boxShadow: '0 12px 28px rgba(15, 23, 42, 0.22)'
+                                                                }}>
+                                                                    <div style={{
+                                                                        position: 'sticky',
+                                                                        top: 0,
+                                                                        backgroundColor: '#f0f9ff',
+                                                                        padding: '7px 12px',
+                                                                        fontSize: '12.5px',
+                                                                        fontWeight: 700,
+                                                                        color: '#0369a1',
+                                                                        borderBottom: '1px solid #bae6fd',
+                                                                        display: 'flex',
+                                                                        justifyContent: 'space-between',
+                                                                        alignItems: 'center'
+                                                                    }}>
+                                                                        <span>🍰 Gợi ý bánh có sẵn ({suggestions.length} sản phẩm)</span>
+                                                                        <span style={{ cursor: 'pointer', color: '#64748b' }} onMouseDown={() => setActiveSuggestIdx(null)}>✕ Đóng</span>
+                                                                    </div>
+                                                                    {suggestions.map((p, pi) => {
+                                                                        const pName = p.TENSP || p.tenSanPham || '';
+                                                                        const pPrice = Number(p.GIABAN || p.giaBan || 0);
+                                                                        const pCode = p.MASP || `SP${p.id}`;
+                                                                        const pImg = p.HINHANH || p.hinhAnh || p.anhDaiDien || '/assets/IMG/Logo.jpg';
+                                                                        return (
+                                                                            <div key={pi}
+                                                                                style={{
+                                                                                    padding: '10px 12px',
+                                                                                    cursor: 'pointer',
+                                                                                    borderBottom: '1px solid #f1f5f9',
+                                                                                    display: 'flex',
+                                                                                    alignItems: 'center',
+                                                                                    gap: '10px'
+                                                                                }}
+                                                                                onMouseDown={() => handlePickSuggestedCake(p, idx)}
+                                                                            >
+                                                                                <img
+                                                                                    src={pImg}
+                                                                                    alt={pName}
+                                                                                    onError={e => { e.target.onerror = null; e.target.src = '/assets/IMG/Logo.jpg'; }}
+                                                                                    style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0, border: '1px solid #e2e8f0' }}
+                                                                                />
+                                                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                                                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0f172a' }}>{pName}</div>
+                                                                                    <div style={{ fontSize: '12px', color: '#64748b' }}>Mã: {pCode}</div>
+                                                                                </div>
+                                                                                <span style={{
+                                                                                    color: '#0284c7',
+                                                                                    fontWeight: 800,
+                                                                                    fontSize: '14.5px',
+                                                                                    backgroundColor: '#f0f9ff',
+                                                                                    padding: '4px 10px',
+                                                                                    borderRadius: '6px',
+                                                                                    whiteSpace: 'nowrap'
+                                                                                }}>
+                                                                                    {fmt(pPrice)}
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ padding: '12px 8px', textAlign: 'center', minWidth: '120px' }}>
+                                                            <input type="number" min="1" className="admin-input"
+                                                                style={{
+                                                                    ...styles.inp,
+                                                                    textAlign: 'center',
+                                                                    padding: '10px 8px',
+                                                                    fontSize: '16px',
+                                                                    fontWeight: 700,
+                                                                    color: '#0284c7',
+                                                                    minWidth: '95px'
+                                                                }}
+                                                                value={row.so_luong}
+                                                                onChange={e => setRow(idx, 'so_luong', e.target.value)} />
+                                                        </td>
+                                                        <td style={{ padding: '12px', textAlign: 'right', minWidth: '180px' }}>
+                                                            <input type="number" min="0" step="1000" className="admin-input"
+                                                                style={{
+                                                                    ...styles.inp,
+                                                                    textAlign: 'right',
+                                                                    padding: '10px 12px',
+                                                                    fontSize: '16px',
+                                                                    fontWeight: 700,
+                                                                    color: '#b45309',
+                                                                    minWidth: '155px'
+                                                                }}
+                                                                placeholder="0"
+                                                                value={row.don_gia}
+                                                                onChange={e => setRow(idx, 'don_gia', e.target.value)} />
+                                                            {Number(row.don_gia) > 0 && (
+                                                                <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                                                    {Number(row.don_gia).toLocaleString('vi-VN')} ₫ / bánh
+                                                                </div>
+                                                            )}
+                                                            {formErrors[`sp_gia_${idx}`] && <ErrMsg msg={formErrors[`sp_gia_${idx}`]} />}
+                                                        </td>
+                                                        <td style={{ padding: '18px 12px', textAlign: 'right', fontWeight: 800, fontSize: '16px', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                                                            {fmt((parseInt(row.so_luong || 0) * parseInt(row.don_gia || 0)))}
+                                                        </td>
+                                                        <td style={{ padding: '16px 8px', textAlign: 'center' }}>
+                                                            {form.chi_tiet.length > 1 && (
+                                                                <button type="button" onClick={() => removeRow(idx)}
+                                                                    style={{
+                                                                        background: '#fef2f2',
+                                                                        border: '1px solid #fecaca',
+                                                                        color: '#dc2626',
+                                                                        borderRadius: '6px',
+                                                                        width: '32px',
+                                                                        height: '32px',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '15px',
+                                                                        fontWeight: 700
+                                                                    }}
+                                                                    title="Xóa dòng này">✕</button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
                                 <button type="button" className="admin-btn admin-btn-secondary"
-                                    style={{ fontSize: '13px', padding: '4px 12px', marginBottom: '14px' }}
-                                    onClick={addRow}>+ Thêm bánh mới</button>
+                                    style={{ fontSize: '14px', fontWeight: 700, padding: '8px 16px', marginBottom: '14px', borderRadius: '8px' }}
+                                    onClick={addRow}>+ Thêm dòng bánh mới</button>
 
                                 {/* Tính tiền & Tiền cọc */}
                                 <SectionTitle>💳 Tính tiền & Đặt cọc</SectionTitle>
