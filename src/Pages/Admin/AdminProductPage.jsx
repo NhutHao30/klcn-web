@@ -294,7 +294,7 @@ const [products, setProducts] = useState([]);
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem', alignItems: 'flex-start' }}>
         <div>
           <h1 className="admin-title" style={{ marginBottom: '4px', fontSize: '26px', fontWeight: 800, color: '#0f172a' }}>
-            🍰 Quản lý sản phẩm
+            Danh sách sản phẩm
           </h1>
           <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
             Quản lý danh mục bánh, giá bán, tag khuyến mãi & theo dõi tồn kho thực tế

@@ -273,7 +273,7 @@ const Header = () => {
     return (
         <header>
             {/* Nếu đang ở HomePage thì hiển thị slideshow */}
-            {location.pathname === "/" ? (
+            {location.pathname === "/" || location.pathname === "/trang-chu" ? (
                 <>
                     <div className="show">
                         <HeaderSlideShow />

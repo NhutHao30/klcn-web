@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useToast } from './Toast/Toast';
 
 const Modal = () => {
@@ -7,7 +7,17 @@ const Modal = () => {
     const [isProductsSubmenuOpen, setIsProductsSubmenuOpen] = useState(false);
     const [authUser, setAuthUser] = useState(null);
     const navigate = useNavigate();
+    const location = useLocation();
     const toast = useToast();
+
+    const path = location.pathname.toLowerCase();
+    const isHome = path === "/" || path === "/trang-chu";
+    const isAbout = path.startsWith("/gioi-thieu");
+    const isProduct = path.startsWith("/san-pham");
+    const isNews = path.startsWith("/tin-tuc");
+    const isContact = path.startsWith("/lien-he");
+    const isStore = path.startsWith("/he-thong-cua-hang");
+    const isFaq = path.startsWith("/cau-hoi-thuong-gap");
 
     const closeAllModals = () => {
         const modal = document.querySelector('.modal-js');
@@ -335,18 +345,18 @@ const Modal = () => {
                 <div className="mobile-drawer-content">
                     <ul className="mobile-nav-list">
                         <li className="mobile-nav-item">
-                            <Link to="/" className="mobile-nav-link" onClick={closeAllModals}>
+                            <Link to="/" className={`mobile-nav-link ${isHome ? 'active' : ''}`} onClick={closeAllModals}>
                                 Trang chủ
                             </Link>
                         </li>
                         <li className="mobile-nav-item">
-                            <Link to="/gioi-thieu" className="mobile-nav-link" onClick={closeAllModals}>
+                            <Link to="/gioi-thieu" className={`mobile-nav-link ${isAbout ? 'active' : ''}`} onClick={closeAllModals}>
                                 Giới thiệu
                             </Link>
                         </li>
                         <li className="mobile-nav-item">
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Link to="/san-pham" className="mobile-nav-link" onClick={closeAllModals} style={{ flex: 1, borderBottom: 'none' }}>
+                                <Link to="/san-pham" className={`mobile-nav-link ${isProduct ? 'active' : ''}`} onClick={closeAllModals} style={{ flex: 1, borderBottom: 'none' }}>
                                     Sản phẩm
                                 </Link>
                                 <button
@@ -366,45 +376,60 @@ const Modal = () => {
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link to="/san-pham?search=b%C3%A1nh+kem" className="mobile-subnav-link" onClick={closeAllModals}>
-                                            • Bánh kem sinh nhật
+                                        <Link to="/san-pham?category=1" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Bánh kem (9 SP)
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link to="/san-pham?search=mousse" className="mobile-subnav-link" onClick={closeAllModals}>
-                                            • Bánh Mousse & Cheesecake
+                                        <Link to="/san-pham?category=2" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Bánh ngọt (13 SP)
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link to="/san-pham?search=b%C3%A1nh+m%C3%AC" className="mobile-subnav-link" onClick={closeAllModals}>
-                                            • Bánh mì tươi
+                                        <Link to="/san-pham?category=3" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Bánh mì (9 SP)
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link to="/san-pham?search=trung+thu" className="mobile-subnav-link" onClick={closeAllModals}>
-                                            • Bánh Trung thu
+                                        <Link to="/san-pham?category=4" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Bánh khô (8 SP)
                                         </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/san-pham?category=5" className="mobile-subnav-link" onClick={closeAllModals}>
+                                            • Bánh tráng miệng (5 SP)
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <span className="mobile-subnav-link" style={{ opacity: 0.45, cursor: "not-allowed", color: "#94a3b8" }}>
+                                            • Bánh theo mùa (Tạm hết)
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span className="mobile-subnav-link" style={{ opacity: 0.45, cursor: "not-allowed", color: "#94a3b8" }}>
+                                            • Bánh đông lạnh (Chưa có)
+                                        </span>
                                     </li>
                                 </ul>
                             )}
                         </li>
                         <li className="mobile-nav-item">
-                            <Link to="/tin-tuc" className="mobile-nav-link" onClick={closeAllModals}>
+                            <Link to="/tin-tuc" className={`mobile-nav-link ${isNews ? 'active' : ''}`} onClick={closeAllModals}>
                                 Tin tức
                             </Link>
                         </li>
                         <li className="mobile-nav-item">
-                            <Link to="/lien-he" className="mobile-nav-link" onClick={closeAllModals}>
+                            <Link to="/lien-he" className={`mobile-nav-link ${isContact ? 'active' : ''}`} onClick={closeAllModals}>
                                 Liên hệ
                             </Link>
                         </li>
                         <li className="mobile-nav-item">
-                            <Link to="/he-thong-cua-hang" className="mobile-nav-link" onClick={closeAllModals}>
+                            <Link to="/he-thong-cua-hang" className={`mobile-nav-link ${isStore ? 'active' : ''}`} onClick={closeAllModals}>
                                 Hệ thống cửa hàng
                             </Link>
                         </li>
                         <li className="mobile-nav-item">
-                            <Link to="/cau-hoi-thuong-gap" className="mobile-nav-link" onClick={closeAllModals}>
+                            <Link to="/cau-hoi-thuong-gap" className={`mobile-nav-link ${isFaq ? 'active' : ''}`} onClick={closeAllModals}>
                                 Câu hỏi thường gặp
                             </Link>
                         </li>

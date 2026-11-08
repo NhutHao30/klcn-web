@@ -789,7 +789,7 @@ const AdminPreOrderPage = () => {
             <div className="admin-flex-between" style={{ marginBottom: '1.5rem', alignItems: 'flex-start' }}>
                 <div>
                     <h1 className="admin-title" style={{ marginBottom: '4px', fontSize: '26px', fontWeight: 800, color: '#0f172a' }}>
-                        🎂 Quản lý đơn đặt bánh trước
+                        Đặt hàng trước
                     </h1>
                     <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
                         Theo dõi lịch hẹn lấy bánh, đặt cọc và xử lý phiếu giao nhận hàng hàng ngày

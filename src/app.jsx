@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Header from "./Layout/Header";
 import Modal from "./components/Modal";
 import ChatBox from "./components/ChatBox";
+import ScrollToTop from "./components/ScrollToTop";
 import { getCurrentUser, clearUserCache } from "./services/authService";
 import { ToastProvider } from "./components/Toast/Toast";
 import { ConfirmProvider } from "./components/ConfirmModal/ConfirmModal";
@@ -255,6 +256,7 @@ function App() {
           </Suspense>
           <Modal />
           <ChatBox currentUser={currentUser} />
+          <ScrollToTop />
         </Router>
         </ConfirmProvider>
       </ToastProvider>

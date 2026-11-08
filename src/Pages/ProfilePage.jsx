@@ -1069,7 +1069,7 @@ const ProfilePage = () => {
                 <div style={styles.cardHeader}>
                   <h2 style={styles.cardTitle}>
                     <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '8px', color: '#3498db' }}></i>
-                    Lịch sử đơn hàng
+                    Đơn hàng
                   </h2>
                   <Link to="/my-orders" style={{ fontSize: '13px', color: 'var(--primary-color)', textDecoration: 'none' }}>
                     Xem tất cả <i className="fa-solid fa-arrow-right" style={{ fontSize: '11px' }}></i>

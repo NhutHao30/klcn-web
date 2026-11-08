@@ -907,10 +907,12 @@ html {
 
 .mobile-nav-link:hover,
 .mobile-nav-link:active,
-.mobile-nav-link:focus {
+.mobile-nav-link:focus,
+.mobile-nav-link.active {
     color: var(--primary-color, #c89968) !important;
     background-color: #fbf8f3;
     text-decoration: none !important;
+    font-weight: 700;
 }
 
 .mobile-sub-toggle-btn {
@@ -1074,3 +1076,54 @@ html {
     visibility: hidden !important;
     pointer-events: none !important;
 }
+
+/* Scroll To Top Button */
+.scroll-to-top-btn {
+    position: fixed;
+    bottom: 80px;
+    right: 25px;
+    width: 44px;
+    height: 44px;
+    background-color: var(--primary-color, #cd9b32);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    z-index: 9998;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(16px);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, visibility 0.3s ease, box-shadow 0.2s ease;
+}
+
+.scroll-to-top-btn.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.scroll-to-top-btn:hover {
+    background-color: #b38425;
+    box-shadow: 0 6px 18px rgba(205, 155, 50, 0.5);
+    transform: translateY(-3px);
+}
+
+.scroll-to-top-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 480px) {
+    .scroll-to-top-btn {
+        bottom: 68px;
+        right: 16px;
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+    }
+}
+

@@ -52,8 +52,7 @@ const AdminPOSShiftPage = () => {
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <div>
           <h1 className="admin-title" style={{ marginBottom: '4px' }}>
-            <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '10px', color: 'var(--primary-color)' }}></i>
-            Quản Lý Ca Làm Việc POS
+            Quản lý Ca làm việc POS
           </h1>
           <p style={{ color: '#6c757d', margin: 0, fontSize: '14px' }}>
             Theo dõi, đối soát doanh thu ca và giám sát chênh lệch két tiền mặt thực tế.

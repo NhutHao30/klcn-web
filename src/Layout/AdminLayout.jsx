@@ -282,7 +282,6 @@ const AdminLayout = ({ children }) => {
                 >
                   <i className="fa-solid fa-tags"></i>
                   Khuyến mãi sản phẩm
-                  <span className="nav-badge nav-badge-hot">KM</span>
                 </Link>
               )}
             </div>
@@ -316,7 +315,6 @@ const AdminLayout = ({ children }) => {
                 >
                   <i className="fa-solid fa-book-open"></i>
                   Sổ cái tồn kho
-                  <span className="nav-badge nav-badge-info">Ledger</span>
                 </Link>
               </div>
             </div>
@@ -344,48 +342,19 @@ const AdminLayout = ({ children }) => {
                   <i className="fa-solid fa-building"></i>
                   Quản lý nhà cung cấp
                 </Link>
-                {isWarehouse ? (
-                  <Link 
-                    to="/admin/nhap-lo-hang" 
-                    className={`nav-link ${location.pathname === '/admin/nhap-lo-hang' ? 'active' : ''}`}
-                  >
-                    <i className="fa-solid fa-boxes-packing"></i>
-                    Tạo yêu cầu nhập lô hàng
-                    <span className="nav-badge nav-badge-hot">Kho</span>
-                  </Link>
-                ) : isManager ? (
-                  <Link 
-                    to="/admin/nhap-lo-hang" 
-                    className={`nav-link ${location.pathname === '/admin/nhap-lo-hang' ? 'active' : ''}`}
-                  >
-                    <i className="fa-solid fa-boxes-packing"></i>
-                    Duyệt & Tạo đơn nhập hàng
-                    <span className="nav-badge nav-badge-hot">QL Chi nhánh</span>
-                  </Link>
-                ) : isDirector ? (
-                  <Link 
-                    to="/admin/nhap-lo-hang" 
-                    className={`nav-link ${location.pathname === '/admin/nhap-lo-hang' ? 'active' : ''}`}
-                  >
-                    <i className="fa-solid fa-clipboard-check"></i>
-                    Duyệt yêu cầu nhập
-                    <span className="nav-badge nav-badge-info">Giám đốc</span>
-                  </Link>
-                ) : (
-                  <Link 
-                    to="/admin/nhap-lo-hang" 
-                    className={`nav-link ${location.pathname === '/admin/nhap-lo-hang' ? 'active' : ''}`}
-                  >
-                    <i className="fa-solid fa-clipboard-check"></i>
-                    Đơn nhập hàng
-                  </Link>
-                )}
+                <Link 
+                  to="/admin/nhap-lo-hang" 
+                  className={`nav-link ${location.pathname === '/admin/nhap-lo-hang' ? 'active' : ''}`}
+                >
+                  <i className="fa-solid fa-boxes-packing"></i>
+                  Nhập lô hàng
+                </Link>
                 <Link 
                   to="/admin/lo-hang" 
                   className={`nav-link ${location.pathname === '/admin/lo-hang' ? 'active' : ''}`}
                 >
                   <i className="fa-solid fa-chart-bar"></i>
-                  Quản lý lô hàng & HSD
+                  Quản lý lô hàng và HSD
                 </Link>
               </div>
             </div>
@@ -513,7 +482,6 @@ const AdminLayout = ({ children }) => {
                 >
                   <i className="fa-solid fa-headset"></i>
                   Hỗ trợ trực tuyến
-                  <span className="nav-badge nav-badge-live">Live</span>
                 </Link>
               )}
 
@@ -523,7 +491,6 @@ const AdminLayout = ({ children }) => {
               >
                 <i className="fa-solid fa-people-arrows"></i>
                 Chat nội bộ
-                <span className="nav-badge nav-badge-info">Nhóm</span>
               </Link>
 
               {(isAdmin || isDirector || isManager || isCskh) && (
@@ -569,7 +536,6 @@ const AdminLayout = ({ children }) => {
                 >
                   <i className="fa-solid fa-users-gear"></i>
                   Quản lý tài khoản User
-                  <span className="nav-badge nav-badge-hot">Users</span>
                 </Link>
 
                 <Link 
@@ -577,8 +543,7 @@ const AdminLayout = ({ children }) => {
                   className={`nav-link ${location.pathname === '/admin/giam-sat-he-thong' ? 'active' : ''}`}
                 >
                   <i className="fa-solid fa-server"></i>
-                  Giám sát & Hiệu năng
-                  <span className="nav-badge nav-badge-live">Live</span>
+                  Giám sát và hiệu năng
                 </Link>
 
                 <Link 
@@ -586,8 +551,7 @@ const AdminLayout = ({ children }) => {
                   className={`nav-link ${location.pathname === '/admin/phan-tich-nguoi-dung' ? 'active' : ''}`}
                 >
                   <i className="fa-solid fa-chart-simple"></i>
-                  Phân tích người dùng & Hành vi
-                  <span className="nav-badge nav-badge-info">Analytics</span>
+                  Phân tích người dùng và hành vi
                 </Link>
 
                 <Link 
@@ -596,7 +560,6 @@ const AdminLayout = ({ children }) => {
                 >
                   <i className="fa-solid fa-clock-rotate-left"></i>
                   Audit Logs
-                  <span className="nav-badge nav-badge-purple">Audit</span>
                 </Link>
 
                 <Link 
@@ -605,7 +568,6 @@ const AdminLayout = ({ children }) => {
                 >
                   <i className="fa-solid fa-lock"></i>
                   Bảo trì / Khóa chức năng
-                  <span className="nav-badge nav-badge-danger">Lock</span>
                 </Link>
               </div>
             </div>

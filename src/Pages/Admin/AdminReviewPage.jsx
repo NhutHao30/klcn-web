@@ -133,8 +133,7 @@ const AdminReviewPage = () => {
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="admin-title" style={{ marginBottom: '4px' }}>
-            <i className="fa-solid fa-star-half-stroke" style={{ color: '#7a5230', marginRight: '10px' }}></i>
-            Quản lý đánh giá sản phẩm (CSKH)
+            Quản lý đánh giá
           </h1>
           <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>
             Theo dõi, phản hồi nhận xét của khách hàng và ẩn/hiện đánh giá trên website

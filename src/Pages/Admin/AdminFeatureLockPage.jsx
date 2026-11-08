@@ -110,11 +110,8 @@ const AdminFeatureLockPage = () => {
         {/* Page Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: 28, fontWeight: 800, color: '#1a1217', margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, #ef4444, #991b1b)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)' }}>
-                <i className="fa-solid fa-shield-halved" style={{ fontSize: 20 }} />
-              </div>
-              Quản lý Khóa & Bảo trì Chức năng
+            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: 28, fontWeight: 800, color: '#1a1217', margin: 0 }}>
+              Bảo trì / Khóa chức năng
             </h1>
             <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: 14 }}>
               Kiểm soát trạng thái hoạt động của các Module / Chức năng hệ thống. Bật bảo trì tức thì khi nâng cấp hoặc khắc phục sự cố.

@@ -687,8 +687,7 @@ const AdminAccountPage = () => {
       <div className="admin-flex-between admin-header-wrapper" style={{ marginBottom: '1.25rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 className="admin-title" style={{ marginBottom: '4px' }}>
-            <i className="fa-solid fa-users-gear" style={{ marginRight: '10px', color: 'var(--primary-color)' }}></i>
-            Quản lý Tài khoản Hệ thống (Users)
+            Quản lý tài khoản User
           </h1>
           <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
             Quản trị tập trung tài khoản Nhân viên và Khách hàng: chỉnh sửa thông tin, phân quyền, cấp lại mật khẩu và khóa/mở khóa tài khoản.

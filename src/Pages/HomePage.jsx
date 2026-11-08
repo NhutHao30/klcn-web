@@ -104,6 +104,24 @@ const HomePage = () => {
     };
 
     useEffect(() => {
+        if (window.location.hash === "#banh-moi-nhat") {
+            const timer = setTimeout(() => {
+                const element = document.getElementById("banh-moi-nhat") || document.querySelector(".product-new");
+                if (element) {
+                    const headerOffset = 90;
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
+    useEffect(() => {
         const fetchData = async () => {
             try {
                 const [homepageData, bestSellersData, categoriesData, newsRes] = await Promise.all([
@@ -598,13 +616,13 @@ const HomePage = () => {
                         </div>
                     </div>
                 </div>
-                <div className="product-new">
+                <div className="product-new" id="banh-moi-nhat" style={{ scrollMarginTop: '90px' }}>
                     <div className="container">
                         <div className="product-new-background">
                             <ul className="product-new-list-level-1 mt-30">
                                 <li className="product-new-item">
                                     <p className="product-new-title product-sale-title-js">
-                                        <a href="">
+                                        <a href="#banh-moi-nhat" style={{ textDecoration: 'none' }}>
                                             Bánh mới nhất
                                         </a>
                                     </p>

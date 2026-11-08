@@ -357,7 +357,7 @@ const [news, setNews] = useState([]);
         <AdminLayout>
             {/* Header */}
             <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
-                <h1 className="admin-title" style={{ marginBottom: 0 }}>📰 Quản lý Tin tức</h1>
+                <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản lý tin tức</h1>
                 <div className="admin-flex-gap">
                     <input
                         type="text"

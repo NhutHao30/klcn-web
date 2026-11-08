@@ -19,9 +19,15 @@ function ProductPage() {
   const toast = useToast();
   const navigate = useNavigate();
 
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const searchQuery = searchParams.get("search")?.toLowerCase() || "";
+  const catParam = searchParams.get("category") || searchParams.get("categoryId") || searchParams.get("loai");
+  const initialCat = catParam ? (isNaN(Number(catParam)) ? catParam : Number(catParam)) : null;
+
   const [Products, setProducts] = useState([]);
   const [sortType, setSortType] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(initialCat);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -65,9 +71,14 @@ function ProductPage() {
     { label: "Giá cao đến thấp", value: "price-desc" },
   ];
 
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const searchQuery = searchParams.get("search")?.toLowerCase() || "";
+  // Đồng bộ danh mục khi URL params thay đổi (ví dụ khi click từ menu dropdown)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const cat = params.get("category") || params.get("categoryId") || params.get("loai");
+    if (cat !== null && cat !== "") {
+      setSelectedCategory(isNaN(Number(cat)) ? cat : Number(cat));
+    }
+  }, [location.search]);
 
   useEffect(() => {
     setCurrentPage(0);

@@ -539,7 +539,7 @@ const AdminOnlineOrderPage = () => {
       <div className="admin-online-order-page no-scrollbar">
       <div className="admin-flex-between" style={{ marginBottom: '1.2rem' }}>
         <div>
-          <h1 className="admin-title" style={{ marginBottom: 0 }}>Quản lý đơn hàng Online</h1>
+          <h1 className="admin-title" style={{ marginBottom: 0 }}>Đơn hàng Online</h1>
           <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>Theo dõi và xử lý đơn đặt hàng trực tuyến của khách dạng danh sách chi tiết</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>

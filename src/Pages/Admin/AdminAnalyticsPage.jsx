@@ -180,16 +180,11 @@ const AdminAnalyticsPage = () => {
         {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, #059669, #047857)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20 }}>
-                <i className="fa-solid fa-chart-pie"></i>
-              </div>
-              <div>
-                <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: '#0f172a' }}>Báo cáo Hoạt động & Số liệu Người dùng</h1>
-                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                  Bảng điều khiển tổng quan (Dashboard), chỉ số DAU/MAU, thống kê đăng ký, hành vi và phân tích thiết bị
-                </p>
-              </div>
+            <div>
+              <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: '#0f172a' }}>Phân tích người dùng và hành vi</h1>
+              <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                Bảng điều khiển tổng quan (Dashboard), chỉ số DAU/MAU, thống kê đăng ký, hành vi và phân tích thiết bị
+              </p>
             </div>
           </div>
 

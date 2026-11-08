@@ -193,7 +193,7 @@ const AdminSignatureApprovalPage = () => {
       <div className="admin-flex-between" style={{ marginBottom: '1.2rem' }}>
         <div>
           <h1 className="admin-title" style={{ marginBottom: 0 }}>
-            Duyệt & Ký Số Chứng Từ Chi Nhánh
+            Hóa đơn nhập
           </h1>
           <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>
             Quản lý chi nhánh ký duyệt trực tiếp (không cần các vai trò khác ký thêm) — hoặc Nhân viên kho & Nhân viên kế toán cùng ký xác nhận

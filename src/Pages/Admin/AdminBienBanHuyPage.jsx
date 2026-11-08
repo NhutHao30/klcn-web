@@ -86,7 +86,7 @@ const AdminBienBanHuyPage = () => {
     <AdminLayout>
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="admin-title" style={{ marginBottom: 0 }}>Biên Bản Hủy Sản Phẩm</h1>
+          <h1 className="admin-title" style={{ marginBottom: 0 }}>Biên bản hủy</h1>
           <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>Minh bạch sản phẩm bị hủy (người hủy, thời gian, số lượng & lý do hủy bánh quá hạn)</p>
         </div>
         <div>

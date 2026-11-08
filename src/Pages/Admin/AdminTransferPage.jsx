@@ -249,7 +249,6 @@ const AdminTransferPage = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: 28, fontWeight: 700, color: '#1a1217', margin: 0 }}>
-              <i className="fa-solid fa-right-left" style={{ color: 'var(--admin-primary)', marginRight: 12 }} />
               Điều chuyển kho
             </h1>
             <p style={{ margin: '6px 0 0', color: '#888', fontSize: 14 }}>Quản lý yêu cầu nhập hàng & phiếu điều chuyển giữa các chi nhánh</p>

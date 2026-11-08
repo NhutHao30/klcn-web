@@ -220,16 +220,11 @@ const AdminSystemMonitorPage = () => {
         {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, #0284c7, #0369a1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20 }}>
-                <i className="fa-solid fa-server"></i>
-              </div>
-              <div>
-                <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: '#0f172a' }}>Giám sát Kỹ thuật & Bảo mật Hệ thống</h1>
-                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                  Theo dõi hiệu năng phần cứng Server, biểu đồ Real-time, phát hiện ngoại lệ & cấu hình cảnh báo Downtime
-                </p>
-              </div>
+            <div>
+              <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: '#0f172a' }}>Giám sát và hiệu năng</h1>
+              <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                Theo dõi hiệu năng phần cứng Server, biểu đồ Real-time, phát hiện ngoại lệ & cấu hình cảnh báo Downtime
+              </p>
             </div>
           </div>
 

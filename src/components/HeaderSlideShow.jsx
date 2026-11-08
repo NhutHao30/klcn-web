@@ -23,6 +23,23 @@ const HeaderSlideShow = () => {
         return () => clearInterval(interval); // cleanup khi component unmount
     }, [images.length]);
 
+    const handleScrollToNewProducts = (e) => {
+        if (e) e.preventDefault();
+        const element = document.getElementById("banh-moi-nhat") || document.querySelector(".product-new");
+        if (element) {
+            const headerOffset = 90;
+            const elementPosition = element.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: "smooth"
+            });
+        } else {
+            window.location.href = "/#banh-moi-nhat";
+        }
+    };
+
     return (
         <div className="header-slideshow">
             <img
@@ -39,7 +56,14 @@ const HeaderSlideShow = () => {
                         <p className="saldeOf-p">Giảm đến 20% khi mua hàng qua web</p>
                     </li>
                     <li className="saleOf-item">
-                        <a href="#" className="saleOf-link">Xem ngay</a>
+                        <a 
+                            href="#banh-moi-nhat" 
+                            className="saleOf-link"
+                            onClick={handleScrollToNewProducts}
+                            title="Xem các sản phẩm bánh mới nhất"
+                        >
+                            Xem ngay
+                        </a>
                     </li>
                 </ul>
             </div>

@@ -585,13 +585,7 @@ const AdminNhapLoPage = () => {
       <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
         <div>
           <h1 className="admin-title" style={{ marginBottom: 0 }}>
-            {isDirector
-              ? 'Phê Duyệt Yêu Cầu Nhập Hàng Chi Nhánh'
-              : isBranchManager
-                ? 'Tạo Đơn Nhập Hàng Mới & Quản Lý Lô Hàng Chi Nhánh'
-                : isAdmin
-                  ? 'Giám Sát Yêu Cầu & Lịch Sử Lô Hàng Hệ Thống'
-                  : 'Kiểm Đếm & Xác Nhận Đơn Nhập Hàng Chi Nhánh'}
+            Nhập lô hàng
           </h1>
           <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>
             {isDirector

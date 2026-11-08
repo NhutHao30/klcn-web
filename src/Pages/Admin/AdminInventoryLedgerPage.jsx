@@ -52,7 +52,6 @@ const AdminInventoryLedgerPage = () => {
             <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
                 <div>
                     <h1 className="admin-title" style={{ marginBottom: '4px' }}>
-                        <i className="fa-solid fa-book-open" style={{ color: 'var(--admin-primary)', marginRight: 10 }} />
                         Sổ cái tồn kho
                     </h1>
                     <p style={{ margin: 0, color: '#888', fontSize: '13px' }}>Ghi nhận nhật ký nhập kho, xuất kho, điều chuyển và bán hàng toàn hệ thống</p>
