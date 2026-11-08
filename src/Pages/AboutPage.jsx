@@ -45,46 +45,16 @@ const AboutPage = () => {
                                 <p>Our Team</p>
                                 <span className="">We're Super Professional At Our Skills</span>
                                 <div className="row content-ourTeam-list" style={{ justifyContent: 'center' }}>
-                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
-                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Trương Nhựt Hào" className="content-ourTeam-img" />
-                                        <div className="content-ourTeam-info content-ourTeam-info-js">
-                                            <div className="content-ourTeam-des content-ourTeam-des-js">
-                                                <div className="content-ourTeam-name">
-                                                    Trương Nhựt Hào
-                                                </div>
-                                                <div className="content-ourTeam-tast" style={{ fontWeight: 600 }}>
-                                                    <span style={{ color: 'var(--primary-color)' }}>Team Leader</span> & Dev FrontEnd
-                                                </div>
-                                            </div>
-                                            <div className="content-ourTeam-contact content-ourTeam-contact-js">
-                                                <div className="content-ourTeam-contact-icon-block">
-                                                    <a href="#!">
-                                                        <i className="content-ourTeam-contact-icon fa-brands fa-facebook-f"></i>
-                                                    </a>
-                                                </div>
-                                                <div className="content-ourTeam-contact-icon-block">
-                                                    <a href="#!">
-                                                        <i className="content-ourTeam-contact-icon fa-brands fa-github"></i>
-                                                    </a>
-                                                </div>
-                                                <div className="content-ourTeam-contact-icon-block">
-                                                    <a href="#!">
-                                                        <i className="content-ourTeam-contact-icon fa-solid fa-envelope"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
-
-                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
+                                    {/* 1. Kống Bữu Kim - dev FrontEnd */}
+                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
                                         <img src="../../assets/IMG/avatar-user.jpg" alt="Kống Bữu Kim" className="content-ourTeam-img" />
                                         <div className="content-ourTeam-info content-ourTeam-info-js">
                                             <div className="content-ourTeam-des content-ourTeam-des-js">
                                                 <div className="content-ourTeam-name">
                                                     Kống Bữu Kim
                                                 </div>
-                                                <div className="content-ourTeam-tast" style={{ fontWeight: 600 }}>
-                                                    Dev FrontEnd & Designer
+                                                <div className="content-ourTeam-tast">
+                                                    dev FrontEnd
                                                 </div>
                                             </div>
                                             <div className="content-ourTeam-contact content-ourTeam-contact-js">
@@ -107,15 +77,112 @@ const AboutPage = () => {
                                         </div>
                                     </li>
 
-                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
+                                    {/* 2. Kống Bữu Kim - designer */}
+                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
+                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Kống Bữu Kim" className="content-ourTeam-img" />
+                                        <div className="content-ourTeam-info content-ourTeam-info-js">
+                                            <div className="content-ourTeam-des content-ourTeam-des-js">
+                                                <div className="content-ourTeam-name">
+                                                    Kống Bữu Kim
+                                                </div>
+                                                <div className="content-ourTeam-tast">
+                                                    designer
+                                                </div>
+                                            </div>
+                                            <div className="content-ourTeam-contact content-ourTeam-contact-js">
+                                                <div className="content-ourTeam-contact-icon-block">
+                                                    <a href="#!">
+                                                        <i className="content-ourTeam-contact-icon fa-brands fa-facebook-f"></i>
+                                                    </a>
+                                                </div>
+                                                <div className="content-ourTeam-contact-icon-block">
+                                                    <a href="#!">
+                                                        <i className="content-ourTeam-contact-icon fa-brands fa-github"></i>
+                                                    </a>
+                                                </div>
+                                                <div className="content-ourTeam-contact-icon-block">
+                                                    <a href="#!">
+                                                        <i className="content-ourTeam-contact-icon fa-solid fa-envelope"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+
+                                    {/* 3. Trương Nhựt Hào - Team Leader (VÀO GIỮA) */}
+                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
+                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Trương Nhựt Hào" className="content-ourTeam-img" />
+                                        <div className="content-ourTeam-info content-ourTeam-info-js">
+                                            <div className="content-ourTeam-des content-ourTeam-des-js">
+                                                <div className="content-ourTeam-name">
+                                                    Trương Nhựt Hào
+                                                </div>
+                                                <div className="content-ourTeam-tast">
+                                                    Team Leader
+                                                </div>
+                                            </div>
+                                            <div className="content-ourTeam-contact content-ourTeam-contact-js">
+                                                <div className="content-ourTeam-contact-icon-block">
+                                                    <a href="#!">
+                                                        <i className="content-ourTeam-contact-icon fa-brands fa-facebook-f"></i>
+                                                    </a>
+                                                </div>
+                                                <div className="content-ourTeam-contact-icon-block">
+                                                    <a href="#!">
+                                                        <i className="content-ourTeam-contact-icon fa-brands fa-github"></i>
+                                                    </a>
+                                                </div>
+                                                <div className="content-ourTeam-contact-icon-block">
+                                                    <a href="#!">
+                                                        <i className="content-ourTeam-contact-icon fa-solid fa-envelope"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+
+                                    {/* 4. Nguyễn Hữu Thiện - dev BackEnd */}
+                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
                                         <img src="../../assets/IMG/avatar-user.jpg" alt="Nguyễn Hữu Thiện" className="content-ourTeam-img" />
                                         <div className="content-ourTeam-info content-ourTeam-info-js">
                                             <div className="content-ourTeam-des content-ourTeam-des-js">
                                                 <div className="content-ourTeam-name">
                                                     Nguyễn Hữu Thiện
                                                 </div>
-                                                <div className="content-ourTeam-tast" style={{ fontWeight: 600 }}>
-                                                    Dev BackEnd & Tester
+                                                <div className="content-ourTeam-tast">
+                                                    dev BackEnd
+                                                </div>
+                                            </div>
+                                            <div className="content-ourTeam-contact content-ourTeam-contact-js">
+                                                <div className="content-ourTeam-contact-icon-block">
+                                                    <a href="#!">
+                                                        <i className="content-ourTeam-contact-icon fa-brands fa-facebook-f"></i>
+                                                    </a>
+                                                </div>
+                                                <div className="content-ourTeam-contact-icon-block">
+                                                    <a href="#!">
+                                                        <i className="content-ourTeam-contact-icon fa-brands fa-github"></i>
+                                                    </a>
+                                                </div>
+                                                <div className="content-ourTeam-contact-icon-block">
+                                                    <a href="#!">
+                                                        <i className="content-ourTeam-contact-icon fa-solid fa-envelope"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+
+                                    {/* 5. Nguyễn Hữu Thiện - Tester */}
+                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
+                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Nguyễn Hữu Thiện" className="content-ourTeam-img" />
+                                        <div className="content-ourTeam-info content-ourTeam-info-js">
+                                            <div className="content-ourTeam-des content-ourTeam-des-js">
+                                                <div className="content-ourTeam-name">
+                                                    Nguyễn Hữu Thiện
+                                                </div>
+                                                <div className="content-ourTeam-tast">
+                                                    Tester
                                                 </div>
                                             </div>
                                             <div className="content-ourTeam-contact content-ourTeam-contact-js">
