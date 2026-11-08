@@ -44,13 +44,33 @@ const AboutPage = () => {
                             <div className="content-ourTeam-block mb-90">
                                 <p>Our Team</p>
                                 <span className="">We're Super Professional At Our Skills</span>
-                                <div className="row content-ourTeam-list" style={{ justifyContent: 'center' }}>
+                                <ul 
+                                    className="content-ourTeam-list" 
+                                    style={{ 
+                                        display: 'flex',
+                                        flexDirection: 'row',
+                                        flexWrap: 'nowrap',
+                                        justifyContent: 'center',
+                                        alignItems: 'stretch',
+                                        gap: '16px',
+                                        width: '100%',
+                                        padding: 0,
+                                        margin: '0 auto',
+                                        listStyle: 'none',
+                                        overflowX: 'auto'
+                                    }}
+                                >
                                     {/* 1. Kống Bữu Kim - dev FrontEnd */}
-                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
-                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Kống Bữu Kim" className="content-ourTeam-img" />
+                                    <li 
+                                        className="content-ourTeam-item content-ourTeam-item-js" 
+                                        style={{ flex: '1 1 0', minWidth: '170px', maxWidth: '220px', margin: 0 }}
+                                        onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} 
+                                        onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}
+                                    >
+                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Kống Bữu Kim" className="content-ourTeam-img" style={{ height: '260px', objectFit: 'cover' }} />
                                         <div className="content-ourTeam-info content-ourTeam-info-js">
                                             <div className="content-ourTeam-des content-ourTeam-des-js">
-                                                <div className="content-ourTeam-name">
+                                                <div className="content-ourTeam-name" style={{ fontSize: '1.6rem', whiteSpace: 'nowrap' }}>
                                                     Kống Bữu Kim
                                                 </div>
                                                 <div className="content-ourTeam-tast">
@@ -78,11 +98,16 @@ const AboutPage = () => {
                                     </li>
 
                                     {/* 2. Kống Bữu Kim - designer */}
-                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
-                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Kống Bữu Kim" className="content-ourTeam-img" />
+                                    <li 
+                                        className="content-ourTeam-item content-ourTeam-item-js" 
+                                        style={{ flex: '1 1 0', minWidth: '170px', maxWidth: '220px', margin: 0 }}
+                                        onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} 
+                                        onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}
+                                    >
+                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Kống Bữu Kim" className="content-ourTeam-img" style={{ height: '260px', objectFit: 'cover' }} />
                                         <div className="content-ourTeam-info content-ourTeam-info-js">
                                             <div className="content-ourTeam-des content-ourTeam-des-js">
-                                                <div className="content-ourTeam-name">
+                                                <div className="content-ourTeam-name" style={{ fontSize: '1.6rem', whiteSpace: 'nowrap' }}>
                                                     Kống Bữu Kim
                                                 </div>
                                                 <div className="content-ourTeam-tast">
@@ -109,12 +134,17 @@ const AboutPage = () => {
                                         </div>
                                     </li>
 
-                                    {/* 3. Trương Nhựt Hào - Team Leader (VÀO GIỮA) */}
-                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
-                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Trương Nhựt Hào" className="content-ourTeam-img" />
+                                    {/* 3. Trương Nhựt Hào - Team Leader (VÀO CHÍNH GIỮA) */}
+                                    <li 
+                                        className="content-ourTeam-item content-ourTeam-item-js" 
+                                        style={{ flex: '1 1 0', minWidth: '170px', maxWidth: '220px', margin: 0 }}
+                                        onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} 
+                                        onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}
+                                    >
+                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Trương Nhựt Hào" className="content-ourTeam-img" style={{ height: '260px', objectFit: 'cover' }} />
                                         <div className="content-ourTeam-info content-ourTeam-info-js">
                                             <div className="content-ourTeam-des content-ourTeam-des-js">
-                                                <div className="content-ourTeam-name">
+                                                <div className="content-ourTeam-name" style={{ fontSize: '1.6rem', whiteSpace: 'nowrap' }}>
                                                     Trương Nhựt Hào
                                                 </div>
                                                 <div className="content-ourTeam-tast">
@@ -142,11 +172,16 @@ const AboutPage = () => {
                                     </li>
 
                                     {/* 4. Nguyễn Hữu Thiện - dev BackEnd */}
-                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
-                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Nguyễn Hữu Thiện" className="content-ourTeam-img" />
+                                    <li 
+                                        className="content-ourTeam-item content-ourTeam-item-js" 
+                                        style={{ flex: '1 1 0', minWidth: '170px', maxWidth: '220px', margin: 0 }}
+                                        onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} 
+                                        onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}
+                                    >
+                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Nguyễn Hữu Thiện" className="content-ourTeam-img" style={{ height: '260px', objectFit: 'cover' }} />
                                         <div className="content-ourTeam-info content-ourTeam-info-js">
                                             <div className="content-ourTeam-des content-ourTeam-des-js">
-                                                <div className="content-ourTeam-name">
+                                                <div className="content-ourTeam-name" style={{ fontSize: '1.6rem', whiteSpace: 'nowrap' }}>
                                                     Nguyễn Hữu Thiện
                                                 </div>
                                                 <div className="content-ourTeam-tast">
@@ -174,11 +209,16 @@ const AboutPage = () => {
                                     </li>
 
                                     {/* 5. Nguyễn Hữu Thiện - Tester */}
-                                    <li className="content-ourTeam-item content-ourTeam-item-js col-lg-2-4 col-md-4 col-11" onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}>
-                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Nguyễn Hữu Thiện" className="content-ourTeam-img" />
+                                    <li 
+                                        className="content-ourTeam-item content-ourTeam-item-js" 
+                                        style={{ flex: '1 1 0', minWidth: '170px', maxWidth: '220px', margin: 0 }}
+                                        onMouseEnter={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '-100%'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '0'; }} 
+                                        onMouseLeave={(e) => { e.currentTarget.querySelector('.content-ourTeam-des-js').style.top = '0'; e.currentTarget.querySelector('.content-ourTeam-contact-js').style.top = '100%'; }}
+                                    >
+                                        <img src="../../assets/IMG/avatar-user.jpg" alt="Nguyễn Hữu Thiện" className="content-ourTeam-img" style={{ height: '260px', objectFit: 'cover' }} />
                                         <div className="content-ourTeam-info content-ourTeam-info-js">
                                             <div className="content-ourTeam-des content-ourTeam-des-js">
-                                                <div className="content-ourTeam-name">
+                                                <div className="content-ourTeam-name" style={{ fontSize: '1.6rem', whiteSpace: 'nowrap' }}>
                                                     Nguyễn Hữu Thiện
                                                 </div>
                                                 <div className="content-ourTeam-tast">
@@ -204,7 +244,7 @@ const AboutPage = () => {
                                             </div>
                                         </div>
                                     </li>
-                                </div>
+                                </ul>
                             </div>
                         </div>
 
