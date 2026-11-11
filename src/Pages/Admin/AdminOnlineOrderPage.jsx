@@ -59,8 +59,18 @@ const STATUS_COLUMNS = [
     nextLabel: null
   },
   {
+    id: 'YEU_CAU_HOAN_TRA',
+    title: 'Yêu Cầu Trả Hàng',
+    icon: 'fa-rotate-left',
+    color: '#ea580c',
+    bgColor: '#fff7ed',
+    borderColor: '#fed7aa',
+    nextStatus: null,
+    nextLabel: null
+  },
+  {
     id: 'DA_HUY',
-    title: 'Đã Hủy Đơn',
+    title: 'Đã Hủy / Hoàn Hàng',
     icon: 'fa-circle-xmark',
     color: '#ef4444',
     bgColor: '#fef2f2',
@@ -109,7 +119,7 @@ const AdminOnlineOrderPage = () => {
   const [orderDetails, setOrderDetails] = useState([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  // View modes: 'LIST', 'REFUND_AUDIT'
+  // View modes: 'LIST', 'KANBAN', 'REFUND_AUDIT'
   const [activeTabMode, setActiveTabMode] = useState('LIST');
   const [listStatusFilter, setListStatusFilter] = useState('ALL');
 
@@ -491,8 +501,17 @@ const AdminOnlineOrderPage = () => {
 
   const getOrdersByColumn = (colId) => {
     return filteredOrders.filter(o => {
+      const isReturnReq = Number(o.trangThaiDonHang) === 8 || o.trangThaiHoanHang === 'CHO_DUYET';
+      if (colId === 'YEU_CAU_HOAN_TRA') {
+        return isReturnReq;
+      }
+      if (isReturnReq) return false;
       const st = o.trangThaiDonHang !== undefined && o.trangThaiDonHang !== null ? o.trangThaiDonHang : (o.TRANGTHAI || o.TRANG_THAI || o.trangThai);
-      return normalizeStatus(st) === colId;
+      const norm = normalizeStatus(st);
+      if (colId === 'DA_HUY') {
+        return norm === 'DA_HUY' || norm === 'DA_HOAN_HANG';
+      }
+      return norm === colId;
     });
   };
 
@@ -540,7 +559,7 @@ const AdminOnlineOrderPage = () => {
       <div className="admin-flex-between" style={{ marginBottom: '1.2rem' }}>
         <div>
           <h1 className="admin-title" style={{ marginBottom: 0 }}>Đơn hàng Online</h1>
-          <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>Theo dõi và xử lý đơn đặt hàng trực tuyến của khách dạng danh sách chi tiết</p>
+          <p style={{ color: '#666', fontSize: '13px', margin: '4px 0 0 0' }}>Theo dõi và xử lý đơn đặt hàng trực tuyến của khách dạng danh sách bảng hoặc Kanban</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button
@@ -550,6 +569,15 @@ const AdminOnlineOrderPage = () => {
             style={{ fontWeight: activeTabMode === 'LIST' ? 'bold' : 'normal' }}
           >
             <i className="fa-solid fa-list" style={{ marginRight: '6px' }}></i> Dạng Danh Sách (List)
+          </button>
+
+          <button
+            type="button"
+            className={`admin-btn ${activeTabMode === 'KANBAN' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+            onClick={() => setActiveTabMode('KANBAN')}
+            style={{ fontWeight: activeTabMode === 'KANBAN' ? 'bold' : 'normal' }}
+          >
+            <i className="fa-solid fa-table-columns" style={{ marginRight: '6px' }}></i> Dạng Bảng (Kanban)
           </button>
 
           <button
@@ -1063,6 +1091,287 @@ const AdminOnlineOrderPage = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      ) : activeTabMode === 'KANBAN' ? (
+        /* GIAO DIỆN DẠNG BẢNG (KANBAN) */
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${STATUS_COLUMNS.length}, minmax(260px, 1fr))`,
+            gap: '1rem',
+            alignItems: 'start',
+            overflowX: 'auto',
+            paddingBottom: '1rem'
+          }}
+          className="no-scrollbar"
+        >
+          {STATUS_COLUMNS.map(col => {
+            const colOrders = getOrdersByColumn(col.id);
+
+            return (
+              <div
+                key={col.id}
+                style={{
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '10px',
+                  border: `1px solid ${col.borderColor}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  maxHeight: 'calc(100vh - 220px)',
+                  minWidth: '260px'
+                }}
+              >
+                {/* Column Header */}
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    backgroundColor: col.bgColor,
+                    borderBottom: `2px solid ${col.color}`,
+                    borderRadius: '10px 10px 0 0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <i className={`fa-solid ${col.icon}`} style={{ color: col.color, fontSize: '15px' }}></i>
+                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>
+                      {col.title}
+                    </h3>
+                  </div>
+                  <span
+                    style={{
+                      backgroundColor: col.color,
+                      color: '#fff',
+                      borderRadius: '12px',
+                      padding: '2px 8px',
+                      fontSize: '11px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {colOrders.length}
+                  </span>
+                </div>
+
+                {/* Column Order Cards Container */}
+                <div
+                  className="no-scrollbar"
+                  style={{
+                    padding: '10px',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    flex: 1
+                  }}
+                >
+                  {colOrders.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '30px 10px', color: '#cbd5e1', fontSize: '13px' }}>
+                      <i className="fa-solid fa-inbox" style={{ fontSize: '24px', marginBottom: '6px', display: 'block' }}></i>
+                      Không có đơn
+                    </div>
+                  ) : (
+                    colOrders.map(order => {
+                      const orderId = order.MAHD || order.MAHDBAN || order.maHD || order.id;
+                      const khName = order.khach_hang?.HOTEN || order.HOTEN_KH || order.TENKH || order.tenKH || 'Khách Vãng Lai';
+                      const khSdt = order.khach_hang?.SDT || order.SDT || order.sdtKH || order.soDienThoai || '-';
+                      const diaChi = order.DIACHI_GIAO || order.diaChiGiao || 'Nhận tại cửa hàng';
+                      const tongTien = Number(order.TONGTIEN || order.TONG_TIEN || order.tongTien || order.tongThanhToan || 0);
+                      const ngayTao = order.CREATED_AT || order.NGAYTAO || order.ngay_tao || order.ngayLap;
+                      const maVanDon = order.maVanDon || order.maVanDonGhn;
+                      const isPaid = Number(order.trangThaiThanhToan) === 1 || Boolean(order.minhChungThanhToan);
+                      const isRefundPending = Number(order.trangThaiThanhToan) === 2 || order.trangThaiHoanTien === 'CHO_HOAN_TIEN';
+                      const isRefundDone = Number(order.trangThaiThanhToan) === 3 || order.trangThaiHoanTien === 'DA_HOAN_TIEN';
+                      const isReturnReq = Number(order.trangThaiDonHang) === 8 || order.trangThaiHoanHang === 'CHO_DUYET';
+
+                      return (
+                        <div
+                          key={orderId}
+                          style={{
+                            backgroundColor: '#fff',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+                            border: isReturnReq ? '1.5px solid #fdba74' : '1px solid #e2e8f0',
+                            transition: 'all 0.2s ease',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleOpenDetailModal(order)}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 'bold', color: 'var(--admin-primary)', fontSize: '13px' }}>
+                                #{orderId}
+                              </span>
+                              {isReturnReq && (
+                                <span style={{ fontSize: '10px', backgroundColor: '#ffedd5', color: '#ea580c', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  🔄 Yêu cầu trả
+                                </span>
+                              )}
+                              {isRefundPending && (
+                                <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  ⚠️ Hoàn tiền
+                                </span>
+                              )}
+                              {isRefundDone && (
+                                <span style={{ fontSize: '10px', backgroundColor: '#dcfce7', color: '#16a34a', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  ✓ Đã hoàn
+                                </span>
+                              )}
+                              {isPaid ? (
+                                <span style={{ fontSize: '10px', backgroundColor: '#eff6ff', color: '#2563eb', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  ✓ Đã TT
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '1px 5px', borderRadius: '4px' }}>
+                                  Chưa TT
+                                </span>
+                              )}
+                            </div>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>
+                              {ngayTao ? (new Date(ngayTao).toString() !== 'Invalid Date' ? new Date(ngayTao).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : String(ngayTao).slice(11, 16)) : ''}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '3px', color: '#0f172a' }}>
+                            <i className="fa-solid fa-user" style={{ marginRight: '6px', color: '#64748b', fontSize: '11px' }}></i>
+                            {khName}
+                          </div>
+
+                          <div style={{ fontSize: '12px', color: '#475569', marginBottom: '3px' }}>
+                            <i className="fa-solid fa-phone" style={{ marginRight: '6px', color: '#64748b', fontSize: '11px' }}></i>
+                            {khSdt}
+                          </div>
+
+                          <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={diaChi}>
+                            <i className="fa-solid fa-location-dot" style={{ marginRight: '6px', color: '#94a3b8', fontSize: '11px' }}></i>
+                            {diaChi}
+                          </div>
+
+                          {/* GHN Tracking info if available */}
+                          {maVanDon ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                              <code style={{ fontSize: '10px', backgroundColor: '#fff0f6', color: '#c41d7f', padding: '1px 4px', borderRadius: '3px', fontWeight: 'bold' }}>
+                                {maVanDon}
+                              </code>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleFetchGhnTracking(maVanDon);
+                                }}
+                                style={{
+                                  padding: '1px 6px',
+                                  fontSize: '10px',
+                                  backgroundColor: '#d82d8b',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '3px',
+                                  cursor: 'pointer'
+                                }}
+                                title="Tra cứu lộ trình live GHN"
+                              >
+                                🚚 GHN
+                              </button>
+                            </div>
+                          ) : (['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(col.id) && (
+                            <div style={{ marginBottom: '8px' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCreateGhnOrder(orderId);
+                                }}
+                                style={{
+                                  padding: '2px 6px',
+                                  fontSize: '10px',
+                                  backgroundColor: '#d82d8b',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '3px',
+                                  cursor: 'pointer',
+                                  fontWeight: 'bold'
+                                }}
+                                title="Khởi tạo mã vận đơn GHN"
+                              >
+                                🚚 Tạo mã GHN
+                              </button>
+                            </div>
+                          ))}
+
+                          <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Tổng tiền</span>
+                              <b style={{ color: '#b45309', fontSize: '13px' }}>{tongTien.toLocaleString('vi-VN')}đ</b>
+                            </div>
+
+                            {col.nextStatus ? (
+                              <button
+                                type="button"
+                                className="admin-btn admin-btn-primary"
+                                style={{ padding: '4px 8px', fontSize: '11px', backgroundColor: col.color, borderColor: col.color }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(orderId, col.nextStatus);
+                                }}
+                                title={col.nextLabel}
+                              >
+                                {col.nextLabel} <i className="fa-solid fa-arrow-right" style={{ marginLeft: '4px' }}></i>
+                              </button>
+                            ) : isReturnReq ? (
+                              <button
+                                type="button"
+                                style={{
+                                  padding: '4px 8px',
+                                  fontSize: '11px',
+                                  backgroundColor: '#ea580c',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer'
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenDetailModal(order);
+                                }}
+                              >
+                                ⚡ Duyệt trả
+                              </button>
+                            ) : null}
+                          </div>
+
+                          {/* Quick Cancel button for early stages */}
+                          {['CHO_XAC_NHAN', 'DANG_CHE_BIEN'].includes(col.id) && (
+                            <div style={{ marginTop: '8px', textAlign: 'right' }}>
+                              {(Number(order.trangThaiThanhToan) === 1 || Boolean(order.minhChungThanhToan)) ? (
+                                <span style={{ fontSize: '11px', color: '#b45309', fontWeight: 'bold' }}>
+                                  🔒 Đã thanh toán (Không được hủy)
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  style={{ border: 'none', background: 'transparent', color: '#ef4444', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm(`Hủy đơn hàng ${orderId}?`)) {
+                                      handleStatusChange(orderId, 'DA_HUY');
+                                    }
+                                  }}
+                                >
+                                  Hủy đơn này
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : null}
 

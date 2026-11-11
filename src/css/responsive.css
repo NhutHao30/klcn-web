@@ -405,7 +405,7 @@
     }
 
     .translate-X {
-        transform: translateX(12px);
+        transform: none !important;
     }
 
     .noWrap {
@@ -572,72 +572,153 @@
         font-size: 4.2rem;
     }
 
-    .product-new-list-level-2 {   
-        list-style: none;
-        overflow-y: auto;
+    /* Bánh mới nhất - căn sát mép trái, cuộn ngang mượt */
+    .product-new-background {
+        padding: 0 !important;
     }
 
-    .content-banner-2-background {
-        flex-wrap: wrap;
-        gap: 0;
+    .product-new-list-level-2 {   
+        list-style: none !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    .product-new-list-level-2::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .product-new-list-level-2 .row {
+        transform: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        gap: 12px !important;
+        width: max-content !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .product-new-item-level2 {
+        flex: 0 0 160px !important;
+        min-width: 160px !important;
+        max-width: 160px !important;
+        width: 160px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Được mua nhiều nhất - căn sát mép trái, 2 cột đều nhau */
+    .product-bestSale-background {
+        padding: 0 !important;
+    }
+
+    .product-bestSale-list-level-2 {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    .product-bestSale-list-level-2 .row {
+        transform: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between !important;
+        gap: 10px 0 !important;
+    }
+
+    .product-bestSale-item-level2,
+    .product-bestSale-item-level2-sm {
+        width: calc(50% - 6px) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        margin-bottom: 15px !important;
+    }
+
+    .translate-X-sm {
+        transform: none !important;
+    }
+
+    /* Tất cả bánh - căn sát mép trái, loại bỏ các padding lồng nhau */
+    .product-Menu-background {
+        padding: 0 !important;
+    }
+
+    .product-Menu-list-level-1 {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .product-Menu .row {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .product-Menu-item2 {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
     }
 
     .menuProduct-list-level1 {
         flex-direction: column;
-     }
-
-     .menuProduct-item-level1 {
-        /* flex-direction: column; */
-     }
-
-     .menuProduct_category-list-level2 {
-        flex-direction: row;
-     }
-
-     .product-bestSale-item-level2-sm {
-        width: 45% !important;
-     }
-
-     .gap-20-sm {
-        gap: 10px;
-     }
-
-     .translate-X-sm {
-        transform: translateX(14px);
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
     }
 
-    .menuProduct_category-list-level2 {
-        overflow-x: auto;
-        width: 340px;
+    .menuProduct-sidebar-desktop {
+        display: none !important;
     }
 
-    .menuProduct-item-level1 {
-        width: 100%;
-        overflow-x: auto;
+    .menuProduct-content-list,
+    .menuProduct-item-level1:last-child {
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    .menuProduct-item-level1::-webkit-scrollbar {
-        display: none;
+    .menuProduct-list-level2 {
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    .menuProduct_category-item-level2--active,
-    .menuProduct_category-item-level2 {
-       padding: 0;
-       display: block;
-       color: unset;
-       border-right:unset;
-       text-align: center;
-       border-bottom: unset;
-       height: 30px;
-    }
-
-    .menuProduct_category-item-level2 {
-       /* flex-direction: column; */
-
+    .menuProduct-block {
+        width: 100% !important;
+        padding: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        margin-bottom: 14px !important;
     }
 
     .menuProduct-item-level1 {
         flex-direction: column;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .product-Menu .mobile-filter-bar {
+        padding: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        margin-bottom: 16px !important;
+        width: 100% !important;
+    }
+
+    .product-Menu .seeAll {
+        transform: none !important;
+        margin: 24px auto 0 !important;
+        display: block !important;
+        text-align: center !important;
+        width: fit-content !important;
     }
 
     .content-banner-3__des-list {
@@ -901,6 +982,15 @@
         display: none !important;
     }
 
+    /* Ẩn desktop category sidebar trên mobile */
+    .menuProduct-sidebar-desktop {
+        display: none !important;
+    }
+
+    .product-Menu {
+        overflow: visible !important;
+    }
+
     /* Hiện mobile filter bar */
     .mobile-filter-bar {
         display: flex;
@@ -953,7 +1043,8 @@
         list-style: none;
         z-index: 9999;
         box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-        overflow: hidden;
+        overflow-y: auto;
+        max-height: 280px;
     }
 
     .mobile-filter-option {
@@ -986,6 +1077,33 @@
     .mobile-filter-option i {
         color: var(--primary-color);
         font-size: 1.1rem;
+    }
+
+    /* Đảm bảo căn sát mép trái trên tất cả thiết bị <= 767px */
+    .product-new-background,
+    .product-bestSale-background,
+    .product-Menu-background {
+        padding: 0 !important;
+    }
+
+    .product-new-list-level-2,
+    .product-bestSale-list-level-2,
+    .product-Menu-list-level-1 {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .product-new-list-level-2 .row,
+    .product-bestSale-list-level-2 .row,
+    .product-Menu .row {
+        transform: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .translate-X,
+    .translate-X-sm {
+        transform: none !important;
     }
 }
 

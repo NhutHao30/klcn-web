@@ -17,6 +17,10 @@ const HomePage = () => {
     const [newsArticles, setNewsArticles] = useState([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState(null);
     const [categoryProducts, setCategoryProducts] = useState([]);
+    const [sortType, setSortType] = useState(null);
+    const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
+    const [mobileSortOpen, setMobileSortOpen] = useState(false);
+    const mobileFilterRef = useRef(null);
     const saleListRef = useRef(null);
     const saleDragRef = useRef({ isDown: false, startX: 0, scrollLeft: 0, moved: false });
 
@@ -121,6 +125,22 @@ const HomePage = () => {
         }
     }, []);
 
+    // Đóng dropdown bộ lọc mobile khi click ra ngoài
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (mobileFilterRef.current && !mobileFilterRef.current.contains(event.target)) {
+                setMobileCategoryOpen(false);
+                setMobileSortOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("touchstart", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("touchstart", handleClickOutside);
+        };
+    }, []);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -140,21 +160,13 @@ const HomePage = () => {
                 const articles = Array.isArray(newsRes) ? newsRes : (newsRes?.data || []);
                 setNewsArticles(articles.slice(0, 3));
 
-                // Find "Bánh ngọt" category or default to first category
-                const banhNgotCat = cats.find(c => {
-                    const name = (c.TENLOAI || c.tenLoai || '').toLowerCase();
-                    return name.includes('ngọt') || name.includes('ngot');
-                }) || cats[0];
-
-                if (banhNgotCat) {
-                    const catId = banhNgotCat.MALOAI || banhNgotCat.id || banhNgotCat.loaiId;
-                    setSelectedCategoryId(catId);
-                    try {
-                        const prods = await getProducts({ loaiId: catId });
-                        const pList = Array.isArray(prods) ? prods : (prods?.data || []);
-                        setCategoryProducts(pList);
-                    } catch (e) {}
-                }
+                // Mặc định tải danh sách bánh (Tất cả bánh)
+                setSelectedCategoryId(null);
+                try {
+                    const prods = await getProducts({ size: 8 });
+                    const pList = prods?.data || (Array.isArray(prods) ? prods : []);
+                    setCategoryProducts(pList);
+                } catch (e) {}
             } catch (error) {
                 console.error("Lỗi khi tải dữ liệu trang chủ:", error);
             }
@@ -162,17 +174,62 @@ const HomePage = () => {
         fetchData();
     }, []);
 
-    const handleSelectCategory = async (cat) => {
-        const catId = cat.MALOAI || cat.id || cat.loaiId;
+    const handleSelectCategory = async (catOrId) => {
+        let catId = null;
+        if (catOrId !== null && typeof catOrId === 'object') {
+            catId = catOrId.MALOAI ?? catOrId.id ?? catOrId.loaiId ?? catOrId.value ?? null;
+        } else if (catOrId !== undefined) {
+            catId = catOrId;
+        }
         setSelectedCategoryId(catId);
         try {
-            const prods = await getProducts({ loaiId: catId });
-            const pList = Array.isArray(prods) ? prods : (prods?.data || []);
+            const params = { size: 8 };
+            if (catId !== null && catId !== undefined && catId !== '') {
+                params.loaiId = catId;
+                params.category = catId;
+            }
+            const prods = await getProducts(params);
+            const pList = prods?.data || (Array.isArray(prods) ? prods : []);
             setCategoryProducts(pList);
         } catch (e) {
             console.error("Lỗi khi tải bánh theo danh mục:", e);
         }
     };
+
+    const isCategorySelected = (optVal) => {
+        if (selectedCategoryId === null && optVal === null) return true;
+        if (selectedCategoryId === null || optVal === null) return false;
+        return String(selectedCategoryId) === String(optVal);
+    };
+
+    const categoryOptions = [
+        { label: "Tất cả bánh", value: null },
+        ...(categories.length > 0
+            ? categories.map(cat => ({
+                label: cat.TENLOAI || cat.tenLoai,
+                value: cat.MALOAI ?? cat.id ?? cat.loaiId
+            }))
+            : [
+                { label: "Bánh kem", value: 1 },
+                { label: "Bánh ngọt", value: 2 },
+                { label: "Bánh mì", value: 3 },
+                { label: "Bánh khô", value: 4 },
+                { label: "Bánh tráng miệng", value: 5 },
+                { label: "Bánh theo mùa", value: 6 },
+            ]
+        )
+    ];
+
+    const sortOptions = [
+        { label: "Tên A - Z", value: "az" },
+        { label: "Tên Z - A", value: "za" },
+        { label: "Hàng mới", value: "new" },
+        { label: "Giá thấp đến cao", value: "price-asc" },
+        { label: "Giá cao đến thấp", value: "price-desc" },
+    ];
+
+    const currentCategoryLabel = categoryOptions.find(c => isCategorySelected(c.value))?.label || "Tất cả bánh";
+    const currentSortLabel = sortOptions.find(s => s.value === sortType)?.label || "Sắp xếp";
 
     // Helper: format price
     const formatPrice = (price) => {
@@ -454,8 +511,27 @@ const HomePage = () => {
         );
     };
 
-    // Split expensive products into two columns for the menu layout
-    const activeMenuProducts = categoryProducts.length > 0 ? categoryProducts : (Array.isArray(expensiveProducts) ? expensiveProducts : []);
+    // Split products into two columns for the menu layout, with sorting applied
+    const getSortedMenuProducts = () => {
+        let list = [...(categoryProducts.length > 0 ? categoryProducts : (Array.isArray(expensiveProducts) ? expensiveProducts : []))];
+        if (!sortType) return list;
+
+        return list.sort((a, b) => {
+            const nameA = a.TENSP || a.tenSanPham || a.tenSP || "";
+            const nameB = b.TENSP || b.tenSanPham || b.tenSP || "";
+            const priceA = Number(getSalePrice(Number(a.GIABAN || a.giaBan || 0), parseInt(a.PHAN_TRAM_GIAM || a.phanTramGiam || 0)));
+            const priceB = Number(getSalePrice(Number(b.GIABAN || b.giaBan || 0), parseInt(b.PHAN_TRAM_GIAM || b.phanTramGiam || 0)));
+
+            if (sortType === "az") return String(nameA).localeCompare(String(nameB), "vi");
+            if (sortType === "za") return String(nameB).localeCompare(String(nameA), "vi");
+            if (sortType === "new") return (Number(Boolean(b.IS_NEW || b.isNew)) - Number(Boolean(a.IS_NEW || a.isNew))) || (Number(b.MASP || b.maSP || b.id || 0) - Number(a.MASP || a.maSP || a.id || 0));
+            if (sortType === "price-asc") return priceA - priceB;
+            if (sortType === "price-desc") return priceB - priceA;
+            return 0;
+        });
+    };
+
+    const activeMenuProducts = getSortedMenuProducts();
     const leftColumnProducts = activeMenuProducts.slice(0, 4);
     const rightColumnProducts = activeMenuProducts.slice(4, 8);
 
@@ -697,41 +773,122 @@ const HomePage = () => {
                                 </li>
                                 <div className="row">
                                     <li className="product-Menu-item2">
-                                        <ul className="menuProduct-list-level1">
-                                            <li className="menuProduct-item-level1 col-lg-3 col-md-3 pd-10-md">
-                                                <ul className="menuProduct_category-list-level2">
-                                                    {categories.length > 0 ? categories.map((cat, idx) => (
-                                                        (() => {
-                                                            const catId = cat.MALOAI || cat.id || cat.loaiId;
-                                                            const isSelected = selectedCategoryId === catId;
+                                        {/* MOBILE FILTER DROPDOWNS - Giống giao diện trang sản phẩm */}
+                                        <div className="mobile-filter-bar" ref={mobileFilterRef}>
+                                            {/* Dropdown Danh mục */}
+                                            <div className="mobile-filter-dropdown">
+                                                <button
+                                                    type="button"
+                                                    className="mobile-filter-btn"
+                                                    onClick={() => { setMobileCategoryOpen(o => !o); setMobileSortOpen(false); }}
+                                                >
+                                                    <i className="fa-solid fa-layer-group"></i>
+                                                    {currentCategoryLabel}
+                                                    <i className={`fa-solid fa-chevron-${mobileCategoryOpen ? "up" : "down"}`} style={{ marginLeft: "auto" }}></i>
+                                                </button>
+                                                {mobileCategoryOpen && (
+                                                    <ul className="mobile-filter-options">
+                                                        {categoryOptions.map((opt, idx) => {
+                                                            const isSelected = isCategorySelected(opt.value);
                                                             return (
                                                                 <li
                                                                     key={idx}
-                                                                    className={`menuProduct_category-item-level2 ${isSelected ? 'active-cat' : ''}`}
-                                                                    style={{
-                                                                        cursor: 'pointer',
-                                                                        color: isSelected ? '#f7a840' : 'inherit',
-                                                                        fontWeight: isSelected ? '700' : 'normal',
-                                                                        borderLeft: isSelected ? '3px solid #f7a840' : 'none',
-                                                                        paddingLeft: isSelected ? '8px' : '0'
+                                                                    className={`mobile-filter-option ${isSelected ? "active" : ""}`}
+                                                                    onClick={() => {
+                                                                        handleSelectCategory(opt.value);
+                                                                        setMobileCategoryOpen(false);
                                                                     }}
-                                                                    onClick={() => handleSelectCategory(cat)}
                                                                 >
-                                                                    {cat.TENLOAI || cat.tenLoai}
+                                                                    {opt.label}
+                                                                    {isSelected && <i className="fa-solid fa-check"></i>}
                                                                 </li>
                                                             );
-                                                        })()
-                                                    )) : (
+                                                        })}
+                                                    </ul>
+                                                )}
+                                            </div>
+
+                                            {/* Dropdown Sắp xếp */}
+                                            <div className="mobile-filter-dropdown">
+                                                <button
+                                                    type="button"
+                                                    className="mobile-filter-btn"
+                                                    onClick={() => { setMobileSortOpen(o => !o); setMobileCategoryOpen(false); }}
+                                                >
+                                                    <i className="fa-solid fa-arrow-down-a-z"></i>
+                                                    {currentSortLabel}
+                                                    <i className={`fa-solid fa-chevron-${mobileSortOpen ? "up" : "down"}`} style={{ marginLeft: "auto" }}></i>
+                                                </button>
+                                                {mobileSortOpen && (
+                                                    <ul className="mobile-filter-options">
+                                                        <li
+                                                            className={`mobile-filter-option ${!sortType ? "active" : ""}`}
+                                                            onClick={() => { setSortType(null); setMobileSortOpen(false); }}
+                                                        >
+                                                            Mặc định
+                                                            {!sortType && <i className="fa-solid fa-check"></i>}
+                                                        </li>
+                                                        {sortOptions.map((opt, idx) => (
+                                                            <li
+                                                                key={idx}
+                                                                className={`mobile-filter-option ${sortType === opt.value ? "active" : ""}`}
+                                                                onClick={() => { setSortType(opt.value); setMobileSortOpen(false); }}
+                                                            >
+                                                                {opt.label}
+                                                                {sortType === opt.value && <i className="fa-solid fa-check"></i>}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <ul className="menuProduct-list-level1">
+                                            <li className="menuProduct-item-level1 col-lg-3 col-md-3 pd-10-md hide-on-mobile menuProduct-sidebar-desktop">
+                                                <ul className="menuProduct_category-list-level2">
+                                                    <li
+                                                        className={`menuProduct_category-item-level2 ${selectedCategoryId === null ? 'active-cat' : ''}`}
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                            color: selectedCategoryId === null ? '#f7a840' : 'inherit',
+                                                            fontWeight: selectedCategoryId === null ? '700' : 'normal',
+                                                            borderLeft: selectedCategoryId === null ? '3px solid #f7a840' : 'none',
+                                                            paddingLeft: selectedCategoryId === null ? '8px' : '0'
+                                                        }}
+                                                        onClick={() => handleSelectCategory(null)}
+                                                    >
+                                                        Tất cả bánh
+                                                    </li>
+                                                    {categories.length > 0 ? categories.map((cat, idx) => {
+                                                        const catId = cat.MALOAI ?? cat.id ?? cat.loaiId;
+                                                        const isSelected = isCategorySelected(catId);
+                                                        return (
+                                                            <li
+                                                                key={idx}
+                                                                className={`menuProduct_category-item-level2 ${isSelected ? 'active-cat' : ''}`}
+                                                                style={{
+                                                                    cursor: 'pointer',
+                                                                    color: isSelected ? '#f7a840' : 'inherit',
+                                                                    fontWeight: isSelected ? '700' : 'normal',
+                                                                    borderLeft: isSelected ? '3px solid #f7a840' : 'none',
+                                                                    paddingLeft: isSelected ? '8px' : '0'
+                                                                }}
+                                                                onClick={() => handleSelectCategory(catId)}
+                                                            >
+                                                                {cat.TENLOAI || cat.tenLoai}
+                                                            </li>
+                                                        );
+                                                    }) : (
                                                         <>
-                                                            <li className="menuProduct_category-item-level2 ">Bánh kem</li>
-                                                            <li className="menuProduct_category-item-level2 ">Bánh mì</li>
-                                                            <li className="menuProduct_category-item-level2 ">Bánh ngọt</li>
-                                                            <li className="menuProduct_category-item-level2 ">Bánh khô</li>
+                                                            <li className="menuProduct_category-item-level2" onClick={() => handleSelectCategory(1)}>Bánh kem</li>
+                                                            <li className="menuProduct_category-item-level2" onClick={() => handleSelectCategory(2)}>Bánh ngọt</li>
+                                                            <li className="menuProduct_category-item-level2" onClick={() => handleSelectCategory(3)}>Bánh mì</li>
+                                                            <li className="menuProduct_category-item-level2" onClick={() => handleSelectCategory(4)}>Bánh khô</li>
                                                         </>
                                                     )}
                                                 </ul>
                                             </li>
-                                            <li className="menuProduct-item-level1 col-lg-9 col-md-9 col-12 pd-10-md pd-l-0 pd-r-0">
+                                            <li className="menuProduct-item-level1 col-lg-9 col-md-9 col-12 pd-10-md pd-l-0 pd-r-0 menuProduct-content-list">
                                                 <ul className="menuProduct-list-level2 col-lg-6 col-md-6 pd-10-md ">
                                                     {leftColumnProducts.map((product, index) => renderMenuProduct(product, index))}
                                                 </ul>
