@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "react-router-dom";
 import HeaderSlideShow from "../components/HeaderSlideShow";
 import Navigation from "../components/Navigation";
@@ -149,6 +149,22 @@ const renderUserAvatar = (user) => {
 
 const Header = () => {
     const [isScrolled, setIsScrolled] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const userMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+                setUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, []);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -301,30 +317,39 @@ const Header = () => {
                                             <div className="nav-item__link-icon search-btn-js">
                                                 <i className="nav-icon fa-solid fa-magnifying-glass"></i>
                                             </div>
-                                            <div className="nav-item__link-icon" style={{ cursor: "pointer" }}>
+                                            <div 
+                                                ref={userMenuRef}
+                                                className="nav-item__link-icon" 
+                                                style={{ cursor: "pointer", position: "relative" }}
+                                                onClick={(e) => {
+                                                    if (!e.target.closest('.nav-icon__user')) {
+                                                        setUserMenuOpen(prev => !prev);
+                                                    }
+                                                }}
+                                            >
                                                 {renderUserAvatar(user)}
-                                                <ul className="nav-icon__user">
+                                                <ul className={`nav-icon__user ${userMenuOpen ? "is-open" : ""}`}>
                                                     {user ? (
                                                         <>
                                                             <li className="nav-icon__user-item">
-                                                                <span style={{ padding: '10px  0px 10px 10px', display: 'block', fontWeight: 'bold', color: 'var(--primary-color)', borderBottom: '1px solid #eee' }}>
+                                                                <span style={{ padding: '10px 16px', display: 'block', fontWeight: 'bold', color: 'var(--primary-color)', borderBottom: '1px solid #eee' }}>
                                                                     Xin chào, {getUserDisplayName(user)}
                                                                 </span>
                                                             </li>
                                                             <li className="nav-icon__user-item">
-                                                                <Link to="/thong-tin-ca-nhan" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Thông tin cá nhân</Link>
+                                                                <Link to="/thong-tin-ca-nhan" onClick={() => setUserMenuOpen(false)} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Thông tin cá nhân</Link>
                                                             </li>
                                                             <li className="nav-icon__user-item">
-                                                                <Link to="/my-orders" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Lịch sử đơn hàng</Link>
+                                                                <Link to="/my-orders" onClick={() => setUserMenuOpen(false)} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Lịch sử đơn hàng</Link>
                                                             </li>
                                                             <li className="nav-icon__user-item">
-                                                                <a href="#" onClick={handleLogout} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng xuất</a>
+                                                                <a href="#" onClick={(e) => { setUserMenuOpen(false); handleLogout(e); }} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng xuất</a>
                                                             </li>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <li className="nav-icon__user-item"><Link to="/dang-ky" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Ký</Link></li>
-                                                            <li className="nav-icon__user-item"><Link to="/dang-nhap" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Nhập</Link></li>
+                                                            <li className="nav-icon__user-item"><Link to="/dang-ky" onClick={() => setUserMenuOpen(false)} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Ký</Link></li>
+                                                            <li className="nav-icon__user-item"><Link to="/dang-nhap" onClick={() => setUserMenuOpen(false)} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Nhập</Link></li>
                                                         </>
                                                     )}
                                                 </ul>
@@ -418,30 +443,39 @@ const Header = () => {
                                                     <div className="nav-item__link-icon search-btn-js">
                                                         <i className="nav-icon fa-solid fa-magnifying-glass"></i>
                                                     </div>
-                                                    <div className="nav-item__link-icon" style={{ cursor: "pointer" }}>
+                                                    <div 
+                                                        ref={userMenuRef}
+                                                        className="nav-item__link-icon" 
+                                                        style={{ cursor: "pointer", position: "relative" }}
+                                                        onClick={(e) => {
+                                                            if (!e.target.closest('.nav-icon__user')) {
+                                                                setUserMenuOpen(prev => !prev);
+                                                            }
+                                                        }}
+                                                    >
                                                         {renderUserAvatar(user)}
-                                                        <ul className="nav-icon__user">
+                                                        <ul className={`nav-icon__user ${userMenuOpen ? "is-open" : ""}`}>
                                                             {user ? (
                                                                 <>
                                                                     <li className="nav-icon__user-item">
-                                                                        <span style={{ padding: '10px  0px 10px 10px', display: 'block', fontWeight: 'bold', color: 'var(--primary-color)', borderBottom: '1px solid #eee' }}>
+                                                                        <span style={{ padding: '10px 16px', display: 'block', fontWeight: 'bold', color: 'var(--primary-color)', borderBottom: '1px solid #eee' }}>
                                                                             Xin chào, {getUserDisplayName(user)}
                                                                         </span>
                                                                     </li>
                                                                     <li className="nav-icon__user-item">
-                                                                        <Link to="/thong-tin-ca-nhan" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Thông tin cá nhân</Link>
+                                                                        <Link to="/thong-tin-ca-nhan" onClick={() => setUserMenuOpen(false)} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Thông tin cá nhân</Link>
                                                                     </li>
                                                                     <li className="nav-icon__user-item">
-                                                                        <Link to="/my-orders" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Lịch sử đơn hàng</Link>
+                                                                        <Link to="/my-orders" onClick={() => setUserMenuOpen(false)} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Lịch sử đơn hàng</Link>
                                                                     </li>
                                                                     <li className="nav-icon__user-item">
-                                                                        <a href="#" onClick={handleLogout} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng xuất</a>
+                                                                        <a href="#" onClick={(e) => { setUserMenuOpen(false); handleLogout(e); }} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng xuất</a>
                                                                     </li>
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <li className="nav-icon__user-item"><Link to="/dang-ky" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Ký</Link></li>
-                                                                    <li className="nav-icon__user-item"><Link to="/dang-nhap" style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Nhập</Link></li>
+                                                                    <li className="nav-icon__user-item"><Link to="/dang-ky" onClick={() => setUserMenuOpen(false)} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Ký</Link></li>
+                                                                    <li className="nav-icon__user-item"><Link to="/dang-nhap" onClick={() => setUserMenuOpen(false)} style={{ color: "inherit", textDecoration: "none", display: "block" }}>Đăng Nhập</Link></li>
                                                                 </>
                                                             )}
                                                         </ul>

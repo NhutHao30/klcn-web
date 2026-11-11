@@ -159,8 +159,18 @@
     }
 
     .nav-icon__user {
-        right: 0;
-        top: calc(100% + -18px);
+        right: -8px;
+        top: calc(100% + 10px);
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+        z-index: 99999 !important;
+        text-align: left !important;
+    }
+
+    .nav-icon__user.is-open {
+        display: block !important;
     }
 
     .saleOf {
@@ -719,6 +729,134 @@
         display: block !important;
         text-align: center !important;
         width: fit-content !important;
+    }
+
+    /* Content Banner 2 - Xếp dọc 100% trên Mobile để không bị co ép và mất chữ */
+    .content-banner-2-background {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 20px !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .content-banner-2-IMG {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 180px !important;
+        margin-top: 10px !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        position: relative !important;
+        display: flex !important;
+    }
+
+    .content-banner-2-img {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 180px !important;
+        object-fit: cover !important;
+        border-radius: 8px !important;
+    }
+
+    .content-banner-2-IMG__des-list {
+        position: absolute !important;
+        left: 20px !important;
+        right: 20px !important;
+        top: 50% !important;
+        bottom: auto !important;
+        transform: translateY(-50%) !important;
+        align-items: flex-start !important;
+    }
+
+    .content-banner-2-IMG__des-item:first-child {
+        font-size: 2.8rem !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+        margin-bottom: 2px !important;
+    }
+
+    .content-banner-2-IMG__des-item:nth-child(2) {
+        font-size: 1.4rem !important;
+        margin: 2px 0 8px 0 !important;
+    }
+
+    .content-banner-2-IMG__des-item-link {
+        font-size: 1.2rem !important;
+        padding: 6px 14px !important;
+        margin-top: 4px !important;
+        border-radius: 4px !important;
+    }
+
+    /* Header User Popup trên Mobile - Căn chỉnh đẹp, không bị đè lên icon header */
+    .nav-icon__user {
+        position: absolute !important;
+        top: calc(100% + 12px) !important;
+        right: -8px !important;
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+        z-index: 99999 !important;
+        min-width: 165px !important;
+        width: max-content !important;
+        padding: 6px 0 !important;
+        text-align: left !important;
+    }
+
+    .nav-icon__user::before {
+        content: "" !important;
+        position: absolute !important;
+        top: -14px !important;
+        right: 14px !important;
+        border-width: 7px !important;
+        border-style: solid !important;
+        border-color: transparent transparent #ffffff transparent !important;
+        filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.08)) !important;
+    }
+
+    .nav-icon__user::after {
+        content: "" !important;
+        position: absolute !important;
+        top: -12px !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 12px !important;
+        background: transparent !important;
+    }
+
+    .nav-icon__user-item {
+        color: #1e293b !important;
+        font-size: 1.3rem !important;
+        font-weight: 500 !important;
+        line-height: normal !important;
+        min-width: unset !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .nav-icon__user-item > a,
+    .nav-icon__user-item > span {
+        padding: 10px 16px !important;
+        display: block !important;
+        color: #1e293b !important;
+        text-decoration: none !important;
+        transition: background-color 0.15s ease !important;
+    }
+
+    .nav-icon__user-item:hover > a,
+    .nav-icon__user-item:hover {
+        background-color: #f8fafc !important;
+        color: var(--primary-color) !important;
+    }
+
+    .nav-icon__user.is-open {
+        display: block !important;
+    }
+
+    .navigation.is-sticky,
+    .navigation-croll {
+        background-color: rgba(20, 20, 20, 0.95) !important;
     }
 
     .content-banner-3__des-list {

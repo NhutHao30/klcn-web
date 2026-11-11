@@ -490,24 +490,30 @@ header {
     right: 4px;
     width: max-content;
     height: fit-content;
-    text-align: right;
+    text-align: left;
     list-style: none;
-    /* padding-right: 10px; */
     padding-left: 0;
-    background-color: rgba(999, 999, 999, 0.8);
-    border-radius: 4px;
-    border: 1px solid var(--primary-color);
+    background-color: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     display: none;
+    z-index: 99999;
+}
+
+.nav-icon__user.is-open {
+    display: block !important;
 }
 
 .nav-icon__user::before {
     position: absolute;
     content: "";
-    top: -16px;
-    right: 2px;
-    border-width: 8px 8px;
+    top: -14px;
+    right: 14px;
+    border-width: 7px 7px;
     border-style: solid;
-    border-color: transparent transparent var(--primary-color) transparent;
+    border-color: transparent transparent #ffffff transparent;
+    filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.08));
 }
 
 .nav-item__link-icon:nth-child(2)::after {
