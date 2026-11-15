@@ -180,7 +180,14 @@ const AdminSystemMonitorPage = () => {
   const handleTestAlert = async (channel) => {
     setTestingChannel(channel);
     try {
-      const res = await axiosClient.post('/admin/system/alerts/test', { channel });
+      const res = await axiosClient.post('/admin/system/alerts/test', {
+        channel,
+        email: alertSettings.alertEmail,
+        telegramBotToken: alertSettings.telegramBotToken,
+        telegramChatId: alertSettings.telegramChatId,
+        slackWebhookUrl: alertSettings.slackWebhookUrl,
+        smsPhoneNumber: alertSettings.smsPhoneNumber,
+      });
       if (res.data?.success) {
         toast.success(res.data.message || `Đã gửi cảnh báo thử nghiệm qua ${channel.toUpperCase()}`);
       } else {
