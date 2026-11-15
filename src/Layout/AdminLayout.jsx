@@ -413,7 +413,7 @@ const AdminLayout = ({ children }) => {
               </button>
 
               <div className={`sidebar-group-items ${openGroups.business ? 'expanded' : ''}`}>
-                {(isAdmin || isDirector || isManager || isAccountant) && (
+                {(isAdmin || isDirector || isManager) && (
                   <Link 
                     to="/admin/bao-cao" 
                     className={`nav-link ${location.pathname === '/admin/bao-cao' || location.pathname === '/admin' ? 'active' : ''}`}

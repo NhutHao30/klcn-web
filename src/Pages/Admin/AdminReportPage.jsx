@@ -20,6 +20,9 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
   const [isLoading, setIsLoading] = useState(true);
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [selectedStoreId, setSelectedStoreId] = useState(''); // '' = Tất cả chi nhánh (chỉ Giám đốc)
+  const [isDirectorRole, setIsDirectorRole] = useState(false);
+  const [managerStoreId, setManagerStoreId] = useState('');
 
   // === TH?NG K� H?Y �ON ===
   const [cancelStats, setCancelStats] = useState(null);
@@ -82,34 +85,53 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
           navigate('/admin/chat', { replace: true });
           return;
         }
+        if (vtId === 7 || role === 6) {
+          toast.error("Kế toán không có quyền truy cập vào Báo cáo thống kê!");
+          navigate('/admin/hoa-don', { replace: true });
+          return;
+        }
 
-        const isAllowed = [1, 2, 7, 8].includes(vtId) || [0, 1, 5, 6].includes(role);
+        const isAllowed = [1, 2, 8].includes(vtId) || [0, 1, 5].includes(role);
         if (!isAllowed) {
           toast.error("Bạn không có quyền truy cập vào Báo cáo thống kê!");
           navigate('/', { replace: true });
           return;
         }
+
+        const isDir = [1, 8].includes(vtId) || [0, 5].includes(role);
+        setIsDirectorRole(isDir);
+
+        const userStore = String(user.cuaHangId || user.nguoidung?.cuaHangId || user.nhanvien?.MACUAHANG || '');
+        if (!isDir && userStore) {
+          setManagerStoreId(userStore);
+          setSelectedStoreId(userStore);
+          setCancelFilter(prev => ({ ...prev, cuaHangId: userStore }));
+        }
       }).catch(() => {
         navigate('/dang-nhap', { replace: true });
       });
     });
-    fetchData();
-  }, [reportType]);
+  }, []);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchData(selectedStoreId);
+  }, [reportType, selectedStoreId]);
+
+  const fetchData = async (storeFilter = selectedStoreId) => {
     setIsLoading(true);
     try {
       const { getRevenueReport, getTopProducts, getUsersForReport, getChamCong, getBiDashboardData } = await import('../../services/reportService');
       const { getThongKeLoiNhuan, getThongKeHaoHut } = await import('../../services/batchService');
       
+      const profitLossParams = storeFilter ? { cuaHangId: storeFilter, macuahang: storeFilter } : {};
       const results = await Promise.allSettled([
-        getRevenueReport(reportType),
-        getBiDashboardData(),
-        getTopProducts(),
+        getRevenueReport(reportType, storeFilter),
+        getBiDashboardData(storeFilter),
+        getTopProducts(storeFilter),
         getUsersForReport(),
         getChamCong(currentMonth, currentYear),
-        getThongKeLoiNhuan(),
-        getThongKeHaoHut()
+        getThongKeLoiNhuan(profitLossParams),
+        getThongKeHaoHut(profitLossParams)
       ]);
       
       if (results[0].status === 'fulfilled') setRevenueData(results[0].value || []);
@@ -803,8 +825,46 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
 
   return (
     <AdminLayout>
-      <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
-        <h1 className="admin-title" style={{ marginBottom: 0 }}>Báo cáo thống kê</h1>
+      <div className="admin-flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <h1 className="admin-title" style={{ marginBottom: 0 }}>Báo cáo thống kê</h1>
+          {isDirectorRole ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>🏢 Chi nhánh:</span>
+              <select
+                value={selectedStoreId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedStoreId(val);
+                  setCancelFilter(prev => ({ ...prev, cuaHangId: val }));
+                }}
+                style={{ border: 'none', outline: 'none', fontSize: '13.5px', fontWeight: 600, color: '#7a5230', background: 'transparent', cursor: 'pointer' }}
+              >
+                <option value="">Tất cả chi nhánh</option>
+                {stores.map(st => (
+                  <option key={st.id || st.MACUAHANG} value={String(st.id || st.MACUAHANG)}>
+                    {st.tenCuaHang || st.ten_cuahang || st.TENCUAHANG}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <span style={{
+              backgroundColor: '#fef3c7',
+              color: '#92400e',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              border: '1px solid #fde68a'
+            }}>
+              🏪 {stores.find(st => String(st.id || st.MACUAHANG) === String(managerStoreId))?.tenCuaHang ||
+                   currentUser?.tenCuaHang ||
+                   currentUser?.nguoidung?.cuahang?.tenCuaHang ||
+                   `Chi nhánh #${managerStoreId || 1}`} (Phạm vi quản lý)
+            </span>
+          )}
+        </div>
         <button className="admin-btn admin-btn-success" onClick={exportPDF}>
             📥 Xuất Báo Cáo (PDF)
           </button>
@@ -1333,22 +1393,24 @@ const [activeTab, setActiveTab] = useState('revenue'); // revenue, employee, cus
                       style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #ccc' }}
                     />
                   </div>
-                  <div>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#555', display: 'block', marginBottom: '6px' }}>Chi nhánh</label>
-                    <select
-                      className="admin-select"
-                      value={cancelFilter.cuaHangId}
-                      onChange={e => setCancelFilter(prev => ({ ...prev, cuaHangId: e.target.value }))}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #ccc' }}
-                    >
-                      <option value="">Tất cả chi nhánh</option>
-                      {stores.map(st => (
-                        <option key={st.id || st.MACUAHANG} value={st.id || st.MACUAHANG}>
-                          {st.tenCuaHang || st.ten_cuahang || st.TENCUAHANG}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {isDirectorRole && (
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#555', display: 'block', marginBottom: '6px' }}>Chi nhánh</label>
+                      <select
+                        className="admin-select"
+                        value={cancelFilter.cuaHangId}
+                        onChange={e => setCancelFilter(prev => ({ ...prev, cuaHangId: e.target.value }))}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #ccc' }}
+                      >
+                        <option value="">Tất cả chi nhánh</option>
+                        {stores.map(st => (
+                          <option key={st.id || st.MACUAHANG} value={st.id || st.MACUAHANG}>
+                            {st.tenCuaHang || st.ten_cuahang || st.TENCUAHANG}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label style={{ fontSize: '13px', fontWeight: '600', color: '#555', display: 'block', marginBottom: '6px' }}>Lý do</label>
                     <select

@@ -1,17 +1,21 @@
 import axiosClient from './axiosClient';
 
-export const getRevenueReport = async (type = 'month') => {
-  const response = await axiosClient.get(`/admin/reports/revenue?type=${type}`);
+export const getRevenueReport = async (type = 'month', cuaHangId = '') => {
+  const params = new URLSearchParams({ type });
+  if (cuaHangId) params.append('cuaHangId', cuaHangId);
+  const response = await axiosClient.get(`/admin/reports/revenue?${params.toString()}`);
   return response.data;
 };
 
-export const getBiDashboardData = async () => {
-  const response = await axiosClient.get('/admin/reports/bi-dashboard');
+export const getBiDashboardData = async (cuaHangId = '') => {
+  const q = cuaHangId ? `?cuaHangId=${encodeURIComponent(cuaHangId)}` : '';
+  const response = await axiosClient.get(`/admin/reports/bi-dashboard${q}`);
   return response.data;
 };
 
-export const getTopProducts = async () => {
-  const response = await axiosClient.get('/admin/reports/top-products');
+export const getTopProducts = async (cuaHangId = '') => {
+  const q = cuaHangId ? `?cuaHangId=${encodeURIComponent(cuaHangId)}` : '';
+  const response = await axiosClient.get(`/admin/reports/top-products${q}`);
   return response.data;
 };
 

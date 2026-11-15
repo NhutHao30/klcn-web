@@ -48,6 +48,17 @@ const AdminPOSPage = () => {
     return 'Hành chính';
   });
 
+  // POS Refund states
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundCodeInput, setRefundCodeInput] = useState('');
+  const [refundLookupLoading, setRefundLookupLoading] = useState(false);
+  const [refundOrder, setRefundOrder] = useState(null);
+  const [refundCanRefund, setRefundCanRefund] = useState(false);
+  const [refundBlockedReason, setRefundBlockedReason] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [isRefunding, setIsRefunding] = useState(false);
+  const [refundCheckedItems, setRefundCheckedItems] = useState({});
+
   const inputRef = useRef(null);
 
   const fetchActiveShift = async () => {
@@ -108,6 +119,90 @@ const AdminPOSPage = () => {
       setShowOpenShiftModal(true); // Yêu cầu mở ca mới
     } catch (e) {
       toast.error("Lỗi đóng ca: " + (e.response?.data?.error || e.message));
+    }
+  };
+
+  const handleOpenRefundModal = () => {
+    setRefundCodeInput('');
+    setRefundOrder(null);
+    setRefundCanRefund(false);
+    setRefundBlockedReason('');
+    setRefundReason('');
+    setRefundCheckedItems({});
+    setShowRefundModal(true);
+  };
+
+  const handleLookupPosOrder = async (e) => {
+    if (e) e.preventDefault();
+    const code = refundCodeInput.trim();
+    if (!code) {
+      toast.warning('Vui lòng nhập mã hóa đơn cần hoàn tiền!');
+      return;
+    }
+    setRefundLookupLoading(true);
+    setRefundOrder(null);
+    setRefundCanRefund(false);
+    setRefundBlockedReason('');
+    setRefundCheckedItems({});
+    try {
+      const res = await axiosClient.get('/admin/pos/orders/lookup', {
+        params: { maDonHang: code },
+      });
+      const orderData = res.data?.data || null;
+      setRefundOrder(orderData);
+      setRefundCanRefund(Boolean(res.data?.can_refund));
+      setRefundBlockedReason(res.data?.blocked_reason || '');
+      if (orderData?.chitiet) {
+        const initChecked = {};
+        orderData.chitiet.forEach((ct, idx) => {
+          initChecked[ct.sanPhamId || idx] = false;
+        });
+        setRefundCheckedItems(initChecked);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không tìm thấy hóa đơn bán tại quầy!');
+    } finally {
+      setRefundLookupLoading(false);
+    }
+  };
+
+  const handleToggleRefundCheck = (key) => {
+    setRefundCheckedItems((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const handleConfirmPosRefund = async () => {
+    if (!refundOrder || !refundCanRefund) return;
+    const items = refundOrder.chitiet || [];
+    const allChecked = items.length === 0 || items.every((ct, idx) => refundCheckedItems[ct.sanPhamId || idx]);
+    if (!allChecked) {
+      toast.warning('Vui lòng kiểm tra và tích xác nhận đầy đủ các sản phẩm trong hóa đơn trước khi hoàn tiền!');
+      return;
+    }
+    if (!refundReason.trim()) {
+      toast.warning('Vui lòng nhập lý do hoàn tiền!');
+      return;
+    }
+
+    setIsRefunding(true);
+    try {
+      const res = await axiosClient.post(`/admin/pos/orders/${refundOrder.id}/refund`, {
+        lyDo: refundReason.trim(),
+      });
+      toast.success(res.data?.message || 'Hoàn tiền hóa đơn thành công!');
+      if (res.data?.shift) {
+        setActiveShift(res.data.shift);
+      } else {
+        fetchActiveShift();
+      }
+      fetchAllProducts();
+      setShowRefundModal(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể hoàn tiền hóa đơn!');
+    } finally {
+      setIsRefunding(false);
     }
   };
 
@@ -496,13 +591,46 @@ const AdminPOSPage = () => {
 
   return (
     <AdminLayout>
-      <div className="admin-flex-between" style={{ marginBottom: '1.5rem' }}>
+      <div className="admin-flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '10px' }}>
         <h1 className="admin-title" style={{ marginBottom: 0 }}>Bán hàng tại quầy</h1>
         {activeShift && (
-          <button className="admin-btn admin-btn-danger" onClick={() => setShowCloseShiftModal(true)}>
-            <i className="fa-solid fa-lock" style={{ marginRight: '8px' }}></i>
-            Đóng Ca (Đang mở)
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{
+              backgroundColor: '#fff8e1',
+              border: '1px solid #ffe082',
+              color: '#795548',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <i className="fa-solid fa-vault" style={{ color: '#d97706' }}></i>
+              <span>Két tiền mặt:</span>
+              <strong style={{ color: '#b45309', fontSize: '14px' }}>
+                {Number(activeShift.expected_cash ?? activeShift.opening_cash ?? 0).toLocaleString('vi-VN')} ₫
+              </strong>
+            </div>
+            <button
+              className="admin-btn"
+              style={{
+                backgroundColor: '#fff3cd',
+                color: '#856404',
+                border: '1px solid #ffeeba',
+                fontWeight: 600
+              }}
+              onClick={handleOpenRefundModal}
+            >
+              <i className="fa-solid fa-rotate-left" style={{ marginRight: '8px' }}></i>
+              Hoàn tiền hóa đơn
+            </button>
+            <button className="admin-btn admin-btn-danger" onClick={() => setShowCloseShiftModal(true)}>
+              <i className="fa-solid fa-lock" style={{ marginRight: '8px' }}></i>
+              Đóng Ca (Đang mở)
+            </button>
+          </div>
         )}
       </div>
 
@@ -579,6 +707,12 @@ const AdminPOSPage = () => {
                   <span>Doanh thu Ví MoMo:</span>
                   <strong style={{ color: '#d63384' }}>+{Number(activeShift.momo_sales || 0).toLocaleString('vi-VN')} ₫</strong>
                 </div>
+                {Number(activeShift.cash_refunds || 0) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span>Hoàn tiền mặt trong ca:</span>
+                    <strong style={{ color: '#dc3545' }}>-{Number(activeShift.cash_refunds || 0).toLocaleString('vi-VN')} ₫</strong>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #ccc', color: '#0d6efd', fontWeight: 'bold' }}>
                   <span>Tổng doanh thu cả ca:</span>
                   <span>{Number(activeShift.total_sales || 0).toLocaleString('vi-VN')} ₫</span>
@@ -1192,6 +1326,166 @@ const AdminPOSPage = () => {
         onClose={() => setIsOrderPrintOpen(false)}
         data={posSuccessModal}
       />
+
+      {/* MODAL TRA CỨU & HOÀN TIỀN HÓA ĐƠN TẠI QUẦY */}
+      {showRefundModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px' }}>
+          <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 12px 32px rgba(0,0,0,0.22)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #eee' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#4e1a0f', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <i className="fa-solid fa-rotate-left" style={{ color: '#d97706' }}></i>
+                Tra cứu & Hoàn tiền hóa đơn tại quầy
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowRefundModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleLookupPosOrder} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <input
+                type="text"
+                className="admin-input"
+                placeholder="Nhập mã hóa đơn trên phiếu (VD: POS12345678 hoặc ID)..."
+                value={refundCodeInput}
+                onChange={(e) => setRefundCodeInput(e.target.value)}
+                style={{ flex: 1 }}
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="admin-btn admin-btn-primary"
+                disabled={refundLookupLoading}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {refundLookupLoading ? 'Đang tìm...' : 'Tìm hóa đơn'}
+              </button>
+            </form>
+
+            {refundOrder && (
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', backgroundColor: '#fafafa' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px dashed #d1d5db' }}>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>
+                      Mã hóa đơn: <span style={{ color: '#b45309' }}>{refundOrder.maDonHang}</span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#4b5563', marginTop: '2px' }}>
+                      Ngày tạo: {refundOrder.ngayDat ? new Date(refundOrder.ngayDat).toLocaleString('vi-VN') : '—'}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#dc2626' }}>
+                      {Number(refundOrder.tongTien || 0).toLocaleString('vi-VN')} ₫
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#4b5563' }}>
+                      {refundOrder.phuongThucThanhToan === 1 ? 'Tiền mặt' : refundOrder.phuongThucThanhToan === 3 ? 'Ví MoMo' : 'Chuyển khoản / QR'}
+                    </div>
+                  </div>
+                </div>
+
+                {!refundCanRefund && refundBlockedReason && (
+                  <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '10px 12px', borderRadius: '8px', fontSize: '13px', marginBottom: '12px', fontWeight: 500 }}>
+                    <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: '6px' }}></i>
+                    {refundBlockedReason}
+                  </div>
+                )}
+
+                <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '8px', color: '#374151' }}>
+                  Kiểm tra các sản phẩm trong hóa đơn ({refundOrder.chitiet?.length || 0} món):
+                </div>
+                <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#fff', marginBottom: '12px' }}>
+                  {(refundOrder.chitiet || []).map((ct, idx) => {
+                    const itemKey = ct.sanPhamId || idx;
+                    const checked = Boolean(refundCheckedItems[itemKey]);
+                    return (
+                      <label
+                        key={itemKey}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderBottom: idx < refundOrder.chitiet.length - 1 ? '1px solid #f3f4f6' : 'none',
+                          cursor: refundCanRefund ? 'pointer' : 'default',
+                          backgroundColor: checked ? '#f0fdf4' : '#fff',
+                          gap: '10px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                          {refundCanRefund && (
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => handleToggleRefundCheck(itemKey)}
+                              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                            />
+                          )}
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '14px', color: '#1f2937' }}>
+                              {ct.sanpham?.tenSanPham || `Sản phẩm #${ct.sanPhamId}`}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                              SL: <strong>{ct.soLuong}</strong> × {Number(ct.donGia || 0).toLocaleString('vi-VN')} ₫
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>
+                          {Number(ct.thanhTien || (ct.soLuong * ct.donGia) || 0).toLocaleString('vi-VN')} ₫
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {refundCanRefund && (
+                  <>
+                    <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', padding: '10px 12px', borderRadius: '8px', fontSize: '13px', marginBottom: '12px' }}>
+                      <i className="fa-solid fa-circle-info" style={{ marginRight: '6px' }}></i>
+                      Khi xác nhận hoàn tiền: số lượng sản phẩm sẽ được <strong>cộng lại vào tồn kho chi nhánh</strong> và số tiền <strong>{Number(refundOrder.tongTien || 0).toLocaleString('vi-VN')} ₫</strong> sẽ được <strong>hoàn bằng tiền mặt</strong> (trừ trực tiếp vào két tiền mặt và doanh thu ca hiện tại).
+                    </div>
+
+                    <div style={{ marginBottom: '14px' }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#374151' }}>
+                        Lý do hoàn tiền <span style={{ color: '#dc2626' }}>*</span>
+                      </label>
+                      <textarea
+                        className="admin-input"
+                        rows={2}
+                        placeholder="VD: Khách đổi ý / sản phẩm không đạt yêu cầu, có hóa đơn gốc..."
+                        value={refundReason}
+                        onChange={(e) => setRefundReason(e.target.value)}
+                        style={{ width: '100%', resize: 'vertical' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-secondary"
+                        onClick={() => setShowRefundModal(false)}
+                        disabled={isRefunding}
+                      >
+                        Đóng
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-danger"
+                        onClick={handleConfirmPosRefund}
+                        disabled={isRefunding}
+                      >
+                        {isRefunding ? 'Đang xử lý...' : `Xác nhận hoàn ${Number(refundOrder.tongTien || 0).toLocaleString('vi-VN')} ₫ tiền mặt`}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };
