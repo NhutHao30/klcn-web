@@ -101,6 +101,22 @@ const AdminLayout = ({ children }) => {
   const isCskh = vaitroId === 5 || userRole === 4;
   const isAccountant = vaitroId === 7 || userRole === 6;
 
+  // Chặn Quản lý chi nhánh, Giám đốc và các role không phải Admin truy cập trang quản lý hệ thống
+  useEffect(() => {
+    if (!isAuthorized) return;
+    const systemOnlyPaths = [
+      '/admin/tai-khoan',
+      '/admin/giam-sat-he-thong',
+      '/admin/phan-tich-nguoi-dung',
+      '/admin/nhat-ky-nang-cao',
+      '/admin/bao-tri-he-thong',
+    ];
+    if (!isAdmin && systemOnlyPaths.some(p => location.pathname.startsWith(p))) {
+      toast.error('Chỉ Quản trị viên hệ thống (Admin) mới được phép truy cập chức năng này!');
+      navigate('/admin/thong-tin-ca-nhan', { replace: true });
+    }
+  }, [isAuthorized, isAdmin, location.pathname, navigate]);
+
   // Automatically expand group containing the active page
   useEffect(() => {
     const path = location.pathname;
@@ -385,7 +401,7 @@ const AdminLayout = ({ children }) => {
                   className={`nav-link ${location.pathname === '/admin/duyet-ky-so' ? 'active' : ''}`}
                 >
                   <i className="fa-solid fa-file-invoice"></i>
-                  Hóa đơn nhập
+                  Quản lý ký duyệt
                 </Link>
                 <Link 
                   to="/admin/bien-ban-huy" 
@@ -515,8 +531,8 @@ const AdminLayout = ({ children }) => {
             </div>
           </div>
 
-          {/* NHÓM 8: HỆ THỐNG */}
-          {(isAdmin || isDirector || isManager) && (
+          {/* NHÓM 8: HỆ THỐNG (CHỈ QUẢN TRỊ VIÊN ADMIN) */}
+          {isAdmin && (
             <div className="sidebar-group">
               <button 
                 className={`sidebar-group-header ${openGroups.system ? 'open' : ''} ${isSystemGroupActive ? 'active-group' : ''}`}

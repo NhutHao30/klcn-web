@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import AdminLayout from '../../Layout/AdminLayout';
@@ -863,17 +864,46 @@ const AdminNhapLoPage = () => {
               <i className="fa-solid fa-clipboard-check" style={{ marginRight: '6px' }}></i>
               2. Tạo Nhanh Từ Yêu Cầu Nhập Hàng ({filteredBranchRequests.length})
             </button>
-            <button
-              type="button"
-              className={`admin-btn ${managerTab === 'inspect' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
-              onClick={() => setManagerTab('inspect')}
-              style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
-            >
-              <i className="fa-solid fa-boxes-packing" style={{ marginRight: '6px' }}></i>
-              {isBranchManager
-                ? `3. Duyệt & Kiểm Đếm Phiếu Nhập (${branchInvoices.filter(i => i.trangThai === 0).length} chờ xử lý)`
-                : `3. Tra Cứu Phiếu Nhập (${branchInvoices.filter(i => i.trangThai === 0).length} chờ xử lý)`}
-            </button>
+            {isBranchManager ? (
+              <>
+                <button
+                  type="button"
+                  className={`admin-btn ${managerTab === 'approve' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                  onClick={() => {
+                    setManagerTab('approve');
+                    setStatusFilter('CHO_DUYET');
+                    setSelectedInvoice(null);
+                  }}
+                  style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
+                >
+                  <i className="fa-solid fa-stamp" style={{ marginRight: '6px' }}></i>
+                  3. Duyệt Đơn ({branchInvoices.filter(i => getPoStatusCode(i) === 'CHO_DUYET').length} chờ duyệt)
+                </button>
+                <button
+                  type="button"
+                  className={`admin-btn ${managerTab === 'inspect' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                  onClick={() => {
+                    setManagerTab('inspect');
+                    setStatusFilter('');
+                    setSelectedInvoice(null);
+                  }}
+                  style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
+                >
+                  <i className="fa-solid fa-boxes-packing" style={{ marginRight: '6px' }}></i>
+                  4. Kiểm Đếm Phiếu Nhập ({branchInvoices.filter(i => ['DA_DUYET', 'DANG_KIEM_KE'].includes(getPoStatusCode(i))).length} chờ kiểm đếm)
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className={`admin-btn ${managerTab === 'inspect' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                onClick={() => setManagerTab('inspect')}
+                style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
+              >
+                <i className="fa-solid fa-boxes-packing" style={{ marginRight: '6px' }}></i>
+                3. Kiểm Đếm & Ký Nhận Phiếu Nhập ({branchInvoices.filter(i => ['DA_DUYET', 'DANG_KIEM_KE'].includes(getPoStatusCode(i))).length} chờ xử lý)
+              </button>
+            )}
           </div>
 
           {/* TAB 1: FORM TẠO ĐƠN NHẬP HÀNG MỚI CỦA QUẢN LÝ CHI NHÁNH */}
@@ -1221,17 +1251,20 @@ const AdminNhapLoPage = () => {
       )}
 
       {/* ========================================================
-          GIAO DIỆN KIỂM ĐẾM & TRA CỨU PHIẾU NHẬP
-          (Hiển thị cho Nhân viên kho / Kế toán, hoặc khi Quản lý chi nhánh chọn tab 'inspect')
+          GIAO DIỆN DUYỆT ĐƠN (tab 'approve') & KIỂM ĐẾM PHIẾU NHẬP (tab 'inspect')
           ======================================================== */}
-      {((!isDirector && !isAdmin && !isBranchManager) || (isBranchManager && managerTab === 'inspect')) && (
+      {((!isDirector && !isAdmin && !isBranchManager) || (isBranchManager && (managerTab === 'approve' || managerTab === 'inspect'))) && (
         <div className="admin-card" style={{ width: '100%', boxSizing: 'border-box', marginBottom: '2rem' }}>
           <div style={{ marginBottom: '1.2rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
             <h2 className="admin-card-title" style={{ marginBottom: '4px' }}>
-              Tra Cứu Phiếu Nhập Hàng & Kiểm Đếm Chi Nhánh
+              {isBranchManager && managerTab === 'approve'
+                ? 'Duyệt Đơn Nhập Hàng Chi Nhánh'
+                : 'Kiểm Đếm Phiếu Nhập Hàng Từ Nhà Cung Cấp'}
             </h2>
             <p style={{ color: '#666', fontSize: '13px', margin: 0 }}>
-              Tra cứu mã phiếu nhập hàng của chi nhánh để kiểm đếm số lượng thực tế và ký xác nhận theo đúng vai trò.
+              {isBranchManager && managerTab === 'approve'
+                ? 'Xem danh sách phiếu nhập hàng do Nhân viên kho đề xuất và thực hiện Duyệt hoặc Từ chối (nhập lý do).'
+                : 'Chọn phiếu đã duyệt khi nhà cung cấp giao hàng tới để đối chiếu SL Đặt vs SL Thực Nhận và ký xác nhận theo đúng vai trò.'}
             </p>
           </div>
 
@@ -1422,6 +1455,43 @@ const AdminNhapLoPage = () => {
                 </div>
               )}
 
+              {/* KHI CHỜ DUYỆT HOẶC TỪ CHỐI: CHỈ HIỂN THỊ DANH SÁCH SẢN PHẨM ĐẶT, KHÔNG HIỂN THỊ BẢNG ĐỐI CHIẾU THỰC NHẬN HAY KHUNG KÝ */}
+              {(invStatusCode === 'CHO_DUYET' || invStatusCode === 'TU_CHOI') ? (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 10px 0', color: 'var(--admin-primary)' }}>
+                    <i className="fa-solid fa-box" style={{ marginRight: '6px' }}></i>
+                    Chi Tiết Sản Phẩm Trong Phiếu Đề Xuất Nhập
+                  </h3>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="admin-table" style={{ fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f1f5f9' }}>
+                          <th style={{ width: '40px' }}>STT</th>
+                          <th>Tên Bánh</th>
+                          <th style={{ width: '130px' }}>Hạn Sử Dụng</th>
+                          <th style={{ width: '130px', textAlign: 'center' }}>SL Đặt</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {checkItems.map((item, idx) => (
+                          <tr key={idx}>
+                            <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#64748b' }}>{idx + 1}</td>
+                            <td>
+                              <b>{item.tenSanPham}</b>
+                              <div style={{ fontSize: '11px', color: '#888' }}>ĐVT: {item.donViTinh}</div>
+                            </td>
+                            <td>{formatDateOnly(item.hsd)}</td>
+                            <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#0f172a', fontSize: '14px' }}>
+                              {item.soLuongChungTu}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <>
               <div style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: 0, color: 'var(--admin-primary)' }}>
@@ -1625,6 +1695,8 @@ const AdminNhapLoPage = () => {
                     </div>
                   )}
                 </div>
+              )}
+                </>
               )}
             </div>
             );
