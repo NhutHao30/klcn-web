@@ -8,6 +8,10 @@ import {
   getHoaDonNhaps,
   getHoaDonNhapDetail,
   xacNhanNhapKho,
+  approvePurchaseOrder,
+  rejectPurchaseOrder,
+  inspectPurchaseOrder,
+  signPurchaseOrder,
   getBranchRequests,
   duyetYeuCauNhapHang
 } from '../../services/batchService';
@@ -27,6 +31,27 @@ const formatDateOnly = (dateStr) => {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
   return cleanStr;
+};
+
+const PO_STATUS_META = {
+  CHO_DUYET: { label: 'Chờ duyệt', bg: '#fef3c7', color: '#b45309', border: '#fcd34d' },
+  DA_DUYET: { label: 'Đã duyệt', bg: '#dbeafe', color: '#1d4ed8', border: '#93c5fd' },
+  DANG_KIEM_KE: { label: 'Đang kiểm kê', bg: '#ede9fe', color: '#6d28d9', border: '#c4b5fd' },
+  HOAN_TAT: { label: 'Hoàn tất', bg: '#dcfce7', color: '#15803d', border: '#86efac' },
+  TU_CHOI: { label: 'Từ chối', bg: '#fee2e2', color: '#b91c1c', border: '#fca5a5' },
+};
+
+const getPoStatusCode = (inv) => {
+  if (!inv) return 'CHO_DUYET';
+  if (inv.maTrangThai && PO_STATUS_META[inv.maTrangThai]) return inv.maTrangThai;
+  if (Number(inv.trangThai) === 1) return 'HOAN_TAT';
+  if (Number(inv.trangThai) === 2) return 'TU_CHOI';
+  return 'CHO_DUYET';
+};
+
+const getPoStatusMeta = (inv) => {
+  const code = getPoStatusCode(inv);
+  return PO_STATUS_META[code] || { label: inv?.trangThaiLabel || code, bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' };
 };
 
 const AdminNhapLoPage = () => {
@@ -87,6 +112,11 @@ const AdminNhapLoPage = () => {
   const [historySearch, setHistorySearch] = useState('');
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printInvoiceData, setPrintInvoiceData] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [rejectModalInvoice, setRejectModalInvoice] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [carrierSignerName, setCarrierSignerName] = useState('');
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
 
   // Xác định vai trò người dùng hiện tại
   const vaiTroId = Number(currentUser?.vaiTroId || currentUser?.vai_tro_id || 0);
@@ -97,6 +127,7 @@ const AdminNhapLoPage = () => {
   const isDirector = !isAdmin && (vaiTroId === 8 || maRole === 5 || tenVaiTro.includes('giám đốc'));
   const isBranchManager = !isAdmin && !isDirector && (vaiTroId === 2 || maRole === 1 || tenVaiTro.includes('quản lý'));
   const isWarehouse = !isAdmin && !isDirector && !isBranchManager && (vaiTroId === 4 || maRole === 7 || tenVaiTro.includes('kho'));
+  const isAccountant = !isAdmin && !isDirector && !isBranchManager && !isWarehouse && (vaiTroId === 7 || maRole === 6 || tenVaiTro.includes('kế toán'));
 
   // Chi nhánh của người dùng hiện tại
   const userStoreId = currentUser?.nguoidung?.cuaHangId || currentUser?.cuaHangId || currentUser?.cuahang?.id || null;
@@ -364,37 +395,14 @@ const AdminNhapLoPage = () => {
       return;
     }
 
-    // Nếu người tạo là Quản lý chi nhánh -> tự động hoàn tất luôn, không cần phải duyệt nữa
-    const autoCompleteByManager = isBranchManager;
-    const finalKyQuanLy = kyQuanLyData || savedSignature || (isBranchManager ? 'BRANCH_MANAGER_AUTO_APPROVED' : null);
-
-    for (let i = 0; i < nhapForm.items.length; i++) {
-      const item = nhapForm.items[i];
-      if (!item.MASP) {
-        toast.warning(`Dòng thứ ${i + 1}: Vui lòng chọn sản phẩm bánh!`);
-        return;
-      }
-      if (item.NGAYSX && item.HSD_LO < item.NGAYSX) {
-        toast.error(`Dòng thứ ${i + 1}: Hạn sử dụng không được nhỏ hơn Ngày sản xuất!`);
-        return;
-      }
-      if (item.HSD_LO < todayStr) {
-        toast.error(`Dòng thứ ${i + 1}: Lô bánh mới nhập phải có Hạn sử dụng từ hôm nay trở về sau!`);
-        return;
-      }
-    }
-
     const payload = {
       MANCC: nhapForm.MANCC,
       MACUAHANG_NHAP: targetStoreId,
       GHICHU: nhapForm.GHICHU,
       yeuCauId: selectedYeuCauId,
-      auto_sign_all: autoCompleteByManager,
-      ky_quan_ly: autoCompleteByManager ? finalKyQuanLy : null,
       chi_tiet: nhapForm.items.map(item => ({
         MASP: item.MASP,
         SOLUONGTCT: parseInt(item.SOLUONGTCT) || 0,
-        SOLUONGTN: parseInt(item.SOLUONGTCT) || 0,
         DONGIANHAP: parseFloat(item.DONGIANHAP) || 0,
         NGAYSX: item.NGAYSX,
         HSD_LO: item.HSD_LO,
@@ -407,9 +415,9 @@ const AdminNhapLoPage = () => {
       if (res.success || res.status || res.message) {
         const maPhieu = res.data?.maHoaDonNhap || res.data?.MAHDNHAP || res.data?.hdnhap?.MAHDNHAP || '';
         if (isWarehouse) {
-          toast.success(`Nhân viên kho đã tạo yêu cầu nhập lô hàng mới ${maPhieu} thành công! Đang chờ Quản lý chi nhánh phê duyệt.`);
+          toast.success(`Nhân viên kho đã tạo phiếu nhập hàng ${maPhieu} (Chờ duyệt). Đang chờ Quản lý chi nhánh duyệt!`);
         } else {
-          toast.success(`Quản lý chi nhánh đã tạo Đơn Nhập Hàng ${maPhieu} thành công! Đơn được hoàn tất và cộng tồn kho ngay lập tức, không cần phải duyệt lại.`);
+          toast.success(`Quản lý chi nhánh đã tạo phiếu ${maPhieu} (Đã duyệt). Khi NCC giao hàng, hãy kiểm kê thực nhận và ký đủ 2 bên để cộng tồn kho.`);
         }
 
         setNhapForm({
@@ -468,9 +476,9 @@ const AdminNhapLoPage = () => {
         const lo = d.loHang || d.lo_hang;
         const sp = d.sanPham || d.san_pham;
         const slChungTu = Number(d.soLuong ?? lo?.soLuongNhap ?? 0);
-        const slThucNhan = (invoice.trangThai === 1 && lo?.soLuongCon !== undefined)
-          ? Number(lo.soLuongCon)
-          : slChungTu;
+        const slThucNhan = d.soLuongThucNhan !== null && d.soLuongThucNhan !== undefined
+          ? Number(d.soLuongThucNhan)
+          : (getPoStatusCode(invoice) === 'HOAN_TAT' && lo?.soLuongCon !== undefined ? Number(lo.soLuongCon) : slChungTu);
 
         return {
           chiTietId: d.id,
@@ -481,7 +489,7 @@ const AdminNhapLoPage = () => {
           hsd: lo?.hsd || '-',
           soLuongChungTu: slChungTu,
           soLuongThucNhan: slThucNhan,
-          lyDoHaoHut: ''
+          lyDoHaoHut: d.ghiChuChenhLech || ''
         };
       });
 
@@ -498,6 +506,104 @@ const AdminNhapLoPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleApprovePO = async (invoice) => {
+    setIsActionSubmitting(true);
+    try {
+      const res = await approvePurchaseOrder(invoice.id);
+      toast.success(res.message || 'Đã duyệt phiếu nhập hàng!');
+      if (res.data) setSelectedInvoice(res.data);
+      fetchStoreInvoices();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể duyệt phiếu');
+    } finally {
+      setIsActionSubmitting(false);
+    }
+  };
+
+  const handleConfirmRejectPO = async () => {
+    if (!rejectModalInvoice || !rejectReason.trim()) {
+      toast.warning('Vui lòng nhập lý do từ chối!');
+      return;
+    }
+    setIsActionSubmitting(true);
+    try {
+      const res = await rejectPurchaseOrder(rejectModalInvoice.id, { lyDoTuChoi: rejectReason.trim() });
+      toast.success(res.message || 'Đã từ chối phiếu nhập hàng.');
+      if (res.data && selectedInvoice?.id === rejectModalInvoice.id) {
+        setSelectedInvoice(res.data);
+      }
+      setRejectModalInvoice(null);
+      setRejectReason('');
+      fetchStoreInvoices();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể từ chối phiếu');
+    } finally {
+      setIsActionSubmitting(false);
+    }
+  };
+
+  const handleSaveInspection = async () => {
+    if (!selectedInvoice) return;
+    setIsActionSubmitting(true);
+    try {
+      const res = await inspectPurchaseOrder(selectedInvoice.id, {
+        ghiChu: ghiChuKiemDem || undefined,
+        items: checkItems.map(item => ({
+          chiTietId: item.chiTietId,
+          loHangId: item.loHangId,
+          sanPhamId: item.sanPhamId,
+          soLuongThucNhan: item.soLuongThucNhan,
+          ghiChuChenhLech: item.lyDoHaoHut || null,
+        })),
+      });
+      toast.success(res.message || 'Đã lưu số lượng thực nhận kiểm kê!');
+      if (res.data) setSelectedInvoice(res.data);
+      fetchStoreInvoices();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể lưu kiểm kê');
+    } finally {
+      setIsActionSubmitting(false);
+    }
+  };
+
+  const handleSignRolePO = async (roleItem) => {
+    if (!selectedInvoice) return;
+    const isCarrier = roleItem.isExternalCarrier;
+    if (isCarrier && !carrierSignerName.trim()) {
+      toast.warning('Vui lòng nhập họ tên Nhân viên vận chuyển / giao hàng!');
+      return;
+    }
+    setIsActionSubmitting(true);
+    try {
+      const res = await signPurchaseOrder(selectedInvoice.id, {
+        vaiTroKy: roleItem.vaiTroKy,
+        tenNguoiKy: isCarrier ? carrierSignerName.trim() : undefined,
+        chuKyAnh: isCarrier ? kyVanChuyenData : (kyNguoiNhanData || savedSignature || undefined),
+        ghiChu: ghiChuKiemDem || undefined,
+      });
+      toast.success(res.message || `Đã ký xác nhận vai trò ${roleItem.label}!`);
+      if (res.data) setSelectedInvoice(res.data);
+      if (isCarrier) setCarrierSignerName('');
+      fetchStoreInvoices();
+      fetchInitialData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể ký xác nhận');
+    } finally {
+      setIsActionSubmitting(false);
+    }
+  };
+
+  const canCurrentUserSignRole = (roleItem) => {
+    if (!roleItem || roleItem.signed) return false;
+    const statusCode = getPoStatusCode(selectedInvoice);
+    if (statusCode !== 'DA_DUYET' && statusCode !== 'DANG_KIEM_KE') return false;
+    if (roleItem.isExternalCarrier) return isBranchManager || isWarehouse;
+    if (roleItem.vaiTroKy === 'QUAN_LY_CHI_NHANH') return isBranchManager;
+    if (roleItem.vaiTroKy === 'NHAN_VIEN_KHO') return isWarehouse;
+    if (roleItem.vaiTroKy === 'NHAN_VIEN_KE_TOAN') return isAccountant;
+    return false;
   };
 
   const handleUpdateCheckQty = (index, value) => {
@@ -1007,12 +1113,12 @@ const AdminNhapLoPage = () => {
                   </div>
                 </div>
 
-                {/* THÔNG BÁO TỰ ĐỘNG HOÀN TẤT KHI QUẢN LÝ CHI NHÁNH LÀ NGƯỜI TẠO ĐƠN */}
+                {/* THÔNG BÁO QUY TRÌNH MỚI KHI QUẢN LÝ CHI NHÁNH LÀ NGƯỜI TẠO ĐƠN */}
                 {isBranchManager && (
-                  <div style={{ backgroundColor: '#dcfce7', border: '1px solid #86efac', borderRadius: '8px', padding: '12px 16px', marginBottom: '1.5rem', color: '#166534', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <i className="fa-solid fa-circle-check" style={{ fontSize: '18px', color: '#16a34a' }}></i>
+                  <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 16px', marginBottom: '1.5rem', color: '#1e40af', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <i className="fa-solid fa-circle-info" style={{ fontSize: '18px', color: '#2563eb' }}></i>
                     <div>
-                      <strong>Quyền Quản lý chi nhánh:</strong> Vì bạn là <b>Quản lý chi nhánh</b> trực tiếp tạo đơn nhập hàng này, hệ thống sẽ <b>tự động hoàn tất đơn và cộng tồn kho ngay lập tức</b> mà không cần phải qua bước chờ duyệt nữa.
+                      <strong>Quy trình Quản lý chi nhánh:</strong> Phiếu bạn tạo sẽ tự động ở trạng thái <b>Đã duyệt (DA_DUYET)</b> và <b>chưa cộng tồn kho ngay</b>. Khi nhà cung cấp giao hàng, hãy kiểm kê thực nhận và ký đủ 2 bên (Quản lý chi nhánh + Nhân viên giao hàng) để hoàn tất & cộng tồn kho.
                     </div>
                   </div>
                 )}
@@ -1025,8 +1131,8 @@ const AdminNhapLoPage = () => {
                   >
                     <i className="fa-solid fa-stamp" style={{ marginRight: '8px' }}></i>
                     {isWarehouse
-                      ? 'Gửi Yêu Cầu Nhập Lô Hàng Mới (Chờ Quản Lý Duyệt)'
-                      : 'Tạo Đơn Nhập Hàng & Hoàn Tất Nhập Kho Ngay'}
+                      ? 'Gửi Phiếu Nhập Hàng (Chờ Quản Lý Duyệt)'
+                      : 'Tạo Phiếu Nhập Hàng (Đã Duyệt - Chờ Giao Hàng)'}
                   </button>
                 </div>
               </form>
@@ -1156,47 +1262,88 @@ const AdminNhapLoPage = () => {
 
             {branchInvoices.length > 0 && (
               <div style={{ marginTop: '12px' }}>
-                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold', marginRight: '8px' }}>
-                  Các phiếu nhập tại {currentStoreName}:
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                  {branchInvoices.slice(0, 8).map(inv => {
-                    const isPending = inv.trangThai === 0;
-                    return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>
+                    Các phiếu nhập tại {currentStoreName}:
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {[
+                      { code: '', label: 'Tất cả' },
+                      { code: 'CHO_DUYET', label: 'Chờ duyệt' },
+                      { code: 'DA_DUYET', label: 'Đã duyệt' },
+                      { code: 'DANG_KIEM_KE', label: 'Đang kiểm kê' },
+                      { code: 'HOAN_TAT', label: 'Hoàn tất' },
+                      { code: 'TU_CHOI', label: 'Từ chối' },
+                    ].map(f => (
                       <button
-                        key={inv.id}
+                        key={f.code || 'ALL'}
                         type="button"
-                        onClick={() => {
-                          setSearchMaPhieu(inv.maHoaDonNhap || inv.id);
-                          handleSearchInvoice(inv.maHoaDonNhap || inv.id);
-                        }}
+                        onClick={() => setStatusFilter(f.code)}
                         style={{
-                          backgroundColor: selectedInvoice?.id === inv.id ? '#0284c7' : (isPending ? '#fff7ed' : '#f1f5f9'),
-                          color: selectedInvoice?.id === inv.id ? '#fff' : (isPending ? '#c2410c' : '#475569'),
-                          border: `1px solid ${isPending ? '#fdba74' : '#cbd5e1'}`,
-                          borderRadius: '6px',
-                          padding: '4px 10px',
-                          fontSize: '12px',
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          fontSize: '11px',
+                          fontWeight: 600,
                           cursor: 'pointer',
-                          fontWeight: isPending ? 'bold' : 'normal'
+                          border: statusFilter === f.code ? '1px solid #0284c7' : '1px solid #cbd5e1',
+                          backgroundColor: statusFilter === f.code ? '#0284c7' : '#fff',
+                          color: statusFilter === f.code ? '#fff' : '#475569',
                         }}
                       >
-                        {inv.maHoaDonNhap} ({isPending ? 'Chờ ký duyệt' : 'Đã hoàn tất'})
+                        {f.label}
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                  {branchInvoices
+                    .filter(inv => !statusFilter || getPoStatusCode(inv) === statusFilter)
+                    .slice(0, 12)
+                    .map(inv => {
+                      const meta = getPoStatusMeta(inv);
+                      const isSelected = selectedInvoice?.id === inv.id;
+                      return (
+                        <button
+                          key={inv.id}
+                          type="button"
+                          onClick={() => {
+                            setSearchMaPhieu(inv.maHoaDonNhap || inv.id);
+                            handleSearchInvoice(inv.maHoaDonNhap || inv.id);
+                          }}
+                          style={{
+                            backgroundColor: isSelected ? '#0284c7' : meta.bg,
+                            color: isSelected ? '#fff' : meta.color,
+                            border: `1px solid ${isSelected ? '#0284c7' : meta.border}`,
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {inv.maHoaDonNhap} · {meta.label}
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
             )}
           </div>
 
-          {selectedInvoice && (
-            <form onSubmit={handleBranchConfirmReceipt}>
-              <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '14px', marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '13px' }}>
+          {selectedInvoice && (() => {
+            const invStatusCode = getPoStatusCode(selectedInvoice);
+            const invStatusMeta = getPoStatusMeta(selectedInvoice);
+            const canInspectNow = (invStatusCode === 'DA_DUYET' || invStatusCode === 'DANG_KIEM_KE') && (isBranchManager || isWarehouse);
+            const canSignFlow = invStatusCode === 'DA_DUYET' || invStatusCode === 'DANG_KIEM_KE';
+            const sigProgress = selectedInvoice.signatureProgress;
+
+            return (
+            <div>
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '13px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
-                    <span style={{ color: '#166534', fontWeight: 'bold' }}>Mã Phiếu Nhập:</span>
-                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#14532d' }}>{selectedInvoice.maHoaDonNhap}</div>
+                    <span style={{ color: '#475569', fontWeight: 'bold' }}>Mã Phiếu Nhập:</span>
+                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#0f172a' }}>{selectedInvoice.maHoaDonNhap}</div>
                   </div>
                   <button
                     type="button"
@@ -1208,30 +1355,92 @@ const AdminNhapLoPage = () => {
                   </button>
                 </div>
                 <div>
-                  <span style={{ color: '#166534', fontWeight: 'bold' }}>Nhà Cung Cấp:</span>
+                  <span style={{ color: '#475569', fontWeight: 'bold' }}>Nhà Cung Cấp:</span>
                   <div>{selectedInvoice.nhaCungCap?.tenNcc || selectedInvoice.nhaCungCap?.TENNCC || '-'}</div>
                 </div>
                 <div>
-                  <span style={{ color: '#166534', fontWeight: 'bold' }}>Ngày Lập Phiếu:</span>
-                  <div>{formatDateOnly(selectedInvoice.ngayNhap)}</div>
+                  <span style={{ color: '#475569', fontWeight: 'bold' }}>Người Tạo / Ngày Lập:</span>
+                  <div>
+                    {selectedInvoice.nguoiNhap?.hoTen || '-'} ({selectedInvoice.nguoiTaoRole === 'MANAGER' ? 'Quản lý CN' : 'Nhân viên kho'}) · {formatDateOnly(selectedInvoice.ngayNhap)}
+                  </div>
                 </div>
                 <div>
-                  <span style={{ color: '#166534', fontWeight: 'bold' }}>Trạng Thái:</span>
-                  <div>
-                    {selectedInvoice.trangThai === 1 ? (
-                      <span className="admin-badge admin-badge-success">Đã Ký Duyệt & Nhập Kho Hoàn Tất</span>
-                    ) : (
-                      <span className="admin-badge admin-badge-warning">Chờ Ký Duyệt (Quản Lý CN hoặc Kho + Kế Toán)</span>
-                    )}
+                  <span style={{ color: '#475569', fontWeight: 'bold' }}>Trạng Thái:</span>
+                  <div style={{ marginTop: '4px' }}>
+                    <span style={{
+                      backgroundColor: invStatusMeta.bg,
+                      color: invStatusMeta.color,
+                      border: `1px solid ${invStatusMeta.border}`,
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                    }}>
+                      {invStatusMeta.label}
+                    </span>
                   </div>
                 </div>
               </div>
 
+              {/* DUYỆT / TỪ CHỐI CHO PHIẾU CHỜ DUYỆT */}
+              {invStatusCode === 'CHO_DUYET' && (
+                <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '14px', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ fontSize: '13px', color: '#92400e' }}>
+                    <strong>Phiếu đang chờ Quản lý chi nhánh duyệt:</strong> Chỉ sau khi được duyệt (<code>DA_DUYET</code>), chi nhánh mới được kiểm kê và ký nhận khi nhà cung cấp giao hàng.
+                  </div>
+                  {isBranchManager && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-success"
+                        disabled={isActionSubmitting}
+                        onClick={() => handleApprovePO(selectedInvoice)}
+                        style={{ padding: '8px 16px', fontSize: '13px' }}
+                      >
+                        <i className="fa-solid fa-check" style={{ marginRight: '6px' }}></i>
+                        Duyệt Phiếu
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-danger"
+                        disabled={isActionSubmitting}
+                        onClick={() => { setRejectModalInvoice(selectedInvoice); setRejectReason(''); }}
+                        style={{ padding: '8px 16px', fontSize: '13px' }}
+                      >
+                        <i className="fa-solid fa-xmark" style={{ marginRight: '6px' }}></i>
+                        Từ Chối
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* THÔNG BÁO TỪ CHỐI */}
+              {invStatusCode === 'TU_CHOI' && (
+                <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '14px', marginBottom: '1.25rem', color: '#991b1b', fontSize: '13px' }}>
+                  <strong>Phiếu đã bị từ chối:</strong> {selectedInvoice.lyDoTuChoi || 'Không có lý do chi tiết.'} (Không thể nhận hàng hoặc cộng tồn kho cho phiếu này).
+                </div>
+              )}
+
               <div style={{ marginBottom: '1.5rem' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 10px 0', color: 'var(--admin-primary)' }}>
-                  <i className="fa-solid fa-list-check" style={{ marginRight: '6px' }}></i>
-                  Bảng Đối Chiếu Sản Phẩm: SL Chứng Từ vs SL Thực Nhận
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: 0, color: 'var(--admin-primary)' }}>
+                    <i className="fa-solid fa-list-check" style={{ marginRight: '6px' }}></i>
+                    Bảng Đối Chiếu Sản Phẩm: SL Đặt vs SL Thực Nhận
+                  </h3>
+                  {canInspectNow && (
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-primary"
+                      disabled={isActionSubmitting}
+                      onClick={handleSaveInspection}
+                      style={{ padding: '7px 14px', fontSize: '13px' }}
+                    >
+                      <i className="fa-solid fa-floppy-disk" style={{ marginRight: '6px' }}></i>
+                      {isActionSubmitting ? 'Đang lưu...' : 'Lưu SL Thực Nhận (Kiểm Kê)'}
+                    </button>
+                  )}
+                </div>
 
                 <div style={{ overflowX: 'auto' }}>
                   <table className="admin-table" style={{ fontSize: '13px' }}>
@@ -1243,7 +1452,7 @@ const AdminNhapLoPage = () => {
                         <th style={{ width: '130px', textAlign: 'center' }}>SL Chứng Từ</th>
                         <th style={{ width: '160px', textAlign: 'center' }}>SL Thực Nhận *</th>
                         <th style={{ width: '130px', textAlign: 'center' }}>Đối Chiếu</th>
-                        <th>Ghi Chú Kiểm Đếm / Hao Hụt</th>
+                        <th>Ghi Chú Chênh Lệch</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1264,7 +1473,7 @@ const AdminNhapLoPage = () => {
                               {item.soLuongChungTu}
                             </td>
                             <td style={{ textAlign: 'center' }}>
-                              {selectedInvoice.trangThai === 1 ? (
+                              {!canInspectNow ? (
                                 <span style={{ fontWeight: 'bold', fontSize: '14px', color: isShort ? '#dc2626' : '#16a34a' }}>
                                   {item.soLuongThucNhan}
                                 </span>
@@ -1303,7 +1512,7 @@ const AdminNhapLoPage = () => {
                               )}
                             </td>
                             <td>
-                              {selectedInvoice.trangThai === 1 ? (
+                              {!canInspectNow ? (
                                 <span>{item.lyDoHaoHut || '-'}</span>
                               ) : (
                                 <input
@@ -1324,45 +1533,102 @@ const AdminNhapLoPage = () => {
                 </div>
               </div>
 
-              {selectedInvoice.trangThai !== 1 && (
-                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '14px', marginBottom: '1.5rem' }}>
-                  <h4 style={{ margin: '0 0 6px 0', color: '#1e40af', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <i className="fa-solid fa-signature"></i> Chữ Ký Xác Nhận Theo Vai Trò Của Bạn <span style={{ color: 'red' }}>*</span>
-                  </h4>
-                  <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#1e3a8a' }}>
-                    Hệ thống sẽ tự động ghi nhận chữ ký vào đúng vị trí role của bạn (Quản lý chi nhánh / Nhân viên kho / Nhân viên kế toán).
-                  </p>
-                  {(kyNguoiNhanData || savedSignature) && (
-                    <div style={{ backgroundColor: '#dcfce7', border: '1px solid #86efac', color: '#166534', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', marginBottom: '10px', fontWeight: 600 }}>
-                      <i className="fa-solid fa-circle-check" style={{ marginRight: '6px' }}></i>
-                      Đã tự động nạp chữ ký số đã lưu của bạn. Bạn có thể bấm <b>Xác Nhận Kiểm Đếm & Ký Duyệt</b> ngay mà không cần ký lại.
+              {/* TIẾN ĐỘ CHỮ KÝ XÁC NHẬN THEO TỪNG VAI TRÒ */}
+              {sigProgress && (
+                <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '16px', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                    <h4 style={{ margin: 0, color: '#0f172a', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <i className="fa-solid fa-file-signature" style={{ color: '#0284c7' }}></i>
+                      Tiến Độ Ký Xác Nhận ({sigProgress.totalSigned}/{sigProgress.totalRequired} chữ ký)
+                    </h4>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                      Quy tắc: {sigProgress.creatorRole === 'MANAGER' ? 'Quản lý tạo (2 chữ ký)' : 'Nhân viên kho tạo (3 chữ ký)'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: canSignFlow ? '14px' : 0 }}>
+                    {(sigProgress.requiredRoles || []).map(roleItem => {
+                      const canSignThis = canCurrentUserSignRole(roleItem);
+                      return (
+                        <div
+                          key={roleItem.vaiTroKy}
+                          style={{
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: `1px solid ${roleItem.signed ? '#86efac' : '#e2e8f0'}`,
+                            backgroundColor: roleItem.signed ? '#f0fdf4' : '#fff',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <strong style={{ fontSize: '13px', color: '#1e293b' }}>{roleItem.label}</strong>
+                            <span style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              backgroundColor: roleItem.signed ? '#dcfce7' : '#fef3c7',
+                              color: roleItem.signed ? '#15803d' : '#b45309',
+                            }}>
+                              {roleItem.signed ? 'Đã ký' : 'Chưa ký'}
+                            </span>
+                          </div>
+                          {roleItem.signed ? (
+                            <div style={{ fontSize: '12px', color: '#475569' }}>
+                              <div>Người ký: <b>{roleItem.tenNguoiKy || '-'}</b></div>
+                              <div>Lúc: {roleItem.thoiGianKy ? new Date(roleItem.thoiGianKy).toLocaleString('vi-VN') : '-'}</div>
+                            </div>
+                          ) : canSignThis ? (
+                            <div style={{ marginTop: '8px' }}>
+                              {roleItem.isExternalCarrier && (
+                                <input
+                                  type="text"
+                                  className="admin-input"
+                                  placeholder="Họ tên người giao / vận chuyển..."
+                                  value={carrierSignerName}
+                                  onChange={e => setCarrierSignerName(e.target.value)}
+                                  style={{ padding: '6px 8px', fontSize: '12px', marginBottom: '8px' }}
+                                />
+                              )}
+                              <button
+                                type="button"
+                                className="admin-btn admin-btn-success"
+                                disabled={isActionSubmitting}
+                                onClick={() => handleSignRolePO(roleItem)}
+                                style={{ width: '100%', padding: '7px 10px', fontSize: '12px' }}
+                              >
+                                <i className="fa-solid fa-pen-nib" style={{ marginRight: '6px' }}></i>
+                                {isActionSubmitting ? 'Đang ký...' : `Ký phần ${roleItem.label}`}
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                              {canSignFlow ? 'Chờ đúng vai trò này ký xác nhận' : 'Chưa thể ký ở trạng thái hiện tại'}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {canSignFlow && (
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}>
+                      <div style={{ fontSize: '12px', color: '#475569', marginBottom: '8px' }}>
+                        Chữ ký điện tử (tùy chọn vẽ mới hoặc dùng chữ ký đã lưu trong hồ sơ):
+                      </div>
+                      <SignatureCanvas
+                        key={sigReceiverKey}
+                        height={140}
+                        initialSignature={kyNguoiNhanData || savedSignature}
+                        onSave={(base64Img) => { setKyNguoiNhanData(base64Img); setKyVanChuyenData(base64Img); }}
+                        onClear={() => { setKyNguoiNhanData(null); setKyVanChuyenData(null); }}
+                      />
                     </div>
                   )}
-                  <SignatureCanvas
-                    key={sigReceiverKey}
-                    height={180}
-                    initialSignature={kyNguoiNhanData || savedSignature}
-                    onSave={(base64Img) => setKyNguoiNhanData(base64Img)}
-                    onClear={() => setKyNguoiNhanData(null)}
-                  />
                 </div>
               )}
-
-              {selectedInvoice.trangThai !== 1 && (
-                <div style={{ textAlign: 'right' }}>
-                  <button
-                    type="submit"
-                    className="admin-btn admin-btn-success"
-                    disabled={isLoading}
-                    style={{ padding: '10px 24px', fontSize: '15px' }}
-                  >
-                    <i className="fa-solid fa-box-open" style={{ marginRight: '8px' }}></i>
-                    {isLoading ? 'Đang Xử Lý...' : 'Xác Nhận Kiểm Đếm & Ký Duyệt Phiếu Nhập'}
-                  </button>
-                </div>
-              )}
-            </form>
-          )}
+            </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1551,6 +1817,48 @@ const AdminNhapLoPage = () => {
         onClose={() => setIsPrintModalOpen(false)}
         invoice={printInvoiceData}
       />
+
+      {/* MODAL NHẬP LÝ DO TỪ CHỐI PHIẾU NHẬP */}
+      {rejectModalInvoice && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 12px 32px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginTop: 0, color: '#991b1b' }}>
+              <i className="fa-solid fa-circle-xmark" style={{ marginRight: '8px' }}></i>
+              Từ Chối Phiếu Nhập {rejectModalInvoice.maHoaDonNhap}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#475569' }}>
+              Vui lòng nhập rõ lý do từ chối. Phiếu sau khi từ chối sẽ chuyển sang trạng thái <b>Từ chối (TU_CHOI)</b> và không được nhận hàng.
+            </p>
+            <textarea
+              className="admin-input"
+              rows={3}
+              placeholder="VD: Sai số lượng đặt, sai nhà cung cấp hoặc đơn giá chưa phù hợp..."
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              style={{ width: '100%', marginBottom: '14px' }}
+              autoFocus
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                type="button"
+                className="admin-btn admin-btn-secondary"
+                onClick={() => setRejectModalInvoice(null)}
+                disabled={isActionSubmitting}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="admin-btn admin-btn-danger"
+                onClick={handleConfirmRejectPO}
+                disabled={isActionSubmitting}
+              >
+                {isActionSubmitting ? 'Đang xử lý...' : 'Xác Nhận Từ Chối'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

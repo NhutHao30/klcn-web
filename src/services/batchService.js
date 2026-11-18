@@ -95,6 +95,26 @@ export const xacNhanNhapKho = async (id, data) => {
   return response.data;
 };
 
+export const approvePurchaseOrder = async (id, data = {}) => {
+  const response = await axiosClient.post(`/hoadon-nhap/${id}/duyet`, data);
+  return response.data;
+};
+
+export const rejectPurchaseOrder = async (id, data) => {
+  const response = await axiosClient.post(`/hoadon-nhap/${id}/tu-choi`, data);
+  return response.data;
+};
+
+export const inspectPurchaseOrder = async (id, data) => {
+  const response = await axiosClient.put(`/hoadon-nhap/${id}/kiem-ke`, data);
+  return response.data;
+};
+
+export const signPurchaseOrder = async (id, data) => {
+  const response = await axiosClient.post(`/hoadon-nhap/${id}/ky-nhan`, data);
+  return response.data;
+};
+
 export const getBranchRequests = async () => {
   const response = await axiosClient.get('/admin/transfers/requests');
   return response.data;
