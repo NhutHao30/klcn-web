@@ -855,15 +855,6 @@ const AdminNhapLoPage = () => {
               <i className="fa-solid fa-plus-circle" style={{ marginRight: '6px' }}></i>
               {isWarehouse ? '1. Tạo Yêu Cầu Nhập Lô Hàng Mới' : '1. Tạo Đơn Nhập Hàng Mới Cho Chi Nhánh'}
             </button>
-            <button
-              type="button"
-              className={`admin-btn ${managerTab === 'requests' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
-              onClick={() => setManagerTab('requests')}
-              style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
-            >
-              <i className="fa-solid fa-clipboard-check" style={{ marginRight: '6px' }}></i>
-              2. Tạo Nhanh Từ Yêu Cầu Nhập Hàng ({filteredBranchRequests.length})
-            </button>
             {isBranchManager ? (
               <>
                 <button
@@ -877,7 +868,7 @@ const AdminNhapLoPage = () => {
                   style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
                 >
                   <i className="fa-solid fa-stamp" style={{ marginRight: '6px' }}></i>
-                  3. Duyệt Đơn ({branchInvoices.filter(i => getPoStatusCode(i) === 'CHO_DUYET').length} chờ duyệt)
+                  2. Duyệt Đơn ({branchInvoices.filter(i => getPoStatusCode(i) === 'CHO_DUYET').length} chờ duyệt)
                 </button>
                 <button
                   type="button"
@@ -890,7 +881,7 @@ const AdminNhapLoPage = () => {
                   style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
                 >
                   <i className="fa-solid fa-boxes-packing" style={{ marginRight: '6px' }}></i>
-                  4. Kiểm Đếm Phiếu Nhập ({branchInvoices.filter(i => ['DA_DUYET', 'DANG_KIEM_KE'].includes(getPoStatusCode(i))).length} chờ kiểm đếm)
+                  3. Kiểm Đếm Phiếu Nhập ({branchInvoices.filter(i => ['DA_DUYET', 'DANG_KIEM_KE'].includes(getPoStatusCode(i))).length} chờ kiểm đếm)
                 </button>
               </>
             ) : (
@@ -901,7 +892,7 @@ const AdminNhapLoPage = () => {
                 style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '8px' }}
               >
                 <i className="fa-solid fa-boxes-packing" style={{ marginRight: '6px' }}></i>
-                3. Kiểm Đếm & Ký Nhận Phiếu Nhập ({branchInvoices.filter(i => ['DA_DUYET', 'DANG_KIEM_KE'].includes(getPoStatusCode(i))).length} chờ xử lý)
+                2. Kiểm Đếm & Ký Nhận Phiếu Nhập ({branchInvoices.filter(i => ['DA_DUYET', 'DANG_KIEM_KE'].includes(getPoStatusCode(i))).length} chờ xử lý)
               </button>
             )}
           </div>
