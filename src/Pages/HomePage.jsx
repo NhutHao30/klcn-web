@@ -287,10 +287,12 @@ const HomePage = () => {
                         onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/assets/IMG/category_1.webp"; }}
                     />
                     <ul className="product-bestSale-tag-list">
-                        {discount > 0 && (
+                        {discount > 0 ? (
                             <li className="product-bestSale-tag-item">
                                 -{discount}%
                             </li>
+                        ) : (
+                            <li className="product-bestSale-tag-item--off"></li>
                         )}
                         <li className="product-bestSale-tag-item product-sale__tag-icon--noLike-js">
                             <i className="product-bestSale__tag-icon--noLike fa-regular fa-heart"></i>
@@ -311,7 +313,9 @@ const HomePage = () => {
                     </div>
                     <ul className="product-sale__price">
                         <li className="product-sale__price-sale product-sale__price-sale-js">{formatPrice(salePrice)}</li>
-                        <li className="product-sale__price-original product-sale__price-original-js">{formatPrice(price)}</li>
+                        {discount > 0 && (
+                            <li className="product-sale__price-original product-sale__price-original-js">{formatPrice(price)}</li>
+                        )}
                     </ul>
                 </div>
             </li>
