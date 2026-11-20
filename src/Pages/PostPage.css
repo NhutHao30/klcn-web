@@ -51,6 +51,7 @@
     position: relative;
     overflow: hidden;
     height: 200px;
+    isolation: isolate;
 }
 .news-img-wrapper img {
     width: 100%;
@@ -71,7 +72,7 @@
     border-radius: 4px;
     font-size: 12px;
     font-weight: bold;
-    z-index: 2;
+    z-index: 1;
 }
 .news-card-body {
     padding: 20px;

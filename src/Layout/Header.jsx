@@ -421,10 +421,13 @@ const Header = () => {
                     <div className="header-gioiThieu">
                         <img src="../../assets/IMG/breadcrumb.jpg" alt="" className="header-gioiThieu-img" />
                         <div className="radient">
-                            <div className={`navigation navigation-js ${isScrolled ? "navigation-croll is-sticky" : ""}`}>
-                                <div className="container">
-                                    <div className="row">
-                                        <ul className="nav-list col-lg-12">
+                            <Breadcrumb />
+                        </div>
+                    </div>
+                    <div className={`navigation navigation-js ${isScrolled ? "navigation-croll is-sticky" : ""}`}>
+                        <div className="container">
+                            <div className="row">
+                                <ul className="nav-list col-lg-12">
                                             <li className="nav-item menuBars hide-on-pc hide-on-tablet ">
                                                 <span className="hide-on-pc">
                                                     <i className="fa-solid fa-bars "></i>
@@ -540,9 +543,6 @@ const Header = () => {
                                     </div>
                                 </div>
                             </div>
-                            <Breadcrumb />
-                        </div>
-                    </div>
                 </>
             )}
         </header>
