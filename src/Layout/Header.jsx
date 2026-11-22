@@ -376,26 +376,28 @@ const Header = () => {
                                                     ) : (
                                                         <>
                                                             <h4 style={{ textAlign: 'left', padding: '10px 15px', margin: 0, borderBottom: '1px solid #eee', color: '#999', fontSize: '14px', fontWeight: 'normal' }}>Sản phẩm mới thêm</h4>
-                                                            {cartItems.map((item, idx) => (
-                                                                <li key={idx} className="cart-item" style={{ display: 'flex', padding: '10px 15px', alignItems: 'center', borderBottom: '1px solid #eee', gap: '10px' }}>
-                                                                    <img src={getImageSrc(item.image)} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }} />
-                                                                    <div style={{ flex: 1, textAlign: 'left', overflow: 'hidden' }}>
-                                                                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#333', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                                                                            {item.name || "Sản phẩm"}
+                                                            <div className="cart-items-scroll">
+                                                                {cartItems.map((item, idx) => (
+                                                                    <li key={idx} className="cart-item cart-item--product" style={{ display: 'flex', padding: '10px 15px', alignItems: 'center', borderBottom: '1px solid #eee', gap: '10px', height: 'auto' }}>
+                                                                        <img src={getImageSrc(item.image)} style={{ width: '64px', height: '64px', flexShrink: 0, objectFit: 'cover', borderRadius: '4px' }} />
+                                                                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left', overflow: 'hidden' }}>
+                                                                            <div style={{ fontSize: '14px', lineHeight: '1.4', fontWeight: '600', color: '#333', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                                                                {item.name || "Sản phẩm"}
+                                                                            </div>
+                                                                            <div style={{ fontSize: '13px', lineHeight: '1.4', color: 'var(--primary-color)', fontWeight: 'bold', marginTop: '2px' }}>
+                                                                                {(item.price || 0).toLocaleString('vi-VN')}₫ <span style={{ color: '#999', fontSize: '12px', fontWeight: 'normal' }}>x{item.quantity || 1}</span>
+                                                                            </div>
                                                                         </div>
-                                                                        <div style={{ fontSize: '13px', color: 'var(--primary-color)', fontWeight: 'bold', marginTop: '2px' }}>
-                                                                            {(item.price || 0).toLocaleString('vi-VN')}₫ <span style={{ color: '#999', fontSize: '12px', fontWeight: 'normal' }}>x{item.quantity || 1}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <button
-                                                                        onClick={(e) => handleRemoveItem(e, item.id)}
-                                                                        style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '14px', padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                                        title="Xóa sản phẩm khỏi giỏ"
-                                                                    >
-                                                                        <i className="fa-solid fa-trash-can"></i>
-                                                                    </button>
-                                                                </li>
-                                                            ))}
+                                                                        <button
+                                                                            onClick={(e) => handleRemoveItem(e, item.id)}
+                                                                            style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '14px', padding: '5px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                            title="Xóa sản phẩm khỏi giỏ"
+                                                                        >
+                                                                            <i className="fa-solid fa-trash-can"></i>
+                                                                        </button>
+                                                                    </li>
+                                                                ))}
+                                                            </div>
                                                             <div style={{ padding: '10px', textAlign: 'center' }}>
                                                                 <Link to="/gio-hang" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--primary-color)', color: 'white', padding: '10px 60px', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', height: '40px', width: '100%' }}>
                                                                     Xem giỏ hàng
@@ -507,9 +509,9 @@ const Header = () => {
                                                                     <h4 style={{ textAlign: 'left', padding: '10px 15px', margin: 0, borderBottom: '1px solid #eee', color: 'var(--primary-color)', fontSize: '16px', fontWeight: '500' }}>Sản phẩm mới thêm</h4>
                                                                     <div className="cart-items-scroll">
                                                                         {cartItems.map((item, idx) => (
-                                                                            <li key={idx} className="cart-item" style={{ display: 'flex', padding: '10px 15px', alignItems: 'center', borderBottom: '1px solid #eee', gap: '10px' }}>
-                                                                                <img src={getImageSrc(item.image)} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }} />
-                                                                                <div style={{ flex: 1, textAlign: 'left', overflow: 'hidden' }}>
+                                                                            <li key={idx} className="cart-item cart-item--product" style={{ display: 'flex', padding: '10px 15px', alignItems: 'center', borderBottom: '1px solid #eee', gap: '10px', height: 'auto' }}>
+                                                                                <img src={getImageSrc(item.image)} style={{ width: '64px', height: '64px', flexShrink: 0, objectFit: 'cover', borderRadius: '4px' }} />
+                                                                                <div style={{ flex: 1, minWidth: 0, textAlign: 'left', overflow: 'hidden' }}>
                                                                                     <div style={{ fontSize: '14px', lineHeight: '1.4', fontWeight: '600', color: '#333', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                                                                                         {item.name || "Sản phẩm"}
                                                                                     </div>
@@ -519,7 +521,7 @@ const Header = () => {
                                                                                 </div>
                                                                                 <button
                                                                                     onClick={(e) => handleRemoveItem(e, item.id)}
-                                                                                    style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '14px', padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                                    style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '14px', padding: '5px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                                                     title="Xóa sản phẩm khỏi giỏ"
                                                                                 >
                                                                                     <i className="fa-solid fa-trash-can"></i>

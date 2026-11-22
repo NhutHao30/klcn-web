@@ -672,6 +672,20 @@ header {
     height: 28px;
 }
 
+.cart-items-scroll .cart-item,
+.cart-items-scroll .cart-item:first-child,
+.cart-items-scroll .cart-item:last-child,
+.cart-item.cart-item--product,
+.cart-item.cart-item--product:first-child,
+.cart-item.cart-item--product:last-child {
+    height: auto !important;
+    min-height: 0;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .noCart-img {
     width: 50px;
     height: 40px;

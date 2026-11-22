@@ -152,6 +152,16 @@
         margin: 0;
     }
 
+    .cart-items-scroll .cart-item,
+    .cart-items-scroll .cart-item:first-child,
+    .cart-items-scroll .cart-item:last-child,
+    .cart-item.cart-item--product,
+    .cart-item.cart-item--product:first-child,
+    .cart-item.cart-item--product:last-child {
+        height: auto !important;
+        justify-content: flex-start;
+    }
+
     .cart-item__title {
         margin: 0;
         height: 100%;
