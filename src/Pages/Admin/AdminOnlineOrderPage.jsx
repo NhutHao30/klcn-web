@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../Layout/AdminLayout';
 import { getInvoices, updateInvoiceStatus, getInvoiceDetails, getGhnTrackingDetail, updateOrderItemsApi, refundOrderApi, approveReturnOrderApi, rejectReturnOrderApi } from '../../services/invoiceService';
+import { getCurrentUser } from '../../services/authService';
 import { useToast } from '../../components/Toast/Toast';
 import { formatImageUrl } from '../../utils/imageUtils';
 import axiosClient from '../../services/axiosClient';
@@ -112,15 +113,22 @@ const getBankBin = (bankName) => {
 
 const AdminOnlineOrderPage = () => {
   const toast = useToast();
-  const currentUser = (() => {
+  const [currentUser, setCurrentUser] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('user') || 'null');
+      const raw = sessionStorage.getItem('current_user') || localStorage.getItem('user');
+      return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
-  })();
+  });
   const currentVaiTroId = Number(currentUser?.vaiTroId || currentUser?.role_id || currentUser?.vaitro?.id || 0);
-  const currentBranchId = Number(currentUser?.nguoidung?.cuaHangId || currentUser?.cuaHangId || currentUser?.storeId || 0);
+  const currentBranchId = Number(
+    currentUser?.nguoidung?.cuaHangId ||
+    currentUser?.nhanvien?.cuaHangId ||
+    currentUser?.cuaHangId ||
+    currentUser?.storeId ||
+    0
+  );
   const isSalesStaff = currentVaiTroId === 3;
   const canProcessOrder = (order) => {
     if (!isSalesStaff || currentBranchId <= 0) return false;
@@ -190,6 +198,9 @@ const AdminOnlineOrderPage = () => {
   };
 
   useEffect(() => {
+    getCurrentUser().then((u) => {
+      if (u) setCurrentUser(u);
+    }).catch(() => {});
     fetchOrders();
     import('../../services/axiosClient').then(m => {
       m.default.get('/products').then(res => {
