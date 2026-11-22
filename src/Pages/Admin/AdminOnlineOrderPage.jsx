@@ -112,6 +112,21 @@ const getBankBin = (bankName) => {
 
 const AdminOnlineOrderPage = () => {
   const toast = useToast();
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  })();
+  const currentVaiTroId = Number(currentUser?.vaiTroId || currentUser?.role_id || currentUser?.vaitro?.id || 0);
+  const currentBranchId = Number(currentUser?.nguoidung?.cuaHangId || currentUser?.cuaHangId || currentUser?.storeId || 0);
+  const isSalesStaff = currentVaiTroId === 3;
+  const canProcessOrder = (order) => {
+    if (!isSalesStaff || currentBranchId <= 0) return false;
+    const orderBranchId = Number(order?.cuaHangId || 0);
+    return orderBranchId <= 0 || orderBranchId === currentBranchId;
+  };
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -823,7 +838,7 @@ const AdminOnlineOrderPage = () => {
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                               <span style={{ fontSize: '11px', color: '#94a3b8' }}>Chưa phát sinh</span>
-                              {['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(normSt) && (
+                              {canProcessOrder(order) && ['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(normSt) && (
                                 <button
                                   type="button"
                                   onClick={() => handleCreateGhnOrder(orderId)}
@@ -867,7 +882,7 @@ const AdminOnlineOrderPage = () => {
                               <i className="fa-solid fa-eye" style={{ marginRight: '4px' }}></i> Chi tiết
                             </button>
 
-                            {colConfig?.nextStatus && (
+                            {canProcessOrder(order) && colConfig?.nextStatus && (
                               <button
                                 type="button"
                                 className="admin-btn admin-btn-primary"
@@ -1274,7 +1289,7 @@ const AdminOnlineOrderPage = () => {
                                 🚚 GHN
                               </button>
                             </div>
-                          ) : (['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(col.id) && (
+                          ) : (canProcessOrder(order) && ['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(col.id) && (
                             <div style={{ marginBottom: '8px' }}>
                               <button
                                 type="button"
@@ -1305,7 +1320,7 @@ const AdminOnlineOrderPage = () => {
                               <b style={{ color: '#b45309', fontSize: '13px' }}>{tongTien.toLocaleString('vi-VN')}đ</b>
                             </div>
 
-                            {col.nextStatus ? (
+                            {canProcessOrder(order) && col.nextStatus ? (
                               <button
                                 type="button"
                                 className="admin-btn admin-btn-primary"
@@ -1318,7 +1333,7 @@ const AdminOnlineOrderPage = () => {
                               >
                                 {col.nextLabel} <i className="fa-solid fa-arrow-right" style={{ marginLeft: '4px' }}></i>
                               </button>
-                            ) : isReturnReq ? (
+                            ) : canProcessOrder(order) && isReturnReq ? (
                               <button
                                 type="button"
                                 style={{
@@ -1342,7 +1357,7 @@ const AdminOnlineOrderPage = () => {
                           </div>
 
                           {/* Quick Cancel button for early stages */}
-                          {['CHO_XAC_NHAN', 'DANG_CHE_BIEN'].includes(col.id) && (
+                          {canProcessOrder(order) && ['CHO_XAC_NHAN', 'DANG_CHE_BIEN'].includes(col.id) && (
                             <div style={{ marginTop: '8px', textAlign: 'right' }}>
                               {(Number(order.trangThaiThanhToan) === 1 || Boolean(order.minhChungThanhToan)) ? (
                                 <span style={{ fontSize: '11px', color: '#b45309', fontWeight: 'bold' }}>
@@ -1418,41 +1433,48 @@ const AdminOnlineOrderPage = () => {
               </div>
 
               {/* Thanh điều khiển nhân viên chủ động cập nhật trạng thái đơn hàng */}
-              <div style={{ backgroundColor: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '8px', padding: '10px 14px', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#166534' }}>
-                    <i className="fa-solid fa-arrows-rotate" style={{ marginRight: '6px' }}></i>
-                    Chủ động cập nhật trạng thái:
-                  </span>
-                  <select
-                    value={normalizeStatus(selectedOrder.TRANGTHAI || selectedOrder.trangThai || selectedOrder.trangThaiDonHang)}
-                    onChange={async (e) => {
-                      const newSt = e.target.value;
-                      const oId = selectedOrder.MAHD || selectedOrder.MAHDBAN || selectedOrder.maHD || selectedOrder.id;
-                      await handleStatusChange(oId, newSt);
-                      setSelectedOrder(prev => prev ? ({ ...prev, TRANGTHAI: newSt, trangThai: newSt, trangThaiDonHang: newSt }) : null);
-                    }}
-                    style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', borderRadius: '6px', border: '1.5px solid #16a34a', backgroundColor: '#fff', color: '#166534', cursor: 'pointer', outline: 'none' }}
-                  >
-                    <option value="CHO_XAC_NHAN">⏳ Chờ xác nhận</option>
-                    <option value="DANG_CHE_BIEN">👨‍🍳 Đang chuẩn bị (Chế biến)</option>
-                    <option value="CHO_LAY_HANG">📦 Chờ lấy hàng (Sẵn sàng GHN)</option>
-                    <option value="DANG_GIAO">🚚 Đang giao hàng (Bàn giao Shipper)</option>
-                    <option value="HOAN_THANH">✅ Giao thành công (Hoàn thành)</option>
-                    <option value="DA_HUY">❌ Hủy đơn hàng</option>
-                  </select>
-                </div>
+              {canProcessOrder(selectedOrder) ? (
+                <div style={{ backgroundColor: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '8px', padding: '10px 14px', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#166534' }}>
+                      <i className="fa-solid fa-arrows-rotate" style={{ marginRight: '6px' }}></i>
+                      Chủ động cập nhật trạng thái:
+                    </span>
+                    <select
+                      value={normalizeStatus(selectedOrder.TRANGTHAI || selectedOrder.trangThai || selectedOrder.trangThaiDonHang)}
+                      onChange={async (e) => {
+                        const newSt = e.target.value;
+                        const oId = selectedOrder.MAHD || selectedOrder.MAHDBAN || selectedOrder.maHD || selectedOrder.id;
+                        await handleStatusChange(oId, newSt);
+                        setSelectedOrder(prev => prev ? ({ ...prev, TRANGTHAI: newSt, trangThai: newSt, trangThaiDonHang: newSt }) : null);
+                      }}
+                      style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', borderRadius: '6px', border: '1.5px solid #16a34a', backgroundColor: '#fff', color: '#166534', cursor: 'pointer', outline: 'none' }}
+                    >
+                      <option value="CHO_XAC_NHAN">⏳ Chờ xác nhận</option>
+                      <option value="DANG_CHE_BIEN">👨‍🍳 Đang chuẩn bị (Chế biến)</option>
+                      <option value="CHO_LAY_HANG">📦 Chờ lấy hàng (Sẵn sàng GHN)</option>
+                      <option value="DANG_GIAO">🚚 Đang giao hàng (Bàn giao Shipper)</option>
+                      <option value="HOAN_THANH">✅ Giao thành công (Hoàn thành)</option>
+                      <option value="DA_HUY">❌ Hủy đơn hàng</option>
+                    </select>
+                  </div>
 
-                {!(selectedOrder.maVanDon || selectedOrder.maVanDonGhn) && ['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(normalizeStatus(selectedOrder.TRANGTHAI || selectedOrder.trangThai)) && (
-                  <button
-                    type="button"
-                    onClick={() => handleCreateGhnOrder(selectedOrder.MAHD || selectedOrder.MAHDBAN || selectedOrder.maHD || selectedOrder.id)}
-                    style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#d82d8b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    🚚 Tạo / Đồng bộ mã GHN
-                  </button>
-                )}
-              </div>
+                  {!(selectedOrder.maVanDon || selectedOrder.maVanDonGhn) && ['DANG_CHE_BIEN', 'CHO_LAY_HANG'].includes(normalizeStatus(selectedOrder.TRANGTHAI || selectedOrder.trangThai)) && (
+                    <button
+                      type="button"
+                      onClick={() => handleCreateGhnOrder(selectedOrder.MAHD || selectedOrder.MAHDBAN || selectedOrder.maHD || selectedOrder.id)}
+                      style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#d82d8b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      🚚 Tạo / Đồng bộ mã GHN
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 14px', marginBottom: '1.2rem', fontSize: '12.5px', color: '#475569' }}>
+                  <i className="fa-solid fa-lock" style={{ marginRight: '6px', color: '#64748b' }}></i>
+                  Chỉ <b>Nhân viên bán hàng</b> thuộc chi nhánh của đơn hàng này mới có quyền xử lý và cập nhật trạng thái đơn.
+                </div>
+              )}
 
               {/* Thông tin hủy đơn nếu đơn đã hủy */}
               {(selectedOrder.lyDoHuy || normalizeStatus(selectedOrder.TRANGTHAI || selectedOrder.trangThai) === 'DA_HUY') && (
@@ -1588,27 +1610,29 @@ const AdminOnlineOrderPage = () => {
                         />
                       </div>
 
-                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                        <button
-                          type="button"
-                          className="admin-btn"
-                          onClick={() => setShowRejectReturnModal(true)}
-                          disabled={isProcessingReturnAction}
-                          style={{ backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '6px 14px', fontSize: '12px', fontWeight: 'bold' }}
-                        >
-                          ✕ Từ Chối Hoàn Trả
-                        </button>
-                        <button
-                          type="button"
-                          className="admin-btn"
-                          onClick={() => handleApproveReturn(selectedOrder.MAHD || selectedOrder.MAHDBAN || selectedOrder.maHD || selectedOrder.id)}
-                          disabled={isProcessingReturnAction}
-                          style={{ backgroundColor: '#16a34a', color: '#fff', border: 'none', padding: '6px 16px', fontSize: '12px', fontWeight: 'bold' }}
-                        >
-                          {isProcessingReturnAction ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-check" style={{ marginRight: '6px' }}></i>}
-                          ✓ Duyệt Trả Hàng & Hoàn Tiền
-                        </button>
-                      </div>
+                      {canProcessOrder(selectedOrder) && (
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            className="admin-btn"
+                            onClick={() => setShowRejectReturnModal(true)}
+                            disabled={isProcessingReturnAction}
+                            style={{ backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '6px 14px', fontSize: '12px', fontWeight: 'bold' }}
+                          >
+                            ✕ Từ Chối Hoàn Trả
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-btn"
+                            onClick={() => handleApproveReturn(selectedOrder.MAHD || selectedOrder.MAHDBAN || selectedOrder.maHD || selectedOrder.id)}
+                            disabled={isProcessingReturnAction}
+                            style={{ backgroundColor: '#16a34a', color: '#fff', border: 'none', padding: '6px 16px', fontSize: '12px', fontWeight: 'bold' }}
+                          >
+                            {isProcessingReturnAction ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-check" style={{ marginRight: '6px' }}></i>}
+                            ✓ Duyệt Trả Hàng & Hoàn Tiền
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1851,15 +1875,17 @@ const AdminOnlineOrderPage = () => {
               {/* Items List Header & Mode Toggle */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <h4 style={{ margin: 0, fontSize: '14px', color: '#1e293b' }}>🍰 Danh Sách Bánh Trong Đơn Hàng</h4>
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-secondary"
-                  onClick={() => setIsEditingOrder(!isEditingOrder)}
-                  style={{ padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
-                >
-                  <i className={`fa-solid ${isEditingOrder ? 'fa-xmark' : 'fa-pen-to-square'}`} style={{ marginRight: '4px' }}></i>
-                  {isEditingOrder ? 'Hủy chỉnh sửa' : '✏️ Chỉnh sửa đơn hàng'}
-                </button>
+                {canProcessOrder(selectedOrder) && (
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-secondary"
+                    onClick={() => setIsEditingOrder(!isEditingOrder)}
+                    style={{ padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
+                  >
+                    <i className={`fa-solid ${isEditingOrder ? 'fa-xmark' : 'fa-pen-to-square'}`} style={{ marginRight: '4px' }}></i>
+                    {isEditingOrder ? 'Hủy chỉnh sửa' : '✏️ Chỉnh sửa đơn hàng'}
+                  </button>
+                )}
               </div>
 
               {isLoadingDetails ? (
