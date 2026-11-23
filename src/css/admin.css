@@ -561,7 +561,8 @@
 }
 
 /* Inputs */
-.admin-input {
+.admin-input,
+.admin-select {
   width: 100%;
   padding: 0.75rem;
   font-family: var(--font-body);
@@ -572,9 +573,15 @@
   color: var(--admin-neutral);
   transition: all 0.2s;
   margin-bottom: 1rem;
+  box-sizing: border-box;
 }
 
-.admin-input:focus {
+.admin-select {
+  cursor: pointer;
+}
+
+.admin-input:focus,
+.admin-select:focus {
   outline: none;
   border-width: 2px;
   border-color: var(--admin-primary);
