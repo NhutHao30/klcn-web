@@ -966,15 +966,15 @@ const AdminPreOrderPage = () => {
                                         <td>
                                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                                                 <button className="admin-btn"
-                                                    style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '6px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', fontWeight: 600 }}
+                                                    style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '6px', backgroundColor: '#e0f2fe', color: '#0369a1', border: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
                                                     onClick={() => openDetail(o.maDHT)}>
-                                                    👁️ Chi tiết
+                                                    Chi tiết
                                                 </button>
                                                 {!['da_giao', 'da_huy'].includes(o.trangThai) && (
                                                     <button className="admin-btn"
-                                                        style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '6px', backgroundColor: '#fef3c7', color: '#b45309', border: 'none', fontWeight: 600 }}
+                                                        style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '6px', backgroundColor: '#fef3c7', color: '#b45309', border: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
                                                         onClick={() => openEditModal(o)}>
-                                                        ✏️ Sửa
+                                                        Sửa
                                                     </button>
                                                 )}
                                             </div>
@@ -1382,7 +1382,7 @@ const AdminPreOrderPage = () => {
                                 onClick={() => setShowCreate(false)}>Hủy</button>
                             <button type="submit" form="preOrderForm" className="admin-btn" style={styles.btnSuccess}
                                 disabled={creating}>
-                                {creating ? '⏳ Đang lưu...' : (editingMaDHT ? '💾 Lưu thay đổi' : '✅ Tạo đơn')}
+                                {creating ? 'Đang lưu...' : (editingMaDHT ? 'Lưu thay đổi' : 'Tạo đơn')}
                             </button>
                         </div>
                     </div>
@@ -1592,17 +1592,17 @@ const AdminPreOrderPage = () => {
                                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                                     {['cho_xac_nhan', 'da_coc'].includes(detail.trangThai) && (
                                         <button className="admin-btn" style={styles.btnInfo} onClick={() => handleUpdateStatus(detail.maDHT, 'san_sang')}>
-                                            ✅ Đánh dấu Sẵn sàng {detail.hinhThucNhan === 'giao_tan_noi' ? '(Tự tạo đơn GHN)' : ''}
+                                            Đánh dấu Sẵn sàng {detail.hinhThucNhan === 'giao_tan_noi' ? '(Tự tạo đơn GHN)' : ''}
                                         </button>
                                     )}
                                     {detail.hinhThucNhan === 'giao_tan_noi' && ['san_sang', 'dang_giao'].includes(detail.trangThai) && (
                                         <button className="admin-btn" style={{ ...styles.btnSuccess, backgroundColor: '#0284c7' }} onClick={() => handleUpdateStatus(detail.maDHT, 'da_giao')}>
-                                            📦 Xác nhận khách đã nhận hàng
+                                            Xác nhận khách đã nhận hàng
                                         </button>
                                     )}
                                     {['cho_xac_nhan', 'da_coc', 'san_sang', 'dang_giao'].includes(detail.trangThai) && detail.tienConLai > 0 && (
                                         <button className="admin-btn" style={styles.btnSuccess} onClick={() => { setPaymentMethod('Tiền mặt'); setShowPayment(true); }}>
-                                            💰 Thu tiền còn lại ({fmt(detail.tienConLai)})
+                                            Thu tiền còn lại ({fmt(detail.tienConLai)})
                                         </button>
                                     )}
                                     {!['da_giao', 'da_huy'].includes(detail.trangThai) && (
@@ -1621,13 +1621,13 @@ const AdminPreOrderPage = () => {
                                                 handleUpdateStatus(detail.maDHT, 'da_huy');
                                             }
                                         }}>
-                                            🚫 Hủy đơn
+                                            Hủy đơn
                                         </button>
                                     )}
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                     <button className="admin-btn" style={styles.btnPrint} onClick={handlePrint}>
-                                        🖨 In phiếu
+                                        In phiếu
                                     </button>
                                     <button className="admin-btn" style={styles.btnClose} onClick={() => setShowDetail(false)}>
                                         Đóng
@@ -1691,7 +1691,7 @@ const AdminPreOrderPage = () => {
                                 onClick={() => setShowPayment(false)}>Hủy</button>
                             <button className="admin-btn" style={styles.btnSuccess}
                                 disabled={paying} onClick={handleCompletePayment}>
-                                {paying ? '⏳ Đang xử lý...' : '✅ Xác nhận thu tiền'}
+                                {paying ? 'Đang xử lý...' : 'Xác nhận thu tiền'}
                             </button>
                         </div>
                     </div>
