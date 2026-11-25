@@ -1624,9 +1624,14 @@ const AdminAccountPage = () => {
                   <select
                     className="admin-input"
                     value={accountForm.vaiTroId}
-                    onChange={(e) => setAccountForm({ ...accountForm, vaiTroId: Number(e.target.value) })}
+                    disabled={Number(accountForm.vaiTroId) === 1}
+                    onChange={(e) => {
+                      const nextRole = Number(e.target.value);
+                      if (nextRole === 1) return;
+                      setAccountForm({ ...accountForm, vaiTroId: nextRole });
+                    }}
                   >
-                    {ROLE_OPTIONS.map((r) => (
+                    {ROLE_OPTIONS.filter((r) => r.id !== 1 || Number(accountForm.vaiTroId) === 1).map((r) => (
                       <option key={r.id} value={r.id}>
                         {r.label}
                       </option>

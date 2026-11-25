@@ -15,6 +15,7 @@ import { useToast } from '../../components/Toast/Toast';
 import { useConfirm } from '../../components/ConfirmModal/ConfirmModal';
 import axiosClient from '../../services/axiosClient';
 import { DatBanhTruocPrintModal } from '../../components/PrintForms';
+import { formatImageUrl } from '../../utils/imageUtils';
 
 // ─── Component Chọn địa chỉ & Tính phí ship GHN (2 cấp: Tỉnh/Thành -> Phường/Xã) ─────────────
 const GhnDeliverySelector = ({ form, setForm, formErrors }) => {
@@ -1103,7 +1104,8 @@ const AdminPreOrderPage = () => {
                                                 const pName = p.TENSP || p.tenSanPham || 'Bánh ngọt';
                                                 const pPrice = Number(p.GIABAN || p.giaBan || 0);
                                                 const pCode = p.MASP || `SP${p.id}`;
-                                                const pImg = p.HINHANH || p.hinhAnh || p.anhDaiDien || '/assets/IMG/Logo.jpg';
+                                                const rawImg = p.HINHANH || p.hinhAnh || p.hinh_anh || p.anhDaiDien || p.image;
+                                                const pImg = rawImg ? formatImageUrl(rawImg) : '/assets/IMG/Logo.jpg';
                                                 return (
                                                     <div
                                                         key={pi}
@@ -1226,7 +1228,8 @@ const AdminPreOrderPage = () => {
                                                                         const pName = p.TENSP || p.tenSanPham || '';
                                                                         const pPrice = Number(p.GIABAN || p.giaBan || 0);
                                                                         const pCode = p.MASP || `SP${p.id}`;
-                                                                        const pImg = p.HINHANH || p.hinhAnh || p.anhDaiDien || '/assets/IMG/Logo.jpg';
+                                                                        const rawImg = p.HINHANH || p.hinhAnh || p.hinh_anh || p.anhDaiDien || p.image;
+                                                const pImg = rawImg ? formatImageUrl(rawImg) : '/assets/IMG/Logo.jpg';
                                                                         return (
                                                                             <div key={pi}
                                                                                 style={{
